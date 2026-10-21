@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dự Đoán & Bản Đồ</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png', v=asset_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v=asset_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='leaflet/leaflet.css', v=asset_version) }}">
+    <script>window.L_DISABLE_3D = true;</script>
+    <script defer src="{{ url_for('static', filename='leaflet/leaflet.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='app.js', v=asset_version) }}"></script>
+</head>
+<body class="workspace-mode map-mode">
+<main class="glass-page">
+    <div class="glass-content-wrapper px-4">
+        <div class="glass-container">
+            <header class="workspace-header">
+                <div class="tabs-glass" role="tablist" aria-label="Chức năng">
+                    <button id="map-tab" class="glass-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="map-panel">Bản đồ</button>
+                    <button id="predict-tab" class="glass-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="predict-panel">Dự đoán</button>
+                </div>
+                <div class="workspace-crs">
+                    <label for="project-crs">Hệ tọa độ chung</label>
+                    <select id="project-crs" form="map-form" required>
+                        <option value="">Chọn hệ tọa độ nguồn</option>
+                        {% for crs in crs_options %}<option value="{{ crs.code }}">{{ crs.code }} · {{ crs.name }}</option>{% endfor %}
+                        <option value="custom">Nhập EPSG khác…</option>
+                    </select>
+                    <input id="project-crs-custom" form="map-form" type="text" placeholder="EPSG:9208" aria-label="Mã EPSG khác" pattern="[Ee][Pp][Ss][Gg]:[0-9]{4,6}" hidden disabled>
+                    <input id="source-crs" name="source_crs" form="map-form" type="hidden">
+                </div>
+            </header>
+
+            <section id="predict-panel" class="workspace-panel" role="tabpanel" aria-labelledby="predict-tab" hidden>
+                <div class="prediction-workspace">
+                    <aside class="map-sidebar prediction-sidebar" aria-label="Điều khiển dự đoán">
+                        <h1>Dự đoán dữ liệu</h1>
+                        <p class="sidebar-intro">Nạp dữ liệu và chọn mô hình. Xem bảng dữ liệu, kết quả ở bên phải.</p>
+                        <form id="predict-form">
+                            <h2>Dữ liệu đầu vào</h2>
+                            <label for="csv-file">File dữ liệu (.csv)</label>
+                            <input id="csv-file" name="csv" type="file" accept=".csv" required>
+                            <p class="field-note" data-file-label="csv-file" data-default-label="Chọn CSV để xem trước dữ liệu.">Chọn CSV để xem trước dữ liệu.</p>
+                            <p class="field-note">Các cột đầu vào: x1 đến x9.</p>
+                            <h2>Mô hình và chuẩn hóa</h2>
+                            <p class="field-note">Dùng file mặc định hoặc chọn file .pkl khác.</p>
+                            <label for="model-file">Mô hình</label>
+                            <input id="model-file" name="model" type="file" accept=".pkl">
+                            <p class="field-note" data-file-label="model-file" data-default-label="Mặc định: rf_model_rating.pkl">Mặc định: rf_model_rating.pkl</p>
+                            <label for="scaler-file">Bộ chuẩn hóa / scaler</label>
+                            <input id="scaler-file" name="scaler" type="file" accept=".pkl">
+                            <p class="field-note" data-file-label="scaler-file" data-default-label="Mặc định: scaler_bds.pkl">Mặc định: scaler_bds.pkl</p>
+                            <button id="predict-button" class="glass-btn-primary" type="submit">Bắt đầu dự đoán</button>
+                        </form>
+                        <p id="predict-message" class="status-message" role="status" aria-live="polite"></p>
+                    </aside>
+                    <div id="prediction-result" class="prediction-data" aria-label="Bảng dữ liệu dự đoán">
+                        <div class="prediction-toolbar">
+                            <div>
+                                <h2 id="prediction-title">Bảng dữ liệu</h2>
+                                <p id="prediction-count">Chưa có dữ liệu để hiển thị.</p>
+                            </div>
+                            <a id="prediction-export" class="prediction-export" href="/api/export" hidden>Xuất CSV</a>
+                        </div>
+                        <div id="prediction-empty" class="prediction-empty">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="6" y="8" width="36" height="32" rx="5" stroke="currentColor" stroke-width="2"/><path d="M6 18h36M6 29h36M18 18v22M30 18v22" stroke="currentColor" stroke-width="2"/></svg>
+                            <h3>Chưa có dữ liệu</h3>
+                            <p>Chọn file CSV ở bên trái để xem trước.<br>Kết quả sẽ xuất hiện tại đây sau khi dự đoán.</p>
+                        </div>
+                        <div id="prediction-table-scroll" class="prediction-table-scroll" role="region" aria-label="Dữ liệu CSV và kết quả" tabindex="0" hidden>
+                            <table id="prediction-table" class="prediction-table"></table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="map-panel" class="workspace-panel" role="tabpanel" aria-labelledby="map-tab">
+                <div class="map-workspace">
+                    <aside class="map-sidebar" aria-label="Điều khiển lớp bản đồ">
+                        <h1>Bản đồ lớp dữ liệu</h1>
+                        <p class="sidebar-intro">Nạp DXF làm layer nền và GeoPackage cho layer dự đoán. Tất cả dùng hệ tọa độ chung ở thanh trên.</p>
+                        <div class="basemap-controls">
+                            <label for="basemap-labels"><input id="basemap-labels" type="checkbox" checked aria-describedby="basemap-labels-note">Tên đường và địa danh</label>
+                            <p id="basemap-labels-note" class="field-note">Nhãn nền Esri; phóng to để xem chi tiết. Không bật nhãn chữ trong DXF.</p>
+                        </div>
+                        <div class="layer-heading"><h2>Layer đang hiển thị</h2><span id="layer-count">0</span></div>
+                        <div id="layer-list" class="layer-list"><p class="empty-layers">Chưa có layer. Chọn file bên dưới rồi nhấn Hiển thị trên bản đồ.</p></div>
+                        <form id="map-form">
+                            <h2>Dữ liệu bản đồ</h2>
+                            <label for="cad-file">Layer nền (.dxf)</label>
+                            <input id="cad-file" name="cad" type="file" accept=".dxf" multiple>
+                            <p class="field-note">Có thể chọn nhiều DXF. Chọn hệ tọa độ chung ở trên rồi nhấn Hiển thị trên bản đồ.</p>
+                            <div id="cad-options" class="cad-options"></div>
+                            <p class="field-note">Với tọa độ cục bộ, chọn Phân tích độ dịch ở từng file để xem đề xuất từ block. Chỉ áp dụng sau khi kiểm tra vị trí; EPSG vẫn do bạn chọn.</p>
+                            <details class="prediction-layer-options">
+                                <summary>Ghép layer với kết quả dự đoán</summary>
+                                <label for="layer-file">Layer dự đoán (.gpkg)</label>
+                                <input id="layer-file" name="layer" type="file" accept=".gpkg">
+                                <p id="prediction-crs-info" class="field-note"></p>
+                                <div class="offset-fields">
+                                    <label for="prediction-offset-x">Dịch X (m)<input id="prediction-offset-x" name="prediction_offset_x" type="number" step="any" value="0"></label>
+                                    <label for="prediction-offset-y">Dịch Y (m)<input id="prediction-offset-y" name="prediction_offset_y" type="number" step="any" value="0"></label>
+                                </div>
+                                <label for="result-file">Kết quả (.csv), nếu chưa chạy dự đoán</label>
+                                <input id="result-file" name="result" type="file" accept=".csv">
+                                <div id="join-controls" hidden>
+                                    <label for="gpkg-join">Cột ghép trong GeoPackage</label>
+                                    <select id="gpkg-join" class="glass-select" name="gpkg_join"></select>
+                                    <label for="csv-join">Cột ghép trong CSV</label>
+                                    <select id="csv-join" class="glass-select" name="csv_join"></select>
+                                </div>
+                            </details>
+                            <button id="map-button" class="glass-btn-primary" type="submit">Hiển thị trên bản đồ</button>
+                        </form>
+                        <p id="map-message" class="status-message" role="status" aria-live="polite"></p>
+                    </aside>
+                    <div class="map-canvas">
+                        <div id="leafletMap" aria-label="Bản đồ địa lý và các layer dữ liệu"></div>
+                        <div class="map-tip">Ảnh vệ tinh Esri · <span id="map-crs-status">Chưa chọn hệ tọa độ chung</span></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>
