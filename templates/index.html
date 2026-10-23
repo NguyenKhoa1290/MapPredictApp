@@ -10,15 +10,21 @@
     <script>window.L_DISABLE_3D = true;</script>
     <script defer src="{{ url_for('static', filename='leaflet/leaflet.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='basemaps.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='workspace_store.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='app.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='color_adjustments.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='layer_manager.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='workspace.js', v=asset_version) }}"></script>
 </head>
 <body class="workspace-mode map-mode">
 <main class="glass-page">
     <div class="glass-content-wrapper px-4">
         <div class="glass-container">
             <header class="workspace-header">
+                <div class="workspace-save">
+                    <span id="workspace-save-status" role="status" aria-live="polite">Đang mở bản lưu trên trình duyệt…</span>
+                    <button id="workspace-save-now" class="cad-action" type="button" disabled>Lưu ngay</button>
+                </div>
                 <div class="tabs-glass" role="tablist" aria-label="Chức năng">
                     <button id="map-tab" class="glass-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="map-panel">Bản đồ</button>
                     <button id="predict-tab" class="glass-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="predict-panel">Dự đoán</button>

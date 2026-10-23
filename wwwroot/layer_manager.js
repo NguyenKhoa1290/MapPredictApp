@@ -62,8 +62,8 @@ function fitAllManagedLayers() {
     fitManagedBounds(bounds);
 }
 
-function renderManagedLayers(items) {
-    const previous = new Map(overlays.map((overlay) => [overlay.id, overlay]));
+function renderManagedLayers(items, savedLayers = null) {
+    const previous = new Map((savedLayers || overlays).map((overlay) => [overlay.id, overlay]));
     for (const overlay of overlays) map.removeLayer(overlay.layer);
     overlays = [];
     $("layer-list").replaceChildren();

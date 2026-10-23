@@ -1,6 +1,8 @@
 const $ = (id) => document.getElementById(id);
 let predictionRows = [];
 let predictionTableVersion = 0;
+let predictionView = null;
+let predictionDownloadUrl = null;
 let map = null;
 let referenceLabels = null;
 let basemapLayers = null;
@@ -22,6 +24,7 @@ function showStatus(id, message, error = false) {
     const element = $(id);
     element.textContent = message;
     element.className = `status-message ${error ? "text-danger" : "text-success"}`;
+    window.workspacePersistence?.schedule();
 }
 
 async function api(url, options) {
@@ -103,6 +106,7 @@ function updateCadOptions() {
         card.append(analyze, remove, result);
         container.append(card);
     }
+    window.workspacePersistence?.schedule();
 }
 
 function appendSourceFiles(collection, files) {
@@ -190,6 +194,7 @@ function updatePredictionSources() {
     $("prediction-crs-info").textContent = predictionFiles.length
         ? `${predictionFiles.length} file lưới DXF/GPKG. ${individualPredictionJoins() ? "Chọn cột ghép riêng ở từng file." : "Các file dùng chung cột ghép."} Dùng chung hệ tọa độ nguồn, CSV và độ dịch X/Y. DXF chưa có kết quả vẫn xem được đường ô.` : "";
     updateJoinVisibility();
+    window.workspacePersistence?.schedule();
 }
 
 function clearCadPreview() {
@@ -346,11 +351,24 @@ applySharedCrs();
 $("project-crs").addEventListener("change", () => applySharedCrs(true));
 $("project-crs-custom").addEventListener("change", () => applySharedCrs(true));
 
+function resultsCsvFile(rows) {
+    const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+    const quote = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const lines = [columns.map(quote).join(","), ...rows.map((row) => columns.map((key) => quote(row[key])).join(","))];
+    return new File(["\ufeff", lines.join("\r\n")], "KetQua.csv", { type: "text/csv;charset=utf-8" });
+}
+
 function renderPredictionTable(rows, isResult, total = rows.length) {
+    predictionView = { rows, isResult, total };
+    window.workspacePersistence?.schedule();
     const hasData = rows.length > 0;
     $("prediction-empty").hidden = hasData;
     $("prediction-table-scroll").hidden = !hasData;
     $("prediction-export").hidden = !hasData || !isResult;
+    if (predictionDownloadUrl) URL.revokeObjectURL(predictionDownloadUrl);
+    predictionDownloadUrl = hasData && isResult ? URL.createObjectURL(resultsCsvFile(rows)) : null;
+    $("prediction-export").href = predictionDownloadUrl || "/api/export";
+    $("prediction-export").download = "KetQua.csv";
     $("prediction-title").textContent = hasData
         ? (isResult ? "Kết quả dự đoán" : "Dữ liệu đầu vào") : "Bảng dữ liệu";
     const table = $("prediction-table");
@@ -518,11 +536,12 @@ $("basemap-labels").addEventListener("change", (event) => {
     } catch { /* Toggling labels does not require browser storage. */ }
 });
 
-function renderMap(layers) {
+function renderMap(layers, savedLayers = null) {
     clearCadPreview();
     initializeMap();
     if (!map) return;
-    renderManagedLayers(layers);
+    renderManagedLayers(layers, savedLayers);
+    window.workspacePersistence?.schedule();
 }
 
 for (const input of document.querySelectorAll('input[type="file"]')) {
@@ -603,9 +622,7 @@ $("predict-form").addEventListener("submit", async (event) => {
     }
 });
 
-$("layer-file").addEventListener("change", async (event) => {
-    appendSourceFiles(predictionFiles, [...event.target.files]);
-    event.target.value = "";
+async function readPredictionSources() {
     const pending = predictionFiles.filter((entry) => !entry.columns && !entry.loading);
     pending.forEach((entry) => { entry.loading = true; });
     updatePredictionSources();
@@ -625,6 +642,12 @@ $("layer-file").addEventListener("change", async (event) => {
             updatePredictionSources();
         }
     }));
+}
+
+$("layer-file").addEventListener("change", async (event) => {
+    appendSourceFiles(predictionFiles, [...event.target.files]);
+    event.target.value = "";
+    await readPredictionSources();
 });
 
 $("result-file").addEventListener("change", async (event) => {
@@ -657,6 +680,10 @@ $("map-form").addEventListener("submit", async (event) => {
     showStatus("map-message", "");
     try {
         const form = new FormData(event.currentTarget);
+        if (predictionFiles.length && !$("result-file").files.length
+            && window.workspacePersistence?.restoredResults && predictionRows.length) {
+            form.set("result", resultsCsvFile(predictionRows));
+        }
         if (predictionFiles.some((entry) => entry.loading || !entry.columns)) {
             throw new Error("Chờ đọc xong lưới DXF/GPKG hoặc gỡ file đang báo lỗi trước khi hiển thị.");
         }
@@ -695,8 +722,11 @@ $("map-form").addEventListener("submit", async (event) => {
     }
 });
 
-api("/api/results").then((payload) => {
-    if (predictionTableVersion === 0) renderResults(payload.rows);
-    else if (!predictionRows.length) renderResults(payload.rows, false);
-}).catch(() => {});
+async function loadSavedResults() {
+    try {
+        const payload = await api("/api/results");
+        if (predictionTableVersion === 0) renderResults(payload.rows);
+        else if (!predictionRows.length) renderResults(payload.rows, false);
+    } catch { /* Offline workspace restore does not require the results API. */ }
+}
 initializeMap();

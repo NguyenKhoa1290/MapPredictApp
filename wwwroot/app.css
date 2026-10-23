@@ -414,6 +414,8 @@ body.workspace-mode .tabs-glass {
     position: relative; z-index: 2; background: #fff;
 }
 .workspace-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 16px; border-bottom: 1px solid #e2e8e7; background: #fff; position: relative; z-index: 2; }
+.workspace-save { order: 3; flex-basis: 100%; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 4px 24px 8px; color: #52695c; font-size: 12px; }
+.workspace-save .cad-action { margin: 0; padding: 4px 10px; font-size: 12px; }
 .workspace-crs { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 24px 10px 0; }
 .workspace-crs label { color: #344c3c; font-size: 12px; font-weight: 600; }
 .workspace-crs select, .workspace-crs input[type="text"] { padding: 9px; border: 1px solid #cddbd1; border-radius: 7px; background: #fff; font: inherit; font-size: 12px; }
