@@ -9,7 +9,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='leaflet/leaflet.css', v=asset_version) }}">
     <script>window.L_DISABLE_3D = true;</script>
     <script defer src="{{ url_for('static', filename='leaflet/leaflet.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='basemaps.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='app.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='color_adjustments.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='layer_manager.js', v=asset_version) }}"></script>
 </head>
 <body class="workspace-mode map-mode">
 <main class="glass-page">
@@ -79,24 +82,35 @@
                 <div class="map-workspace">
                     <aside class="map-sidebar" aria-label="Điều khiển lớp bản đồ">
                         <h1>Bản đồ lớp dữ liệu</h1>
-                        <p class="sidebar-intro">Nạp DXF làm layer nền và GeoPackage cho layer dự đoán. Tất cả dùng hệ tọa độ chung ở thanh trên.</p>
+                        <p class="sidebar-intro">Nạp DXF làm layer nền; lưới DXF hoặc GeoPackage cho dự đoán. Tất cả dùng hệ tọa độ chung ở thanh trên.</p>
                         <div class="basemap-controls">
+                            <label class="basemap-select-label" for="basemap-select">Nền bản đồ</label>
+                            <select id="basemap-select" aria-describedby="basemap-zoom-note">
+                                <option value="satellite">Vệ tinh · Esri</option>
+                                <option value="streets">Đường phố / giao thông · OpenStreetMap</option>
+                            </select>
                             <label for="basemap-labels"><input id="basemap-labels" type="checkbox" checked aria-describedby="basemap-labels-note">Tên đường và địa danh</label>
                             <p id="basemap-labels-note" class="field-note">Nhãn nền Esri; phóng to để xem chi tiết. Không bật nhãn chữ trong DXF.</p>
+                            <p id="basemap-zoom-note" class="field-note">Zoom sâu dùng ảnh nền phóng lớn; vệ tinh thiếu ảnh sẽ thử mức thấp hơn. Layer vẫn zoom độc lập. Đường phố không phải giao thông trực tiếp.</p>
+                            <p id="basemap-message" class="field-note text-danger" role="status" aria-live="polite"></p>
                         </div>
-                        <div class="layer-heading"><h2>Layer đang hiển thị</h2><span id="layer-count">0</span></div>
+                        <div class="layer-heading"><h2>Layer đã nạp</h2><span id="layer-count">0</span></div>
+                        <button id="fit-all-layers" class="cad-action" type="button" disabled>Xem tất cả layer</button>
+                        <p class="field-note">Bấm tên layer hoặc đối tượng trên bản đồ để xem thành phần, thuộc tính và bảng màu.</p>
                         <div id="layer-list" class="layer-list"><p class="empty-layers">Chưa có layer. Chọn file bên dưới rồi nhấn Hiển thị trên bản đồ.</p></div>
                         <form id="map-form">
                             <h2>Dữ liệu bản đồ</h2>
-                            <label for="cad-file">Layer nền (.dxf)</label>
+                            <label for="cad-file">Thêm layer nền (.dxf)</label>
                             <input id="cad-file" name="cad" type="file" accept=".dxf" multiple>
-                            <p class="field-note">Có thể chọn nhiều DXF. Chọn hệ tọa độ chung ở trên rồi nhấn Hiển thị trên bản đồ.</p>
+                            <p class="field-note">Chọn nhiều DXF cùng lúc hoặc thêm nhiều lần. File đã thêm vẫn được giữ; dùng Gỡ file để bỏ khỏi danh sách.</p>
                             <div id="cad-options" class="cad-options"></div>
                             <p class="field-note">Với tọa độ cục bộ, chọn Phân tích độ dịch ở từng file để xem đề xuất từ block. Chỉ áp dụng sau khi kiểm tra vị trí; EPSG vẫn do bạn chọn.</p>
                             <details class="prediction-layer-options">
-                                <summary>Ghép layer với kết quả dự đoán</summary>
-                                <label for="layer-file">Layer dự đoán (.gpkg)</label>
-                                <input id="layer-file" name="layer" type="file" accept=".gpkg">
+                                <summary>Lưới dự đoán · DXF / GeoPackage</summary>
+                                <label for="layer-file">Thêm lưới dự đoán (.dxf, .gpkg)</label>
+                                <input id="layer-file" name="layer" type="file" accept=".dxf,.gpkg" multiple>
+                                <p class="field-note">DXF: đọc ô polyline kín và mã từ nhãn TEXT/MTEXT bên trong thành grid_id. Không cần chuyển sang GPKG; không tự tạo tenlodat. Ghép CSV bằng mã thực tế, không theo thứ tự dòng.</p>
+                                <div id="prediction-sources"></div>
                                 <p id="prediction-crs-info" class="field-note"></p>
                                 <div class="offset-fields">
                                     <label for="prediction-offset-x">Dịch X (m)<input id="prediction-offset-x" name="prediction_offset_x" type="number" step="any" value="0"></label>
@@ -105,8 +119,10 @@
                                 <label for="result-file">Kết quả (.csv), nếu chưa chạy dự đoán</label>
                                 <input id="result-file" name="result" type="file" accept=".csv">
                                 <div id="join-controls" hidden>
-                                    <label for="gpkg-join">Cột ghép trong GeoPackage</label>
-                                    <select id="gpkg-join" class="glass-select" name="gpkg_join"></select>
+                                    <div id="common-layer-join">
+                                        <label for="gpkg-join">Cột ghép trong lưới dự đoán</label>
+                                        <select id="gpkg-join" class="glass-select" name="gpkg_join"></select>
+                                    </div>
                                     <label for="csv-join">Cột ghép trong CSV</label>
                                     <select id="csv-join" class="glass-select" name="csv_join"></select>
                                 </div>
@@ -117,7 +133,49 @@
                     </aside>
                     <div class="map-canvas">
                         <div id="leafletMap" aria-label="Bản đồ địa lý và các layer dữ liệu"></div>
-                        <div class="map-tip">Ảnh vệ tinh Esri · <span id="map-crs-status">Chưa chọn hệ tọa độ chung</span></div>
+                        <aside id="layer-inspector" class="layer-inspector" aria-label="Thông tin và ký hiệu layer" hidden>
+                            <header class="inspector-heading"><h2 id="inspector-title">Thông tin layer</h2><button id="inspector-close" type="button" aria-label="Đóng thông tin layer">Đóng</button></header>
+                            <div class="inspector-body">
+                                <p id="inspector-meta" class="field-note"></p>
+                                <p id="inspector-warnings" class="inspector-warnings" role="status"></p>
+                                <fieldset class="style-editor">
+                                    <legend>Màu sắc và cách hiển thị</legend>
+                                    <label>Áp dụng cho<select id="style-scope"></select></label>
+                                    <label class="inline-control"><input id="style-source" type="checkbox">Màu nguồn / kế thừa</label>
+                                    <div id="style-palette" class="style-palette" aria-label="Bảng màu nhanh"></div>
+                                    <div class="style-colors"><label>Màu nét<input id="style-stroke" type="color"></label><label>Màu vùng tô<input id="style-fill" type="color"></label></div>
+                                    <label>Độ dày nét <output id="style-weight-value"></output><input id="style-weight" type="range" min="0" max="8" step="0.5"></label>
+                                    <label>Độ đậm vùng tô <output id="style-fill-opacity-value"></output><input id="style-fill-opacity" type="range" min="0" max="100"></label>
+                                    <label>Cỡ điểm <output id="style-radius-value"></output><input id="style-radius" type="range" min="1" max="16"></label>
+                                    <label>Kiểu nét<select id="style-dash"><option value="">Liền</option><option value="8 5">Đứt</option><option value="2 5">Chấm</option></select></label>
+                                    <button id="style-reset" class="cad-action" type="button">Khôi phục kiểu nguồn</button>
+                                    <p class="field-note">Thiết lập thành phần ưu tiên hơn cả layer. Hiệu chỉnh hue/contrast bên dưới được áp dụng sau màu nguồn hoặc màu tự chọn, không sửa file gốc.</p>
+                                </fieldset>
+                                <fieldset class="style-editor color-adjustments-editor">
+                                    <legend>Hiệu chỉnh màu layer</legend>
+                                    <label>Hue — sắc độ <output id="adjust-hue-value">0°</output><input id="adjust-hue" type="range" min="-180" max="180" value="0" step="1"></label>
+                                    <label>Contrast — tương phản <output id="adjust-contrast-value">100%</output><input id="adjust-contrast" type="range" min="0" max="200" value="100"></label>
+                                    <label>Brightness — độ sáng <output id="adjust-brightness-value">100%</output><input id="adjust-brightness" type="range" min="0" max="200" value="100"></label>
+                                    <label>Saturation — bão hòa <output id="adjust-saturation-value">100%</output><input id="adjust-saturation" type="range" min="0" max="200" value="100"></label>
+                                    <label>Invert — đảo ngược màu <output id="adjust-invert-value">0%</output><input id="adjust-invert" type="range" min="0" max="100" value="0"></label>
+                                    <button id="adjust-reset" class="cad-action" type="button">Đặt lại hiệu chỉnh</button>
+                                    <p class="field-note">Áp dụng ngay cho nét, vùng tô và điểm của riêng layer này, không đổi nền vệ tinh hay layer khác. Không phụ thuộc mục “Áp dụng cho”.</p>
+                                    <p class="field-note">Đảo ngược 0% giữ nguyên, 100% đổi sang màu đối lập (đen ↔ trắng). Hue không đổi màu đen/trắng/xám. Các thanh màu bên trên vẫn chọn màu gốc trước hiệu chỉnh.</p>
+                                </fieldset>
+                                <section class="inspector-section"><h3>Thành phần trong layer</h3>
+                                    <input id="component-search" type="search" placeholder="Tìm tên thành phần…" aria-label="Tìm thành phần">
+                                    <div id="component-list"></div><div id="component-pager" class="inspector-pager"></div>
+                                </section>
+                                <section class="inspector-section"><h3>Thuộc tính đối tượng</h3>
+                                    <p class="field-note">Xem toàn bộ đối tượng đã đọc, phân trang 50 dòng. Đối tượng DXF chưa hỗ trợ được báo ở phần thông tin trên.</p>
+                                    <input id="attribute-search" type="search" placeholder="Tìm trong thuộc tính…" aria-label="Tìm thuộc tính">
+                                    <div class="attribute-scroll" tabindex="0" role="region" aria-label="Bảng thuộc tính layer"><table id="attribute-table"></table></div>
+                                    <div id="attribute-pager" class="inspector-pager"></div>
+                                </section>
+                                <section id="feature-details" class="feature-details" aria-live="polite"></section>
+                            </div>
+                        </aside>
+                        <div class="map-tip"><span id="map-basemap-status">Vệ tinh Esri</span> · <span id="map-crs-status">Chưa chọn hệ tọa độ chung</span></div>
                     </div>
                 </div>
             </section>

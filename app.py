@@ -15,6 +15,7 @@ from cad_diagnostics import cad_diagnostics
 from gis import (cad_geojson, gpkg_columns, gpkg_diagnostics, parse_source_crs,
                  predicted_geojson, source_crs_options)
 from predict_pkl import predict_rows
+from prediction_grid import dxf_grid_metadata, predicted_dxf_grid
 
 
 ROOT = Path(__file__).resolve().parent
@@ -127,7 +128,7 @@ def _api_error(error):
 @app.get("/")
 def home():
     asset_version = max((ROOT / "wwwroot" / filename).stat().st_mtime_ns
-                        for filename in ("app.css", "app.js"))
+                        for filename in ("app.css", "app.js", "basemaps.js", "color_adjustments.js", "layer_manager.js"))
     response = app.make_response(render_template(
         "index.html", asset_version=asset_version, crs_options=source_crs_options()))
     response.headers["Cache-Control"] = "no-store"
@@ -207,6 +208,21 @@ def result_columns():
     return jsonify(columns=[name for name in rows[0] if name != "Y"], count=len(rows))
 
 
+@app.post("/api/prediction-columns")
+def prediction_columns():
+    with tempfile.TemporaryDirectory(prefix="map-predict-grid-columns-") as directory:
+        path = _uploaded_file("layer", {".gpkg", ".dxf"}, directory)
+        if path is None:
+            raise ValueError("Vui lòng chọn lưới dự đoán DXF hoặc GeoPackage.")
+        if path.suffix.lower() == ".dxf":
+            metadata = dxf_grid_metadata(path)
+            return jsonify(columns=metadata["columns"], crs=None, format="dxf",
+                           suggested_join=metadata["suggested_join"], diagnostics=metadata)
+        diagnostics = gpkg_diagnostics(path)
+        return jsonify(columns=gpkg_columns(path), crs=diagnostics["declared_crs"],
+                       format="gpkg", diagnostics=diagnostics)
+
+
 @app.post("/api/cad-diagnostics")
 def diagnose_cad():
     source_crs = request.form.get("source_crs", "").strip().upper()
@@ -230,7 +246,7 @@ def map_layers():
         raise ValueError("Layer nền dùng file DXF. GeoPackage chỉ dùng cho layer dự đoán.")
     with tempfile.TemporaryDirectory(prefix="map-predict-layers-") as directory:
         cad_layers = _uploaded_files("cad", {".dxf"}, directory)
-        prediction_layers = _uploaded_files("layer", {".gpkg"}, directory)
+        prediction_layers = _uploaded_files("layer", {".gpkg", ".dxf"}, directory)
         result = request.files.get("result")
 
         if result and result.filename:
@@ -242,7 +258,6 @@ def map_layers():
                 result.close()
             if "Y" not in rows[0]:
                 raise ValueError("File kết quả phải có cột Y.")
-            _write_results(rows)
         else:
             rows = _saved_results() if prediction_layers else []
 
@@ -251,6 +266,7 @@ def map_layers():
         cad_y_values = request.form.getlist("cad_offset_y")
         cad_ids = request.form.getlist("cad_id")
         prediction_ids = request.form.getlist("layer_id")
+        prediction_joins = request.form.getlist("layer_join")
         for index, (cad, name) in enumerate(cad_layers):
             offset_x = _offset(cad_x_values[index] if index < len(cad_x_values) else 0,
                                f"Dịch X {name}")
@@ -262,27 +278,35 @@ def map_layers():
                            "offset_x": offset_x, "offset_y": offset_y,
                            "data": cad_geojson(cad, shared_crs, offset_x, offset_y)})
         for index, (layer, name) in enumerate(prediction_layers):
-            if not rows:
+            is_dxf = layer.suffix.lower() == ".dxf"
+            if not rows and not is_dxf:
                 raise ValueError("Vui lòng chạy dự đoán hoặc chọn file kết quả CSV.")
-            gpkg_join = request.form.get("gpkg_join", "")
+            gpkg_join = (prediction_joins[index] if index < len(prediction_joins)
+                         else request.form.get("gpkg_join", ""))
             csv_join = request.form.get("csv_join", "")
-            if not gpkg_join or not csv_join or csv_join not in rows[0]:
+            if rows and (not gpkg_join or not csv_join or csv_join not in rows[0]):
                 raise ValueError("Vui lòng chọn hai cột ghép dữ liệu hợp lệ.")
             prediction_offset_x = _offset(request.form.get("prediction_offset_x"), "Dịch X layer dự đoán")
             prediction_offset_y = _offset(request.form.get("prediction_offset_y"), "Dịch Y layer dự đoán")
-            declared_crs = gpkg_diagnostics(layer)["declared_crs"]
+            declared_crs = None if is_dxf else gpkg_diagnostics(layer)["declared_crs"]
+            data = (predicted_dxf_grid(layer, rows, gpkg_join, csv_join, shared_crs,
+                                       prediction_offset_x, prediction_offset_y) if is_dxf else
+                    predicted_geojson(layer, rows, gpkg_join, csv_join, shared_crs,
+                                      prediction_offset_x, prediction_offset_y))
             layers.append({
                 "kind": "prediction",
                 "name": name,
                 "source_id": prediction_ids[index] if index < len(prediction_ids) else f"prediction:{index}:{name}",
                 "crs": shared_crs,
                 "declared_crs": declared_crs,
+                "format": "dxf" if is_dxf else "gpkg",
                 "offset_x": prediction_offset_x, "offset_y": prediction_offset_y,
-                "data": predicted_geojson(layer, rows, gpkg_join, csv_join, shared_crs,
-                                          prediction_offset_x, prediction_offset_y),
+                "data": data,
             })
         if not layers:
             raise ValueError("Vui lòng chọn ít nhất một file bản đồ.")
+        if result and result.filename:
+            _write_results(rows)
         counts = {str(label): sum(str(row.get("Y", "")) == str(label) for row in rows)
                   for label in (0, 1, 2)}
         return jsonify(layers=layers, source_crs=shared_crs, output_crs="EPSG:4326",

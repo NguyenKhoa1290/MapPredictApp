@@ -17,6 +17,7 @@ from ezdxf import recover
 from ezdxf.colors import aci2rgb, int2rgb
 from ezdxf.path import make_path, from_hatch
 from shapely.geometry import Polygon, mapping
+from shapely.errors import GEOSException
 
 
 def _error(message, exit_code=1):
@@ -55,8 +56,9 @@ def _entity_features(entity, *, inherited_layer=None, inherited_color=None,
             color = source_layer.rgb
             color = ("#%02x%02x%02x" % color if color else
                      aci2rgb(abs(source_layer.color) or 7).to_hex())
+    source_entity = getattr(entity, "origin_of_copy", None) or entity
     properties = {"layer": layer, "entity_type": entity_type, "color": color,
-                  "handle": entity.dxf.get("handle") or "",
+                  "handle": source_entity.dxf.get("handle") or "",
                   "block": " / ".join(block_path),
                   "linetype": entity.dxf.get("linetype", "BYLAYER")}
 
@@ -74,6 +76,12 @@ def _entity_features(entity, *, inherited_layer=None, inherited_color=None,
 
     if entity_type == "POINT":
         yield feature({"type": "Point", "coordinates": _xy(entity.dxf.location)})
+        return
+
+    if entity_type == "LEADER":
+        points = [_xy(point) for point in entity.vertices]
+        if len(points) >= 2:
+            yield feature({"type": "LineString", "coordinates": points})
         return
 
     if entity_type in ("LWPOLYLINE", "POLYLINE", "ARC", "CIRCLE", "ELLIPSE", "SPLINE", "HELIX"):
@@ -105,7 +113,7 @@ def _entity_features(entity, *, inherited_layer=None, inherited_color=None,
                         area = area.symmetric_difference(polygon if polygon.is_valid else polygon.buffer(0))
             if not area.is_empty:
                 yield feature(mapping(area))
-        except (ValueError, TypeError, ezdxf.DXFError):
+        except (ValueError, TypeError, ezdxf.DXFError, GEOSException):
             warn("không đọc được vùng tô")
         return
 

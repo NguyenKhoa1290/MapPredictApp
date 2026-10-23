@@ -3,16 +3,20 @@ let predictionRows = [];
 let predictionTableVersion = 0;
 let map = null;
 let referenceLabels = null;
+let basemapLayers = null;
+let activeBasemap = null;
 let cadPreview = null;
 let cadAnalysisCards = [];
 let cadFiles = [];
 let predictionFiles = [];
+let gpkgJoinPreference = "";
 let overlays = [];
 let pendingMapBounds = null;
 let mapRequestVersion = 0;
 let mapRequestController = null;
 const sharedCrsStorageKey = "mapPredict.sharedCrs";
 const labelsStorageKey = "mapPredict.labelsVisible";
+const basemapStorageKey = "mapPredict.basemap";
 
 function showStatus(id, message, error = false) {
     const element = $(id);
@@ -132,7 +136,18 @@ function sourceRemoveButton(entry, kind) {
     return button;
 }
 
+function commonPredictionColumns() {
+    return predictionFiles.length && predictionFiles.every((entry) => entry.columns)
+        ? predictionFiles[0].columns.filter((name) => predictionFiles.every((entry) => entry.columns.includes(name))) : [];
+}
+
+function individualPredictionJoins() {
+    return new Set(predictionFiles.map((entry) => entry.file.name.split(".").pop().toLowerCase())).size > 1
+        || (predictionFiles.length > 0 && predictionFiles.every((entry) => entry.columns) && !commonPredictionColumns().length);
+}
+
 function updatePredictionSources() {
+    gpkgJoinPreference = $("gpkg-join").value || gpkgJoinPreference;
     const list = $("prediction-sources");
     list.replaceChildren();
     for (const entry of predictionFiles) {
@@ -141,13 +156,39 @@ function updatePredictionSources() {
         const name = document.createElement("span");
         name.textContent = `${entry.file.name}${entry.error ? ` · ${entry.error}` : ""}`;
         row.append(name, sourceRemoveButton(entry, "prediction"));
+        if (entry.diagnostics?.format === "dxf") {
+            const note = document.createElement("p");
+            note.className = "field-note";
+            note.textContent = `${entry.diagnostics.cell_count} ô kín; ${entry.diagnostics.identified_count} ô có mã duy nhất. `
+                + "grid_id đọc từ nhãn TEXT/MTEXT trong ô, không phải thuộc tính tenlodat gốc. "
+                + "Không ghép theo thứ tự ô hay cao độ POINT.";
+            row.append(note);
+            for (const [warning, count] of Object.entries(entry.diagnostics.warnings || {})) {
+                const message = document.createElement("p"); message.className = "field-note text-danger";
+                message.textContent = `${warning}: ${count}`; row.append(message);
+            }
+        }
+        if (individualPredictionJoins() && entry.columns) {
+            const select = document.createElement("select");
+            select.className = "prediction-source-join";
+            select.setAttribute("aria-label", `Cột ghép ${entry.file.name}`);
+            fillSelect(select, entry.columns);
+            const preferred = entry.joinColumn || entry.suggestedJoin || gpkgJoinPreference;
+            if (entry.columns.includes(preferred)) select.value = preferred;
+            entry.joinColumn = select.value;
+            select.addEventListener("change", () => { entry.joinColumn = select.value; });
+            row.append(labeledControl("Cột ghép trong file", select));
+        }
         list.append(row);
     }
-    const columns = predictionFiles.length && predictionFiles.every((entry) => entry.columns)
-        ? predictionFiles[0].columns.filter((name) => predictionFiles.every((entry) => entry.columns.includes(name))) : [];
+    const columns = commonPredictionColumns();
     fillSelect($("gpkg-join"), columns);
+    if (columns.includes(gpkgJoinPreference)) $("gpkg-join").value = gpkgJoinPreference;
+    else if (columns.includes("grid_id")) $("gpkg-join").value = "grid_id";
+    $("common-layer-join").hidden = individualPredictionJoins();
+    $("gpkg-join").disabled = individualPredictionJoins();
     $("prediction-crs-info").textContent = predictionFiles.length
-        ? `${predictionFiles.length} file GPKG. Các file dùng chung cột ghép, CSV kết quả và độ dịch X/Y bên dưới.` : "";
+        ? `${predictionFiles.length} file lưới DXF/GPKG. ${individualPredictionJoins() ? "Chọn cột ghép riêng ở từng file." : "Các file dùng chung cột ghép."} Dùng chung hệ tọa độ nguồn, CSV và độ dịch X/Y. DXF chưa có kết quả vẫn xem được đường ô.` : "";
     updateJoinVisibility();
 }
 
@@ -373,6 +414,32 @@ function updateJoinVisibility() {
     $("join-controls").hidden = !predictionFiles.length;
 }
 
+function updateBasemapLabels() {
+    const satellite = activeBasemap === "satellite";
+    $("basemap-labels").disabled = !satellite;
+    $("basemap-labels-note").textContent = satellite
+        ? "Nhãn đường và địa danh Esri. Không bật nhãn chữ trong DXF."
+        : "Nền đường phố đã có nhãn riêng; công tắc nhãn chỉ áp dụng cho vệ tinh.";
+    if (!map || !referenceLabels) return;
+    if (satellite && $("basemap-labels").checked) referenceLabels.addTo(map);
+    else map.removeLayer(referenceLabels);
+}
+
+function selectBasemap(value) {
+    if (!map || !basemapLayers) return;
+    const next = Object.hasOwn(basemapLayers, value) ? value : "satellite";
+    if (activeBasemap !== next) {
+        if (activeBasemap) map.removeLayer(basemapLayers[activeBasemap]);
+        activeBasemap = next;
+        basemapLayers[next].addTo(map);
+    }
+    $("basemap-select").value = next;
+    $("map-basemap-status").textContent = next === "satellite" ? "Vệ tinh Esri" : "Đường phố OpenStreetMap";
+    $("basemap-message").textContent = "";
+    updateBasemapLabels();
+    try { localStorage.setItem(basemapStorageKey, next); } catch { /* Optional preference. */ }
+}
+
 function initializeMap() {
     if (map) {
         map.invalidateSize();
@@ -391,37 +458,61 @@ function initializeMap() {
         zoomAnimation: false,
         fadeAnimation: false,
         markerZoomAnimation: false,
+        preferCanvas: true,
+        minZoom: 2,
+        maxZoom: Basemaps.MAX_ZOOM,
     }).setView([16.2, 107.5], 6);
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-        maxZoom: 19,
-        attribution: 'Imagery &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics, and the GIS User Community',
-    }).addTo(map);
+    basemapLayers = {
+        // blankTile=false makes missing Esri coverage detectable (404), rather
+        // than displaying the provider's grey "Map data not yet available" image.
+        satellite: Basemaps.createFallbackLayer(L,
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?blankTile=false", {
+                attribution: 'Imagery &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics, and the GIS User Community',
+            }),
+        streets: Basemaps.createFallbackLayer(L, "https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            nativeMaxZoom: 19, fallbackDepth: 0,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        }),
+    };
+    for (const [key, layer] of Object.entries(basemapLayers)) {
+        const failedTiles = new Set();
+        const tileKey = ({ coords }) => `${coords.z}:${coords.x}:${coords.y}`;
+        layer.on("tileerror", (event) => {
+            failedTiles.add(tileKey(event));
+            if (activeBasemap === key) $("basemap-message").textContent = "Không tải được một phần nền bản đồ. Kiểm tra Internet hoặc đổi nền; layer của bạn vẫn được giữ.";
+        });
+        layer.on("tileload tileunload", (event) => failedTiles.delete(tileKey(event)));
+        layer.on("load", () => {
+            if (activeBasemap === key && !failedTiles.size) $("basemap-message").textContent = "";
+        });
+    }
     // Keep basemap names above user geometry without intercepting feature clicks.
     const labelsPane = map.createPane("referenceLabels");
     labelsPane.style.zIndex = "625";
     labelsPane.style.pointerEvents = "none";
     referenceLabels = L.layerGroup([
         "World_Transportation", "World_Boundaries_and_Places",
-    ].map((service) => L.tileLayer(
-        `https://services.arcgisonline.com/ArcGIS/rest/services/Reference/${service}/MapServer/tile/{z}/{y}/{x}`,
+    ].map((service) => Basemaps.createFallbackLayer(L,
+        `https://services.arcgisonline.com/ArcGIS/rest/services/Reference/${service}/MapServer/tile/{z}/{y}/{x}?blankTile=false`,
         {
             pane: "referenceLabels",
-            maxZoom: 19,
+            nativeMaxZoom: 18,
             attribution: 'Labels &copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin',
         },
     )));
     try {
         $("basemap-labels").checked = localStorage.getItem(labelsStorageKey) !== "false";
     } catch { /* Keep labels enabled when browser storage is unavailable. */ }
-    if ($("basemap-labels").checked) referenceLabels.addTo(map);
+    let preferredBasemap = "satellite";
+    try { preferredBasemap = localStorage.getItem(basemapStorageKey) || preferredBasemap; } catch { /* Default imagery. */ }
+    selectBasemap(preferredBasemap);
 }
+
+$("basemap-select").addEventListener("change", (event) => selectBasemap(event.target.value));
 
 $("basemap-labels").addEventListener("change", (event) => {
     const visible = event.target.checked;
-    if (map && referenceLabels) {
-        if (visible) referenceLabels.addTo(map);
-        else map.removeLayer(referenceLabels);
-    }
+    updateBasemapLabels();
     try {
         localStorage.setItem(labelsStorageKey, String(visible));
     } catch { /* Toggling labels does not require browser storage. */ }
@@ -431,109 +522,18 @@ function renderMap(layers) {
     clearCadPreview();
     initializeMap();
     if (!map) return;
-    const previous = overlays;
-    for (const overlay of previous) map.removeLayer(overlay.layer);
-    overlays = [];
-    const list = $("layer-list");
-    list.replaceChildren();
-    const bounds = L.latLngBounds();
-    const colors = ["#0b8753", "#d97706", "#2563eb", "#9333ea", "#e11d48"];
-    for (const [index, item] of layers.entries()) {
-        const saved = previous[index]?.item.name === item.name
-            && previous[index]?.item.kind === item.kind ? previous[index] : null;
-        const opacity = saved?.opacity ?? 1;
-        const isPrediction = item.kind === "prediction";
-        const color = colors[index % colors.length];
-        const style = (feature, opacity) => ({
-            color: isPrediction ? "#334155" : color,
-            weight: isPrediction ? 1 : 2,
-            opacity,
-            fillColor: isPrediction ? (feature.properties?.fillColor || "#cccccc") : color,
-            fillOpacity: (isPrediction ? (feature.properties?.fillOpacity ?? 0) : 0.28) * opacity,
-        });
-        const layer = L.geoJSON(item.data, {
-            style: (feature) => style(feature, opacity),
-            pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-                radius: 5,
-                ...style(feature, opacity),
-            }),
-            onEachFeature: (feature, featureLayer) => {
-                if (!isPrediction || !feature.properties) return;
-                const properties = feature.properties;
-                const joinKey = Object.keys(properties).find((key) => !["Y", "fillColor", "fillOpacity"].includes(key));
-                if (!joinKey) return;
-                const popup = document.createElement("div");
-                const name = document.createElement("strong");
-                name.textContent = `${joinKey}: `;
-                popup.append(name, document.createTextNode(String(properties[joinKey] ?? "")));
-                popup.append(document.createElement("br"));
-                popup.append(document.createTextNode(`Kết quả dự đoán (Y): ${properties.Y ?? "Chưa có"}`));
-                featureLayer.bindPopup(popup);
-            },
-        });
-        const overlay = { layer, item, visible: saved?.visible ?? true, opacity };
-        if (overlay.visible) layer.addTo(map);
-        overlays.push(overlay);
-        if (layer.getLayers().length) bounds.extend(layer.getBounds());
-
-        const card = document.createElement("div");
-        card.className = "layer-card";
-        const heading = document.createElement("div");
-        heading.className = "layer-card-heading";
-        const toggle = document.createElement("input");
-        toggle.type = "checkbox";
-        toggle.checked = overlay.visible;
-        toggle.id = `layer-visible-${index}`;
-        toggle.setAttribute("aria-label", `Hiển thị ${item.name || `Layer ${index + 1}`}`);
-        toggle.addEventListener("change", () => {
-            overlay.visible = toggle.checked;
-            if (toggle.checked) layer.addTo(map);
-            else map.removeLayer(layer);
-        });
-        const name = document.createElement("label");
-        name.htmlFor = toggle.id;
-        name.textContent = item.name || `Layer ${index + 1}`;
-        heading.append(toggle, name);
-        const meta = document.createElement("p");
-        meta.className = "layer-meta";
-        const offset = item.offset_x || item.offset_y
-            ? ` · ΔX ${item.offset_x || 0} m, ΔY ${item.offset_y || 0} m` : "";
-        meta.textContent = `${item.crs || "EPSG không rõ"} · ${item.data.features.length.toLocaleString("vi-VN")} đối tượng${offset}`;
-        const sliderLabel = document.createElement("label");
-        sliderLabel.className = "opacity-label";
-        sliderLabel.htmlFor = `layer-opacity-${index}`;
-        sliderLabel.textContent = "Độ đậm";
-        const value = document.createElement("output");
-        value.textContent = `${Math.round(opacity * 100)}%`;
-        sliderLabel.append(value);
-        const slider = document.createElement("input");
-        slider.type = "range";
-        slider.id = sliderLabel.htmlFor;
-        slider.min = "0";
-        slider.max = "100";
-        slider.value = String(Math.round(opacity * 100));
-        slider.addEventListener("input", () => {
-            const opacity = Number(slider.value) / 100;
-            overlay.opacity = opacity;
-            value.textContent = `${slider.value}%`;
-            layer.setStyle((feature) => style(feature, opacity));
-        });
-        card.append(heading, meta, sliderLabel, slider);
-        list.append(card);
-    }
-    $("layer-count").textContent = String(layers.length);
-    if (bounds.isValid()) {
-        if ($("map-panel").hidden) pendingMapBounds = bounds;
-        else map.fitBounds(bounds, { padding: [24, 24], maxZoom: 17 });
-    }
+    renderManagedLayers(layers);
 }
 
 for (const input of document.querySelectorAll('input[type="file"]')) {
     input.addEventListener("change", () => {
         const label = document.querySelector(`[data-file-label="${input.id}"]`);
         if (label) label.textContent = input.files[0]?.name || label.dataset.defaultLabel || "Chưa chọn file";
-        if (input.id === "layer-file") updateJoinVisibility();
-        if (input.id === "cad-file") updateCadOptions();
+        if (input.id === "cad-file") {
+            appendSourceFiles(cadFiles, [...input.files]);
+            input.value = "";
+            updateCadOptions();
+        }
     });
 }
 
@@ -604,10 +604,99 @@ $("predict-form").addEventListener("submit", async (event) => {
 });
 
 $("layer-file").addEventListener("change", async (event) => {
+    appendSourceFiles(predictionFiles, [...event.target.files]);
+    event.target.value = "";
+    const pending = predictionFiles.filter((entry) => !entry.columns && !entry.loading);
+    pending.forEach((entry) => { entry.loading = true; });
+    updatePredictionSources();
+    await Promise.all(pending.map(async (entry) => {
+        const form = new FormData();
+        form.append("layer", entry.file);
+        try {
+            const payload = await api("/api/prediction-columns", { method: "POST", body: form });
+            entry.columns = payload.columns;
+            entry.diagnostics = payload.diagnostics;
+            entry.suggestedJoin = payload.suggested_join;
+            entry.error = null;
+        } catch (error) {
+            entry.error = error.message;
+        } finally {
+            entry.loading = false;
+            updatePredictionSources();
+        }
+    }));
+});
+
+$("result-file").addEventListener("change", async (event) => {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        fillSelect($("csv-join"), predictionRows.length
+            ? Object.keys(predictionRows[0]).filter((name) => name !== "Y") : []);
+        return;
+    }
     const form = new FormData();
-    form.append("gpkg", file);
+    form.append("result", file);
     try {
-        const payload = await api("/api/gpkg-columns", { method: "POST", body: form });
-        fillSelect($("gpkg-join"), payload.columns);
+        const payload = await api("/api/result-columns", { method: "POST", body: form });
+        fillSelect($("csv-join"), payload.columns);
+        showStatus("map-message", `Đã nạp file kết quả: ${file.name}`);
+    } catch (error) {
+        showStatus("map-message", `Lỗi: ${error.message}`, true);
+    }
+});
+
+$("map-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const version = ++mapRequestVersion;
+    mapRequestController?.abort();
+    mapRequestController = new AbortController();
+    $("source-crs").value = sharedSourceCrs();
+    const button = $("map-button");
+    button.disabled = true;
+    button.textContent = "Đang tải bản đồ...";
+    showStatus("map-message", "");
+    try {
+        const form = new FormData(event.currentTarget);
+        if (predictionFiles.some((entry) => entry.loading || !entry.columns)) {
+            throw new Error("Chờ đọc xong lưới DXF/GPKG hoặc gỡ file đang báo lỗi trước khi hiển thị.");
+        }
+        form.delete("cad");
+        form.delete("layer");
+        for (const entry of cadFiles) {
+            form.append("cad", entry.file);
+            form.append("cad_id", entry.id);
+        }
+        for (const entry of predictionFiles) {
+            form.append("layer", entry.file);
+            form.append("layer_id", entry.id);
+            form.append("layer_join", individualPredictionJoins() ? entry.joinColumn : $("gpkg-join").value);
+        }
+        const payload = await api("/api/map", {
+            method: "POST", body: form, signal: mapRequestController.signal,
+        });
+        if (version !== mapRequestVersion) return;
+        renderMap(payload.layers);
+        $("map-crs-status").textContent = `Hệ chung: ${payload.source_crs}`;
+        const gridSummaries = payload.layers.filter((layer) => layer.data.join_summary).map((layer) => {
+            const summary = layer.data.join_summary;
+            return summary.results_applied
+                ? `${layer.name}: ${summary.matched}/${summary.total} ô khớp, ${summary.unmatched} ô chưa khớp.`
+                : `${layer.name}: ${summary.total} ô, chưa áp dụng kết quả dự đoán.`;
+        });
+        showStatus("map-message", `Đã tải ${payload.layers.length} layer theo ${payload.source_crs}. ${gridSummaries.join(" ")}`);
+    } catch (error) {
+        if (version !== mapRequestVersion || error.name === "AbortError") return;
+        showStatus("map-message", `Lỗi: ${error.message}`, true);
+    } finally {
+        if (version === mapRequestVersion) {
+            button.disabled = false;
+            button.textContent = "Hiển thị trên bản đồ";
+        }
+    }
+});
+
+api("/api/results").then((payload) => {
+    if (predictionTableVersion === 0) renderResults(payload.rows);
+    else if (!predictionRows.length) renderResults(payload.rows, false);
+}).catch(() => {});
+initializeMap();
