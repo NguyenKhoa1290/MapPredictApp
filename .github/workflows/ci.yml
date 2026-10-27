@@ -66,6 +66,8 @@ jobs:
           persist-credentials: false
       - name: Build production image
         run: docker build --tag map-predict-ci .
+      - name: Validate Compose without local credentials
+        run: docker compose config --quiet
       - name: Start image without host credentials
         run: >-
           docker run -d --name map-predict-ci

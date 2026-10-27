@@ -17,6 +17,7 @@ Không dùng network_mode host và không thay đổi stack Docker của các d�
 ## Dữ liệu và thông tin riêng
 
 - `models` được bind mount chỉ đọc, không bị ghi đè khi dựng lại image
+- `wwwroot/image` và `config` mount chỉ đọc để thay ảnh hoặc sửa nội dung rồi tải lại trang, không cần rebuild image
 - Nguồn ba dự án dưới `Tailieuthamkhao/Giaodienfrontend/luoi` được mount chỉ đọc vào `/app/project-data`
 - `.env` giữ cổng host, đường dẫn dữ liệu và giới hạn upload local
 - `.secrets/cloudflared-token` được Compose cấp riêng cho cloudflared dưới dạng secret file

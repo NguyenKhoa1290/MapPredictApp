@@ -13,6 +13,18 @@ x-worker: &worker
     MAP_PREDICT_PROJECT_SOURCE_FOLDER: /app/project-data
   volumes:
     - type: bind
+      source: ./wwwroot/image
+      target: /app/wwwroot/image
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ./config
+      target: /app/config
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
       source: ./models
       target: /app/models
       read_only: true
