@@ -2,6 +2,10 @@
 
 Repo: https://github.com/NguyenKhoa1290/MapPredictApp
 
+Lần xác minh đầu tiên ngày 2026-10-27 đã thành công trên cả Windows, Ubuntu và job delivery
+Mã nguồn đã kiểm tra là `7acf8b4dced76650415d1ef9db41bf6275a91433`
+Xem [lần chạy và artifact](https://github.com/NguyenKhoa1290/MapPredictApp/actions/runs/40472565755)
+
 ## Nội dung đưa lên Git
 
 Giữ mã nguồn backend và frontend, cấu hình, bộ kiểm thử đang dùng, pipeline hiện hành, ảnh giao diện, nhật ký và tài liệu

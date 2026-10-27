@@ -2,7 +2,7 @@
 
 ## Trạng thái mới nhất ngày 2026-10-27
 
-- Đang đưa mã nguồn lên origin GitHub và thiết lập CI build/test cùng gói tải về, chưa tự triển khai lên hosting, hướng dẫn tại [GITHUB_ACTIONS.md](docs/GITHUB_ACTIONS.md)
+- Đã đưa mã nguồn lên origin GitHub, CI Windows/Ubuntu và job phân phối ZIP đều đạt ở lần chạy [40472565755](https://github.com/NguyenKhoa1290/MapPredictApp/actions/runs/40472565755), chưa tự triển khai lên hosting, hướng dẫn tại [GITHUB_ACTIONS.md](docs/GITHUB_ACTIONS.md)
 
 - Đã dọn 51 file không còn dùng ra thư mục lưu trữ ngoài dự án, giữ nhật ký, tài liệu và dữ liệu gốc, chi tiết tại [CLEANUP_20261027.md](docs/CLEANUP_20261027.md)
 
