@@ -49,7 +49,11 @@ describe('React portal shell', () => {
     const nav = screen.getByRole('navigation', { name: 'Điều hướng chính' });
     expect(within(nav).getAllByRole('link')).toHaveLength(3);
     expect(within(nav).getByRole('link', { name: 'Giới thiệu' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getAllByRole('heading', { name: /^Thành viên/ })).toHaveLength(4);
+    const team = screen.getByRole('heading', { name: /Những người/ }).closest('section')!;
+    expect(within(team).getAllByRole('heading', { level: 3 })).toHaveLength(contentFile.members.length);
+    for (const member of contentFile.members) {
+      if (member.name) expect(within(team).getByRole('heading', { name: member.name })).toBeTruthy();
+    }
     expect(fetcher.mock.calls.every(([url]) => String(url).startsWith('/api/v1/'))).toBe(true);
     expect(fetcher.mock.calls).toHaveLength(2);
   });

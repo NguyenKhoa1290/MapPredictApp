@@ -775,6 +775,7 @@ window.assistantWorkspace = {
     version() { return predictionTableVersion; },
     crs() { return sharedSourceCrs(); },
     async commit({ sourceId, original, dxf, rows }) {
+        if (!window.workspacePersistence?.ready) throw new Error('Workspace chưa khôi phục xong, hãy chờ hoặc kiểm tra trạng thái bản lưu');
         const entry = [...cadFiles, ...predictionFiles].find(item => item.id === sourceId);
         if (sourceId && (!entry || entry.file !== original)) throw new Error('File DXF đã thay đổi, hãy tạo lại bản xem trước');
         if (rows) {
