@@ -1,0 +1,39 @@
+.hero-map img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 5 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.hero-map { padding-bottom: 10px; }
+.project-image img, .portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.team-card {
+  width: 85%;
+  max-width: 220px;
+}
+.portrait {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+}
+.portrait img {
+  position: absolute;
+  inset: 0;
+  object-fit: contain;
+}
+.project-image img { transition: transform .25s; }
+.project-image .project-number {
+  color: #193b2a;
+  background: #fff;
+  border-color: #bbcdbd;
+}
+.project-card:hover .project-image img { transform: scale(1.025); }
+@media (prefers-reduced-motion: reduce) {
+  .project-image img { transition: none; }
+  .project-card:hover .project-image img { transform: none; }
+}

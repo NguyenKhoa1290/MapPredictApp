@@ -30,32 +30,58 @@ class PythonAppTests(unittest.TestCase):
         self.result_patch.stop()
         self.directory.cleanup()
 
-    def test_default_model_predicts_and_exports_csv(self):
+    def test_default_model_predicts_without_shared_result_export(self):
         csv_data = b"id,x1,x2,x3,x4,x5,x6,x7,x8,x9\nlot-1,0,0,0,0,0,0,0,0,0\n"
         response = self.client.post("/api/predict", data={"csv": (io.BytesIO(csv_data), "input.csv")})
         self.assertEqual(response.status_code, 200, response.json)
         self.assertEqual(response.json["rows"][0]["id"], "lot-1")
         self.assertIsInstance(response.json["rows"][0]["Y"], int)
         exported = self.client.get("/api/export")
-        self.assertEqual(exported.status_code, 200)
+        self.assertEqual(exported.status_code, 410)
         exported.close()
-        self.assertEqual(self.client.get("/api/results").json["rows"][0]["Y"],
-                         str(response.json["rows"][0]["Y"]))
+        self.assertEqual(self.client.get("/api/results").json["rows"], [])
+        self.assertFalse(self.result_path.exists())
 
         uploaded = self.client.post("/api/predict", data={
             "csv": (io.BytesIO(csv_data), "input.csv"),
-            "model": (io.BytesIO((python_app.ROOT / "rf_model_rating.pkl").read_bytes()), "model.pkl"),
-            "scaler": (io.BytesIO((python_app.ROOT / "scaler_bds.pkl").read_bytes()), "scaler.pkl"),
+            "model": (io.BytesIO(b"blocked model upload"), "model.pkl"),
+            "scaler": (io.BytesIO(b"blocked scaler upload"), "scaler.pkl"),
         })
-        self.assertEqual(uploaded.status_code, 200, uploaded.json)
-        self.assertEqual(uploaded.json["rows"][0]["Y"], response.json["rows"][0]["Y"])
+        self.assertEqual(uploaded.status_code, 400, uploaded.json)
+        self.assertEqual(self.client.get("/api/results").json["rows"], [])
+
+    def test_old_shared_results_are_not_used_exported_or_overwritten(self):
+        sentinel = b'id,Y\n1,2\n'
+        self.result_path.write_bytes(sentinel)
+        self.assertEqual(self.client.get('/api/results').json['rows'], [])
+        self.assertEqual(self.client.get('/api/export').status_code, 410)
+        predicted = self.client.post('/api/predict', data={'csv': (io.BytesIO(b'id,x1\nnew,0\n'), 'input.csv')})
+        self.assertEqual(predicted.status_code, 200)
+        document = ezdxf.new(); msp = document.modelspace()
+        msp.add_lwpolyline([(500000, 2400000), (500020, 2400000), (500020, 2400020), (500000, 2400020)], close=True)
+        msp.add_text('1', dxfattribs={'insert': (500010, 2400010)})
+        stream = io.StringIO(); document.write(stream); grid = stream.getvalue().encode()
+        for result in (None, sentinel):
+            data = {'source_crs': 'EPSG:9208', 'layer': (io.BytesIO(grid), 'grid.dxf'), 'layer_join': 'grid_id', 'csv_join': 'id'}
+            if result is not None: data['result'] = (io.BytesIO(result), 'result.csv')
+            response = self.client.post('/api/map', data=data)
+            self.assertEqual(response.status_code, 200, response.json)
+            feature = response.json['layers'][0]['data']['features'][0]['properties']
+            self.assertEqual(feature['Y'], None if result is None else 2)
+            self.assertEqual(self.result_path.read_bytes(), sentinel)
 
     def test_home_serves_assets(self):
-        page = self.client.get("/")
+        self.assertEqual(self.client.get('/').location, '/portal/')
+        self.assertEqual(self.client.get('/legacy/').location, '/portal/assessment')
+        page = self.client.get("/legacy/?embedded=1")
         self.assertEqual(page.status_code, 200)
         self.assertIn(b"/static/leaflet/leaflet.js", page.data)
         self.assertIn(b"/static/app.css", page.data)
         self.assertIn(b"/static/favicon.png", page.data)
+        self.assertIn(b"pdf_export.js", page.data)
+        self.assertIn(b'id="map-export-pdf"', page.data)
+        self.assertNotIn(b'id="workspace-save-now"', page.data)
+        self.assertLess(page.data.index(b'id="map-button"'), page.data.index(b'id="map-export-pdf"'))
         page.close()
         asset = self.client.get("/static/app.js")
         self.assertEqual(asset.status_code, 200)
@@ -105,7 +131,7 @@ class PythonAppTests(unittest.TestCase):
         self.assertEqual(response.json["counts"]["2"], 1)
         self.assertTrue(response.json["layers"][0]["data"]["features"])
         matched = [feature for feature in response.json["layers"][0]["data"]["features"]
-                   if feature["properties"]["fid"] == "1"]
+                   if feature["properties"]["fid"] == 1]
         self.assertEqual(matched[0]["properties"]["fillColor"], "#008000")
         west, south, east, north = shape(matched[0]["geometry"]).bounds
         self.assertTrue(102 < west < east < 110)

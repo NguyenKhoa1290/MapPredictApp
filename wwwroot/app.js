@@ -16,6 +16,11 @@ let overlays = [];
 let pendingMapBounds = null;
 let mapRequestVersion = 0;
 let mapRequestController = null;
+let resultColumnsLoading = false;
+let resultColumnsVersion = 0;
+const joinPreview = window.JoinPreview.create({
+    container: $("join-preview"), button: $("join-apply"), apply: applyMapPayload,
+});
 const sharedCrsStorageKey = "mapPredict.sharedCrs";
 const labelsStorageKey = "mapPredict.labelsVisible";
 const basemapStorageKey = "mapPredict.basemap";
@@ -68,6 +73,7 @@ function labeledControl(text, control) {
 }
 
 function updateCadOptions() {
+    invalidateMapPreview();
     for (const state of cadAnalysisCards) {
         state.entry.offsetX = state.card.querySelector('[name="cad_offset_x"]').value;
         state.entry.offsetY = state.card.querySelector('[name="cad_offset_y"]').value;
@@ -151,6 +157,7 @@ function individualPredictionJoins() {
 }
 
 function updatePredictionSources() {
+    invalidateMapPreview();
     gpkgJoinPreference = $("gpkg-join").value || gpkgJoinPreference;
     const list = $("prediction-sources");
     list.replaceChildren();
@@ -288,6 +295,7 @@ async function analyzeCad(file, offsetX, offsetY, state) {
         apply.disabled = true;
         apply.title = "Xem trước vị trí để mở bước xác nhận áp dụng.";
         apply.addEventListener("click", () => {
+            invalidateMapPreview();
             // This replaces absolute offsets, never adds the proposal twice.
             offsetX.value = candidate.offset_x.toFixed(6);
             offsetY.value = candidate.offset_y.toFixed(6);
@@ -367,7 +375,7 @@ function renderPredictionTable(rows, isResult, total = rows.length) {
     $("prediction-export").hidden = !hasData || !isResult;
     if (predictionDownloadUrl) URL.revokeObjectURL(predictionDownloadUrl);
     predictionDownloadUrl = hasData && isResult ? URL.createObjectURL(resultsCsvFile(rows)) : null;
-    $("prediction-export").href = predictionDownloadUrl || "/api/export";
+    $("prediction-export").href = predictionDownloadUrl || "#";
     $("prediction-export").download = "KetQua.csv";
     $("prediction-title").textContent = hasData
         ? (isResult ? "Kết quả dự đoán" : "Dữ liệu đầu vào") : "Bảng dữ liệu";
@@ -421,6 +429,7 @@ function renderPredictionTable(rows, isResult, total = rows.length) {
 }
 
 function renderResults(rows, display = true) {
+    invalidateMapPreview();
     predictionRows = rows;
     if (display) renderPredictionTable(rows, true);
     const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
@@ -430,6 +439,7 @@ function renderResults(rows, display = true) {
 
 function updateJoinVisibility() {
     $("join-controls").hidden = !predictionFiles.length;
+    $("join-preview-button").hidden = !predictionFiles.length;
 }
 
 function updateBasemapLabels() {
@@ -472,11 +482,10 @@ function initializeMap() {
         return;
     }
     map = L.map("leafletMap", {
+        ...Basemaps.motionOptions(),
         zoomControl: true,
-        zoomAnimation: false,
-        fadeAnimation: false,
-        markerZoomAnimation: false,
         preferCanvas: true,
+        renderer: L.canvas({ padding: 0.3 }),
         minZoom: 2,
         maxZoom: Basemaps.MAX_ZOOM,
     }).setView([16.2, 107.5], 6);
@@ -651,7 +660,9 @@ $("layer-file").addEventListener("change", async (event) => {
 });
 
 $("result-file").addEventListener("change", async (event) => {
+    const version = ++resultColumnsVersion;
     const file = event.target.files[0];
+    resultColumnsLoading = !!file;
     if (!file) {
         fillSelect($("csv-join"), predictionRows.length
             ? Object.keys(predictionRows[0]).filter((name) => name !== "Y") : []);
@@ -661,12 +672,44 @@ $("result-file").addEventListener("change", async (event) => {
     form.append("result", file);
     try {
         const payload = await api("/api/result-columns", { method: "POST", body: form });
+        if (version !== resultColumnsVersion) return;
         fillSelect($("csv-join"), payload.columns);
         showStatus("map-message", `Đã nạp file kết quả: ${file.name}`);
     } catch (error) {
+        if (version !== resultColumnsVersion) return;
+        fillSelect($("csv-join"), []);
         showStatus("map-message", `Lỗi: ${error.message}`, true);
+    } finally {
+        if (version === resultColumnsVersion) resultColumnsLoading = false;
     }
 });
+
+function invalidateMapPreview() {
+    ++mapRequestVersion;
+    mapRequestController?.abort();
+    joinPreview.invalidate();
+    $("map-button").disabled = false;
+    $("map-button").textContent = "Hiển thị trên bản đồ";
+}
+
+function applyMapPayload(payload) {
+    renderMap(payload.layers);
+    $("map-crs-status").textContent = `Hệ chung: ${payload.source_crs}`;
+    const summaries = payload.layers.filter((layer) => layer.data.join_summary).map((layer) => {
+        const summary = layer.data.join_summary;
+        return summary.results_applied
+            ? `${layer.name}: ${summary.matched}/${summary.total} ô khớp, ${summary.unmatched} ô chưa tô màu`
+            : `${layer.name}: ${summary.total} ô, chưa áp dụng kết quả dự đoán`;
+    });
+    showStatus("map-message", `Đã tải ${payload.layers.length} layer theo ${payload.source_crs} ${summaries.join(" · ")}`);
+}
+
+$("join-preview-button").addEventListener("click", () => $("map-form").requestSubmit());
+for (const event of ["input", "change"]) {
+    $("map-form").addEventListener(event, invalidateMapPreview);
+    $("project-crs").addEventListener(event, invalidateMapPreview, true);
+    $("project-crs-custom").addEventListener(event, invalidateMapPreview, true);
+}
 
 $("map-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -679,9 +722,11 @@ $("map-form").addEventListener("submit", async (event) => {
     button.textContent = "Đang tải bản đồ...";
     showStatus("map-message", "");
     try {
+        joinPreview.invalidate();
+        if (resultColumnsLoading) throw new Error("Chờ đọc xong file kết quả CSV trước khi ghép");
         const form = new FormData(event.currentTarget);
         if (predictionFiles.length && !$("result-file").files.length
-            && window.workspacePersistence?.restoredResults && predictionRows.length) {
+            && predictionRows.length) {
             form.set("result", resultsCsvFile(predictionRows));
         }
         if (predictionFiles.some((entry) => entry.loading || !entry.columns)) {
@@ -702,15 +747,10 @@ $("map-form").addEventListener("submit", async (event) => {
             method: "POST", body: form, signal: mapRequestController.signal,
         });
         if (version !== mapRequestVersion) return;
-        renderMap(payload.layers);
-        $("map-crs-status").textContent = `Hệ chung: ${payload.source_crs}`;
-        const gridSummaries = payload.layers.filter((layer) => layer.data.join_summary).map((layer) => {
-            const summary = layer.data.join_summary;
-            return summary.results_applied
-                ? `${layer.name}: ${summary.matched}/${summary.total} ô khớp, ${summary.unmatched} ô chưa khớp.`
-                : `${layer.name}: ${summary.total} ô, chưa áp dụng kết quả dự đoán.`;
-        });
-        showStatus("map-message", `Đã tải ${payload.layers.length} layer theo ${payload.source_crs}. ${gridSummaries.join(" ")}`);
+        if (payload.layers.some((layer) => layer.data.join_summary?.results_applied)) {
+            joinPreview.show(payload);
+            showStatus("map-message", "Đã xem trước ghép kết quả, chọn Áp dụng kết quả lên bản đồ sau khi kiểm tra");
+        } else applyMapPayload(payload);
     } catch (error) {
         if (version !== mapRequestVersion || error.name === "AbortError") return;
         showStatus("map-message", `Lỗi: ${error.message}`, true);
@@ -722,11 +762,4 @@ $("map-form").addEventListener("submit", async (event) => {
     }
 });
 
-async function loadSavedResults() {
-    try {
-        const payload = await api("/api/results");
-        if (predictionTableVersion === 0) renderResults(payload.rows);
-        else if (!predictionRows.length) renderResults(payload.rows, false);
-    } catch { /* Offline workspace restore does not require the results API. */ }
-}
 initializeMap();

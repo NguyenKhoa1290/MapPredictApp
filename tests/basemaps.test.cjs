@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { MAX_ZOOM, tileRequest, createFallbackLayer } = require("../wwwroot/basemaps.js");
+const { MAX_ZOOM, motionOptions, tileRequest, createFallbackLayer } = require("../wwwroot/basemaps.js");
 const url = "https://example.test/{z}/{y}/{x}?blankTile=false";
 
 function fixture(options = {}, coords = { z: 19, x: 414917, y: 229730 }) {
@@ -29,6 +29,25 @@ test("native tile URL preserves Esri missing-coverage detection", () => {
         url: "https://example.test/19/229730/414917?blankTile=false",
         size: 256, left: -0, top: -0,
     });
+});
+
+test("zoom supports fractional levels, smaller control steps and reduced motion", () => {
+    const smooth = motionOptions(false);
+    assert.equal(smooth.zoomAnimation, true);
+    assert.equal(smooth.zoomSnap, 0);
+    assert.equal(smooth.zoomDelta, 0.5);
+    assert.equal(smooth.wheelPxPerZoomLevel, 120);
+    const reduced = motionOptions(true);
+    assert.equal(reduced.zoomAnimation, false);
+    assert.equal(reduced.fadeAnimation, false);
+    assert.equal(reduced.zoomDelta, smooth.zoomDelta);
+});
+
+test("tile levels wait for zoom completion and retain a bounded buffer", () => {
+    const { layer } = fixture();
+    assert.equal(layer.options.updateWhenZooming, false);
+    assert.equal(layer.options.keepBuffer, 2);
+    assert.equal(layer.options.updateInterval, 120);
 });
 test("parent fallback crops the correct half rather than repeating a tile", () => {
     assert.deepEqual(tileRequest(url, { z: 19, x: 414917, y: 229730 }, 1), {

@@ -7,14 +7,15 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png', v=asset_version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v=asset_version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='leaflet/leaflet.css', v=asset_version) }}">
-    <script>window.L_DISABLE_3D = true;</script>
     <script defer src="{{ url_for('static', filename='leaflet/leaflet.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='basemaps.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='workspace_store.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='join_preview.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='app.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='color_adjustments.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='layer_manager.js', v=asset_version) }}"></script>
     <script defer src="{{ url_for('static', filename='workspace.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='pdf_export.js', v=asset_version) }}"></script>
 </head>
 <body class="workspace-mode map-mode">
 <main class="glass-page">
@@ -23,7 +24,6 @@
             <header class="workspace-header">
                 <div class="workspace-save">
                     <span id="workspace-save-status" role="status" aria-live="polite">Đang mở bản lưu trên trình duyệt…</span>
-                    <button id="workspace-save-now" class="cad-action" type="button" disabled>Lưu ngay</button>
                 </div>
                 <div class="tabs-glass" role="tablist" aria-label="Chức năng">
                     <button id="map-tab" class="glass-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="map-panel">Bản đồ</button>
@@ -45,21 +45,15 @@
                 <div class="prediction-workspace">
                     <aside class="map-sidebar prediction-sidebar" aria-label="Điều khiển dự đoán">
                         <h1>Dự đoán dữ liệu</h1>
-                        <p class="sidebar-intro">Nạp dữ liệu và chọn mô hình. Xem bảng dữ liệu, kết quả ở bên phải.</p>
+                        <p class="sidebar-intro">Nạp CSV và chạy mô hình trên máy chủ, xem dữ liệu và kết quả ở bên phải</p>
                         <form id="predict-form">
                             <h2>Dữ liệu đầu vào</h2>
                             <label for="csv-file">File dữ liệu (.csv)</label>
                             <input id="csv-file" name="csv" type="file" accept=".csv" required>
                             <p class="field-note" data-file-label="csv-file" data-default-label="Chọn CSV để xem trước dữ liệu.">Chọn CSV để xem trước dữ liệu.</p>
                             <p class="field-note">Các cột đầu vào: x1 đến x9.</p>
-                            <h2>Mô hình và chuẩn hóa</h2>
-                            <p class="field-note">Dùng file mặc định hoặc chọn file .pkl khác.</p>
-                            <label for="model-file">Mô hình</label>
-                            <input id="model-file" name="model" type="file" accept=".pkl">
-                            <p class="field-note" data-file-label="model-file" data-default-label="Mặc định: rf_model_rating.pkl">Mặc định: rf_model_rating.pkl</p>
-                            <label for="scaler-file">Bộ chuẩn hóa / scaler</label>
-                            <input id="scaler-file" name="scaler" type="file" accept=".pkl">
-                            <p class="field-note" data-file-label="scaler-file" data-default-label="Mặc định: scaler_bds.pkl">Mặc định: scaler_bds.pkl</p>
+                            <h2>Mô hình dự đoán</h2>
+                            <p class="field-note">Dùng mô hình pipeline trên máy chủ, đã gộp bộ chuẩn hóa</p>
                             <button id="predict-button" class="glass-btn-primary" type="submit">Bắt đầu dự đoán</button>
                         </form>
                         <p id="predict-message" class="status-message" role="status" aria-live="polite"></p>
@@ -70,7 +64,7 @@
                                 <h2 id="prediction-title">Bảng dữ liệu</h2>
                                 <p id="prediction-count">Chưa có dữ liệu để hiển thị.</p>
                             </div>
-                            <a id="prediction-export" class="prediction-export" href="/api/export" hidden>Xuất CSV</a>
+                            <a id="prediction-export" class="prediction-export" href="#" hidden>Xuất CSV</a>
                         </div>
                         <div id="prediction-empty" class="prediction-empty">
                             <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="6" y="8" width="36" height="32" rx="5" stroke="currentColor" stroke-width="2"/><path d="M6 18h36M6 29h36M18 18v22M30 18v22" stroke="currentColor" stroke-width="2"/></svg>
@@ -131,9 +125,20 @@
                                     </div>
                                     <label for="csv-join">Cột ghép trong CSV</label>
                                     <select id="csv-join" class="glass-select" name="csv_join"></select>
+                                    <label for="join-mode">Cách ghép mã ô</label>
+                                    <select id="join-mode" class="glass-select" name="join_mode">
+                                        <option value="exact">Mã chính xác</option>
+                                        <option value="numeric">Mã chính xác rồi phần số duy nhất</option>
+                                    </select>
+                                    <p class="field-note">Ghép phần số chỉ dùng khi mã duy nhất ở cả hai bên, không tự ghép mã trùng hoặc mã có nhiều cụm số</p>
                                 </div>
                             </details>
+                            <button id="join-preview-button" class="cad-action" type="button" hidden>Xem trước ghép kết quả</button>
+                            <section id="join-preview" class="join-preview" aria-label="Xem trước ghép kết quả" aria-live="polite" hidden></section>
+                            <button id="join-apply" class="cad-action" type="button" hidden>Áp dụng kết quả lên bản đồ</button>
                             <button id="map-button" class="glass-btn-primary" type="submit">Hiển thị trên bản đồ</button>
+                            <button id="map-export-pdf" class="cad-action map-export-button" type="button" title="Xuất vùng bản đồ đang nhìn thấy, không kèm thanh bên">Xuất PDF bản đồ</button>
+                            <p id="map-export-status" class="status-message" role="status" aria-live="polite"></p>
                         </form>
                         <p id="map-message" class="status-message" role="status" aria-live="polite"></p>
                     </aside>

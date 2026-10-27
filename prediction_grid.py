@@ -115,48 +115,25 @@ def dxf_grid_metadata(path):
     return read_dxf_grid(path)["metadata"]
 
 
-def predicted_dxf_grid(path, rows, layer_join, csv_join, source_crs, offset_x=0, offset_y=0):
+def predicted_dxf_grid(path, rows, layer_join, csv_join, source_crs, offset_x=0, offset_y=0,
+                       join_mode="exact"):
+    from result_join import apply_results
     collection = read_dxf_grid(path)
     if layer_join and layer_join not in GRID_COLUMNS:
         raise ValueError(f"Không tìm thấy cột {layer_join} trong lưới DXF.")
     if rows and (not layer_join or not csv_join or csv_join not in rows[0]):
         raise ValueError("Vui lòng chọn hai cột ghép dữ liệu hợp lệ cho lưới DXF.")
-    labels = {}
-    invalid_results = 0
-    for row in rows:
-        key = _key(row.get(csv_join))
-        if not key:
-            continue
-        try:
-            label = int(row["Y"])
-            if str(row["Y"]).strip() not in ("0", "1", "2"):
-                raise ValueError("Y phải là 0, 1 hoặc 2")
-        except (KeyError, TypeError, ValueError):
-            invalid_results += 1
-            continue
-        if key in labels and labels[key] != label:
-            raise ValueError(f"CSV có mã ghép {row[csv_join]!r} trùng nhưng kết quả Y khác nhau.")
-        labels[key] = label
+    values = [cell["properties"].get(layer_join)
+              if layer_join != "grid_id" or cell["properties"]["id_status"] == "valid" else None
+              for cell in collection["features"]]
+    apply_results(collection, rows, layer_join, csv_join, join_mode, values)
     transformer = _transformer(source_crs)
-    colors = {0: "#ff0000", 1: "#ffa500", 2: "#008000"}
-    matched = 0
     for cell in collection["features"]:
-        properties = cell["properties"]
-        key = _key(properties.get(layer_join))
-        if layer_join == "grid_id" and properties["id_status"] != "valid":
-            key = ""
-        label = labels.get(key) if key else None
-        matched += label is not None
-        properties.update(Y=label, fillColor=colors.get(label, "#cccccc"),
-                          fillOpacity=0.6 if label is not None else 0,
-                          source_table="DXF grid")
+        cell["properties"]["source_table"] = "DXF grid"
         cell["geometry"] = _to_wgs84(cell["geometry"], transformer, offset_x, offset_y)
-    total = len(collection["features"])
-    collection["join_summary"] = {"total": total, "matched": matched, "unmatched": total - matched,
-                                  "results_applied": bool(rows), "layer_join": layer_join,
-                                  "csv_join": csv_join}
-    if rows and matched < total:
-        collection["warnings"]["Ô chưa khớp kết quả CSV"] = total - matched
-    if invalid_results:
-        collection["warnings"]["Dòng CSV có Y không hợp lệ"] = invalid_results
+    summary = collection["join_summary"]
+    if rows and summary["unmatched"]:
+        collection["warnings"]["Ô chưa khớp kết quả CSV"] = summary["unmatched"]
+    if summary["invalid_y"]:
+        collection["warnings"]["Ô có Y không hợp lệ"] = summary["invalid_y"]
     return collection

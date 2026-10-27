@@ -1,5 +1,30 @@
 # MapPredictApp (Python)
 
+[![CI and delivery](https://github.com/NguyenKhoa1290/MapPredictApp/actions/workflows/ci.yml/badge.svg)](https://github.com/NguyenKhoa1290/MapPredictApp/actions/workflows/ci.yml)
+
+CI trên GitHub tự build và kiểm thử trên Windows/Ubuntu, sau đó tạo gói ZIP tải về trong Actions
+Thư mục Tailieuthamkhao và các môi trường cài sẵn không được đưa lên Git, xem [hướng dẫn GitHub Actions](docs/GITHUB_ACTIONS.md)
+
+Ghép kết quả trong công cụ Đánh giá có hai chế độ mã chính xác và phần số duy nhất, cùng bước xem trước trước khi áp dụng lên bản đồ
+File lưới DXF và GPKG khi chưa có kết quả đều có thể hiện đường ô, không tự tô màu
+Đổi CRS khi có kết quả sẽ tạo bản xem trước mới để kiểm tra rồi áp dụng
+Hướng dẫn và quy tắc tại [CV21_GHEP_KET_QUA.md](docs/CV21_GHEP_KET_QUA.md)
+
+Bản đồ legacy và dự án đã có chuyển zoom, mức zoom lẻ và nửa bước ở nút cộng trừ, dùng chung tỷ lệ chuyển động cho nền và layer. Chi tiết cấu hình và phạm vi kiểm tra tại [MAP_MOTION.md](docs/MAP_MOTION.md)
+
+Ba dự án địa phương hiện mở thành **trang bản đồ riêng**: tự nạp lưới và nhãn từ dữ liệu máy chủ, có nền đường phố/vệ tinh, độ đậm/chú giải và thông tin ô; không có thêm file hoặc chạy AI. Đang thử EPSG:9208 theo yêu cầu, chưa nghiệm thu định vị. Xem [PROJECT_MAP_VIEWER.md](docs/PROJECT_MAP_VIEWER.md).
+
+Website mở tại [http://127.0.0.1:8765/portal/](http://127.0.0.1:8765/portal/). Trong `frontend`, chạy `npm ci` rồi `npm run build` với Node nhánh 24 từ 24.15 trở lên, sau đó khởi động Python như bên dưới. Trang [Đánh giá quỹ đất](http://127.0.0.1:8765/portal/assessment) giữ công cụ legacy với header và footer chung, gồm bản đồ, layer, CSV, dự đoán, tự lưu và PDF. Phiên CSV của giao diện trước vẫn truy cập ở `/portal/assessment/csv`, xem [LEGACY_PIPELINE.md](docs/LEGACY_PIPELINE.md).
+
+Mô hình cố định hiện là một file `models/rf_model_rating_pipeline.pkl`, đã chứa StandardScaler và RandomForestClassifier. API gọi pipeline.predict trên dữ liệu gốc, không nạp scaler riêng. Chủ máy chủ có thể cấu hình `MAP_PREDICT_MODEL_DIR`, xem [hướng dẫn mô hình](models/README.md). Không có chức năng upload mô hình từ giao diện.
+
+Nhật ký và mốc hiện trạng trước thiết kế hệ thống mới: [NHAT_KY_DU_AN.md](NHAT_KY_DU_AN.md).
+
+Kế hoạch làm từng đề mục theo tài liệu mới: [NOTE_CONG_VIEC.md](NOTE_CONG_VIEC.md).
+
+Bản prototype CV-06 đã được thay bằng giao diện React tại `/portal/` và được đưa ra khỏi thư mục dự án trong lần dọn dẹp 2026-10-27
+Nhật ký, tài liệu thiết kế, dữ liệu GIS và pipeline đang dùng được giữ lại, chi tiết tại [CLEANUP_20261027.md](docs/CLEANUP_20261027.md)
+
 Ứng dụng web chạy bằng Python. Mô hình `.pkl` được nạp trực tiếp trong tiến trình Python; không cần chạy dự án C#.
 
 ## Chạy trên Windows
@@ -10,11 +35,11 @@ py -3.11 -m venv venv
 .\run_python.bat
 ```
 
-Mở `http://127.0.0.1:8765`. Nếu môi trường `venv` đã có và đã cài thư viện, chỉ cần chạy `run_python.bat`. Có thể đặt biến môi trường `PORT` để dùng cổng khác.
+Mở `http://127.0.0.1:8765`, trang mặc định là Giới thiệu. Chọn Đánh giá quỹ đất để mở công cụ legacy trong website. Nếu đã cài thư viện, chỉ cần chạy `run_python.bat`. Có thể đặt biến môi trường `PORT` để dùng cổng khác.
 
-Tab **Dự đoán** có bảng điều khiển bên trái và bảng dữ liệu/kết quả bên phải. Chọn CSV để xem trước tối đa 200 dòng; nút **Xuất CSV** tải toàn bộ kết quả sau khi dự đoán. CSV dùng các cột `x1` đến `x9`; nếu thiếu giá trị, ứng dụng dùng `0` như luồng cũ. Có thể chọn mô hình và scaler `.pkl` riêng, hoặc dùng `rf_model_rating.pkl` và `scaler_bds.pkl` đi kèm. Kết quả có cột `Y`, lưu tại `%LOCALAPPDATA%\MapPredictApp\KetQua.csv`.
+Tab **Dự đoán** của công cụ cũ có bảng điều khiển bên trái và dữ liệu/kết quả bên phải. CSV dùng các cột `x1` đến `x9`, giá trị trống hoặc cột thiếu dùng `0`. Mô hình và scaler lấy từ thư mục máy chủ cố định, không chọn file `.pkl` trên giao diện. Cả API cũ và mới đều không đọc hoặc ghi file `KetQua.csv` dùng chung, kết quả thuộc phiên trong trình duyệt. File kết quả cũ trên máy chủ được giữ nguyên.
 
-Tab **Bản đồ** ở lần đầu (chưa có bản lưu) chỉ hiển thị ảnh vệ tinh Esri World Imagery, danh sách layer trống. Sau khi làm việc, reload khôi phục phiên đã lưu trong trình duyệt. Layer nền dùng một hoặc nhiều file **DXF**; mục **Lưới dự đoán · DXF / GeoPackage** nhận cả **DXF** và **GPKG** để ghép kết quả CSV. DXF lưới có thể xem đường ô khi chưa có kết quả; GeoPackage vẫn yêu cầu kết quả dự đoán. Chọn **Hệ tọa độ chung** ở thanh trên, sau đó nhấn **Hiển thị trên bản đồ**. EPSG nguồn áp dụng cho toàn bộ DXF và GeoPackage, kể cả khi khai báo CRS trong GeoPackage khác lựa chọn. Giá trị được nhớ trong trình duyệt, dùng chung giữa hai tab; đổi EPSG sẽ tự nạp lại các layer đang hiển thị. Dữ liệu nạp cùng nhau cần dùng chung hệ tọa độ nguồn; nếu khác nhau, hãy chuyển về cùng hệ trong QGIS trước.
+Tab **Bản đồ** ở lần đầu (chưa có bản lưu) chỉ hiển thị ảnh vệ tinh Esri World Imagery, danh sách layer trống. Sau khi làm việc, reload khôi phục phiên đã lưu trong trình duyệt. Layer nền dùng một hoặc nhiều file **DXF**; mục **Lưới dự đoán · DXF / GeoPackage** nhận cả **DXF** và **GPKG** để ghép kết quả CSV. Cả DXF và GeoPackage có thể xem đường ô khi chưa có kết quả Chọn **Hệ tọa độ chung** ở thanh trên, sau đó nhấn **Hiển thị trên bản đồ**. EPSG nguồn áp dụng cho toàn bộ DXF và GeoPackage, kể cả khi khai báo CRS trong GeoPackage khác lựa chọn. Giá trị được nhớ trong trình duyệt, dùng chung giữa hai tab; đổi EPSG sẽ nạp lại dữ liệu, nếu có kết quả cần kiểm tra bản xem trước rồi áp dụng Dữ liệu nạp cùng nhau cần dùng chung hệ tọa độ nguồn; nếu khác nhau, hãy chuyển về cùng hệ trong QGIS trước.
 
 Độ dịch X/Y theo mét (mặc định 0) vẫn có thể nhập riêng cho từng layer. Ứng dụng dịch hình học trong bộ nhớ, chuyển sang WGS84 để hiển thị trên nền vệ tinh và không ghi ngược vào file. Mỗi layer có công tắc hiển thị và thanh trượt độ đậm ở bảng bên trái; các giá trị này được giữ khi đổi hệ tọa độ chung. Leaflet được lưu cục bộ trong `wwwroot/leaflet`. Nhãn chữ từ DXF vẫn được ẩn.
 
@@ -34,6 +59,7 @@ Kiểm tra luồng chính:
 .\venv\Scripts\python.exe -m unittest discover -s tests -v
 node --test tests/color_adjustments.test.cjs
 node --test tests/basemaps.test.cjs
+node --test tests/pdf_export.test.cjs
 ```
 
 Điểm khởi chạy ứng dụng là `app.py`.
@@ -49,11 +75,21 @@ node --test tests/basemaps.test.cjs
 - **Xem tất cả layer** phóng vừa các layer đang bật; **Đến layer** đi đến toàn bộ phạm vi một layer. Phạm vi không bị giới hạn theo bảng thuộc tính hay phần đang nhìn thấy trên màn hình.
 - DXF bổ sung POINT, ARC, CIRCLE, ELLIPSE, SPLINE, polyline có cung, SOLID/3DFACE và vùng tô HATCH (giữ lỗ). Đường cong được lấy mẫu với sai số xấp xỉ 0,1 đơn vị bản vẽ để hiển thị, không dùng làm dữ liệu đo đạc. Đọc màu ACI/True Color và kế thừa layer/màu từ block. Nhãn TEXT/MTEXT vẫn ẩn theo cấu hình trước. Không bảo đảm mọi đối tượng CAD đều được hỗ trợ: loại chưa đọc được và lỗi hình học được báo trong bảng thông tin, không âm thầm coi là đã hiển thị đầy đủ. Mọi tùy chỉnh chỉ ảnh hưởng trình xem, không ghi vào file DXF/GPKG gốc.
 
+## Xuất vùng bản đồ đang hiển thị ra PDF
+
+Bấm **Xuất PDF bản đồ** ngay dưới nút **Hiển thị trên bản đồ** ở thanh bên trái trong tab Bản đồ. Trang xem trước chỉ chứa đúng khung nhìn hiện tại, giữ tỷ lệ, tâm/zoom, các layer/thành phần đang bật, màu và độ trong suốt; không tự fit toàn bộ layer. Không đưa thanh bên, bảng thuộc tính, nút zoom hay popup vào bản in. Có tiêu đề, hệ tọa độ nguồn đang chọn và nguồn/bản quyền nền.
+
+Trang xem trước tự mở hộp thoại in; chọn **Lưu dưới dạng PDF / Save as PDF**, khổ mặc định **A4 ngang**. Có nút **In / Lưu PDF** để in lại và **Đóng**. Cho phép cửa sổ bật lên nếu trình duyệt chặn; có thể tắt đầu/chân trang mặc định của trình duyệt. Tính năng dùng [in PDF của trình duyệt](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Media_queries/Printing), không cần thêm thư viện Python, dịch vụ xuất PDF hay API key. Đây là bản in hình ảnh của khung nhìn, không phải GeoPDF hoặc dữ liệu GIS có gắn tọa độ; độ chi tiết ảnh nền vẫn phụ thuộc dữ liệu đã tải và độ phân giải màn hình.
+
+Nếu nền đang tải hoặc thiếu ô ảnh, ứng dụng hỏi xác nhận trước khi xuất; tiếp tục thì bản in ghi rõ nền chưa đầy đủ. Khi chuẩn bị trang in, ảnh nào tải lại không thành công cũng có cảnh báo và bản xem trước để kiểm tra. Không tự tải trước hàng loạt hoặc đổi nhà cung cấp. Layer canvas được chụp riêng sang PNG vì [`cloneNode` không sao chép nội dung bitmap của canvas](https://developer.mozilla.org/en-US/docs/Web/API/Node/cloneNode); tile nền vẫn là ảnh DOM, không trộn ảnh khác miền vào canvas gây lỗi CORS. Kiểu Leaflet đang dùng được nhúng vào trang Blob cùng nguồn để tránh yêu cầu lại CSS từ cửa sổ about:blank trong trình duyệt nhúng. Không thay đổi dữ liệu, trạng thái hiển thị hoặc bản lưu của bản đồ gốc.
+
+`tests/pdf_export.browser.cjs` cần `PDF_TEST_URL` trỏ tới máy chủ kiểm thử tách biệt và `PLAYWRIGHT_MODULE` khi Playwright nằm ngoài dự án. Bài kiểm thử dùng ảnh nền giả lập không có CORS để kiểm tra cơ chế xuất độc lập với mạng, ghi PDF kiểm thử tại `tmp/pdfs/map-visible-test.pdf`, kiểm tra cảnh báo ảnh thiếu, và bảo đảm không đổi bản đồ gốc.
+
 ## Tự lưu phiên làm việc khi reload
 
-Thanh trên cùng báo **Đã lưu trên trình duyệt** sau khi tự lưu, hoặc bấm **Lưu ngay** trước khi reload. Tự lưu được gộp sau khoảng 180 ms không có thao tác mới; chỉ thông báo thành công sau khi giao dịch lưu hoàn tất. Nếu đóng/reload ngay khi còn báo chưa lưu/đang lưu, thay đổi cuối cùng chưa được bảo đảm. Khôi phục dùng bản lưu hoàn chỉnh cuối cùng, không tự nạp file từ đường dẫn cố định.
+Trang Đánh giá chính dùng công cụ legacy và database `mapPredict.workspace`. Phiên CSV giao diện trước ở `/portal/assessment/csv` dùng database riêng `mapPredict.assessment`. Hai bản lưu được giữ độc lập. Chỉ báo **Đã tự lưu trên trình duyệt** sau khi giao dịch ghi hoàn tất, đóng/reload khi còn chờ lưu có thể chưa giữ được thao tác cuối. Các mục dưới mô tả state bản đồ đầy đủ của công cụ legacy.
 
-- Nhớ file DXF/GPKG, CSV đầu vào/kết quả và mô hình/scaler người dùng đã chọn; độ dịch X/Y, hệ tọa độ, cột ghép và metadata lưới.
+- Nhớ file DXF/GPKG, CSV đầu vào/kết quả, độ dịch X/Y, hệ tọa độ, cột ghép và metadata lưới. Không còn lưu hoặc khôi phục ô chọn mô hình/scaler từ trình duyệt.
 - Nhớ GeoJSON đã hiển thị, màu/ký hiệu toàn layer và từng thành phần, hue/contrast/brightness/saturation/invert, bật/tắt và độ đậm; không đọc/chuyển lại toàn bộ CAD khi reload.
 - Nhớ tâm/zoom, nền và nhãn, tab đang mở, layer/thành phần đang chọn, bộ lọc và trang thuộc tính, bảng dữ liệu/kết quả dự đoán. Không lưu trạng thái đang chạy, khung xem trước hay đề xuất phân tích độ dịch chưa áp dụng.
 - Khôi phục không POST lại `/api/map`, không tự chạy mô hình và không ghi kết quả lên máy chủ. Nếu người dùng chủ động cập nhật bản đồ sau khôi phục, kết quả dự đoán đã lưu được gửi kèm khi chưa chọn CSV kết quả riêng. Xuất CSV dùng đúng bảng kết quả hiện tại, kể cả bảng khôi phục, không tải nhầm kết quả khác trên máy chủ.
@@ -70,4 +106,4 @@ Chọn DXF trong **Lưới dự đoán**, không phải ô **Thêm layer nền**
 
 Các trường ghép hỗ trợ là **grid_id** (suy ra từ nhãn trong ô), **handle** (mã đối tượng CAD), **layer** (tên lớp CAD). `grid_id` không phải thuộc tính `tenlodat` gốc và không được đổi tên giả thành `tenlodat`. Không ghép theo thứ tự entity, thứ tự dòng CSV, nhãn gần nhất hoặc cao độ Z của POINT. Không tự thêm tiền tố như `YB`, bỏ số 0 đầu hay chuyển mã `1.0` thành `1`. Mã chỉ bỏ khoảng trắng đầu/cuối và không phân biệt hoa/thường. Ví dụ: nếu CSV có cột `tenlodat` với các giá trị `1`, `2`, … trùng nhãn, chọn **grid_id ↔ tenlodat**; nếu mã khác thì cần bảng đối chiếu hoặc chỉnh dữ liệu trong QGIS, không suy đoán tương ứng.
 
-Ô không có nhãn, có nhiều nhãn, nhãn trên biên/thuộc nhiều ô hoặc mã bị trùng vẫn hiển thị nhưng không tự gán kết quả bằng `grid_id`. Inspector giữ `id_status`, `id_source`, `id_text_handle`, `handle` và mã đã đọc để kiểm tra. CSV có cùng mã nhưng Y khác nhau bị từ chối; Y không thuộc 0/1/2 được bỏ qua và báo số dòng lỗi. Các ô không khớp vẫn giữ đường bao, không tô nhầm; thông báo số ô khớp/tổng số sau khi tải. Không sửa DXF gốc. Kết quả CSV tải lên chỉ được lưu sau khi toàn bộ layer hợp lệ, tránh thay kết quả đã lưu khi nhập lỗi.
+Ô không có nhãn, có nhiều nhãn, nhãn trên biên/thuộc nhiều ô hoặc mã bị trùng vẫn hiển thị nhưng không tự gán kết quả bằng `grid_id`. Inspector giữ `id_status`, `id_source`, `id_text_handle`, `handle` và mã đã đọc để kiểm tra. CSV có cùng mã nhưng Y khác nhau bị từ chối; Y không thuộc 0/1/2 được bỏ qua và báo số dòng lỗi. Các ô không khớp vẫn giữ đường bao, không tô nhầm; thông báo số ô khớp/tổng số sau khi tải. Không sửa DXF gốc. CSV kết quả chỉ áp dụng cho request đang xử lý sau khi layer hợp lệ, không ghi vào file kết quả chung trên máy chủ.

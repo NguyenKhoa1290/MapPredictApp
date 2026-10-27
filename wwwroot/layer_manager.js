@@ -16,6 +16,10 @@ function componentKey(overlay, feature) {
         : String(properties.layer || feature.geometry?.type || "Không phân lớp");
 }
 
+function componentLabel(group) {
+    return group.name === "Kết quả Y = Chưa có" ? "Chưa có dữ liệu" : group.name;
+}
+
 function managedStyle(overlay, feature, adjustColors = true) {
     const group = overlay.groups.get(componentKey(overlay, feature));
     const style = { ...overlay.style, ...group?.style };
@@ -164,11 +168,11 @@ function selectManagedLayer(id, scope = "") {
     $("inspector-title").textContent = overlay.item.name;
     const counts = new Map();
     for (const record of overlay.records) counts.set(record.feature.geometry.type, (counts.get(record.feature.geometry.type) || 0) + 1);
-    $("inspector-meta").textContent = `${overlay.item.crs} · ${overlay.records.length.toLocaleString("vi-VN")} đối tượng. `
+    $("inspector-meta").textContent = `${overlay.item.crs} · ${overlay.records.length.toLocaleString("vi-VN")} đối tượng, `
         + [...counts].map(([type, count]) => `${type}: ${count}`).join(" · ");
-    $("inspector-warnings").textContent = Object.entries(overlay.item.data.warnings || {}).map(([reason, count]) => `${reason}: ${count}`).join("; ");
+    $("inspector-warnings").textContent = Object.entries(overlay.item.data.warnings || {}).map(([reason, count]) => `${reason}: ${count}`).join(", ");
     const scopes = $("style-scope"); scopes.replaceChildren(new Option("Toàn bộ layer", ""));
-    for (const group of overlay.groups.values()) scopes.append(new Option(`${group.name} (${group.count})`, group.name));
+    for (const group of overlay.groups.values()) scopes.append(new Option(`${componentLabel(group)} (${group.count})`, group.name));
     scopes.value = inspectorScope;
     if (changed) { $("component-search").value = ""; $("attribute-search").value = ""; }
     componentPage = 0; attributePage = 0;
@@ -217,21 +221,21 @@ function pager(container, page, total, onPage) {
 
 function renderComponents(overlay) {
     const query = $("component-search").value.toLocaleLowerCase("vi-VN");
-    const groups = [...overlay.groups.values()].filter((group) => group.name.toLocaleLowerCase("vi-VN").includes(query));
+    const groups = [...overlay.groups.values()].filter((group) => componentLabel(group).toLocaleLowerCase("vi-VN").includes(query));
     componentPage = Math.min(componentPage, Math.max(0, Math.ceil(groups.length / 50) - 1));
     const list = $("component-list"); list.replaceChildren();
     for (const group of groups.slice(componentPage * 50, (componentPage + 1) * 50)) {
         const row = document.createElement("div"); row.className = "component-row";
         const toggle = document.createElement("input"); toggle.type = "checkbox"; toggle.checked = group.visible;
-        toggle.setAttribute("aria-label", `Hiển thị thành phần ${group.name}`);
+        toggle.setAttribute("aria-label", `Hiển thị thành phần ${componentLabel(group)}`);
         toggle.addEventListener("change", () => { group.visible = toggle.checked; refreshManagedLayer(overlay); });
-        const name = document.createElement("button"); name.type = "button"; name.textContent = `${group.name} (${group.count})`;
+        const name = document.createElement("button"); name.type = "button"; name.textContent = `${componentLabel(group)} (${group.count})`;
         name.addEventListener("click", () => {
             inspectorScope = group.name; $("style-scope").value = group.name;
             attributePage = 0; renderStyleEditor(overlay); renderAttributes(overlay);
         });
         const color = document.createElement("input"); color.type = "color";
-        color.setAttribute("aria-label", `Màu thành phần ${group.name}`);
+        color.setAttribute("aria-label", `Màu thành phần ${componentLabel(group)}`);
         const first = overlay.records.find((record) => record.group === group.name);
         color.value = managedStyle(overlay, first.feature, false).color;
         color.addEventListener("input", () => {

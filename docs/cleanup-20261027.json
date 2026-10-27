@@ -1,0 +1,216 @@
+{
+    "date":  "2026-10-27",
+    "mode":  "recoverable archive",
+    "archive":  "F:\\APP\\MapPredictApp_cleanup_20261027",
+    "archived_files":  [
+                           {
+                               "path":  "__pycache__\\cad_to_geojson.cpython-311.pyc",
+                               "bytes":  14475
+                           },
+                           {
+                               "path":  "__pycache__\\dwg_to_dxf.cpython-311.pyc",
+                               "bytes":  6589
+                           },
+                           {
+                               "path":  "__pycache__\\gis.cpython-311.pyc",
+                               "bytes":  24063
+                           },
+                           {
+                               "path":  "__pycache__\\app.cpython-311.pyc",
+                               "bytes":  23622
+                           },
+                           {
+                               "path":  "__pycache__\\cad_diagnostics.cpython-311.pyc",
+                               "bytes":  15032
+                           },
+                           {
+                               "path":  "__pycache__\\prediction_grid.cpython-311.pyc",
+                               "bytes":  11805
+                           },
+                           {
+                               "path":  "__pycache__\\predict_pkl.cpython-311.pyc",
+                               "bytes":  4606
+                           },
+                           {
+                               "path":  "__pycache__\\result_join.cpython-311.pyc",
+                               "bytes":  8089
+                           },
+                           {
+                               "path":  "backend\\__pycache__\\__init__.cpython-311.pyc",
+                               "bytes":  217
+                           },
+                           {
+                               "path":  "backend\\map_predict\\__pycache__\\__init__.cpython-311.pyc",
+                               "bytes":  3980
+                           },
+                           {
+                               "path":  "backend\\map_predict\\__pycache__\\config.cpython-311.pyc",
+                               "bytes":  1406
+                           },
+                           {
+                               "path":  "backend\\map_predict\\api\\__pycache__\\__init__.cpython-311.pyc",
+                               "bytes":  249
+                           },
+                           {
+                               "path":  "backend\\map_predict\\api\\__pycache__\\frontend.cpython-311.pyc",
+                               "bytes":  2457
+                           },
+                           {
+                               "path":  "backend\\map_predict\\api\\v1\\__pycache__\\__init__.cpython-311.pyc",
+                               "bytes":  206
+                           },
+                           {
+                               "path":  "backend\\map_predict\\api\\v1\\__pycache__\\public.cpython-311.pyc",
+                               "bytes":  4837
+                           },
+                           {
+                               "path":  "backend\\map_predict\\api\\v1\\__pycache__\\predictions.cpython-311.pyc",
+                               "bytes":  5974
+                           },
+                           {
+                               "path":  "backend\\map_predict\\services\\__pycache__\\__init__.cpython-311.pyc",
+                               "bytes":  245
+                           },
+                           {
+                               "path":  "backend\\map_predict\\services\\__pycache__\\catalog.cpython-311.pyc",
+                               "bytes":  2407
+                           },
+                           {
+                               "path":  "backend\\map_predict\\services\\__pycache__\\project_maps.cpython-311.pyc",
+                               "bytes":  16969
+                           },
+                           {
+                               "path":  "backend\\map_predict\\services\\__pycache__\\prediction.cpython-311.pyc",
+                               "bytes":  9010
+                           },
+                           {
+                               "path":  "frontend\\node_modules\\.vite\\vitest\\CACHEDIR.TAG",
+                               "bytes":  178
+                           },
+                           {
+                               "path":  "frontend\\node_modules\\.vite\\vitest\\da39a3ee5e6b4b0d3255bfef95601890afd80709\\results.json",
+                               "bytes":  719
+                           },
+                           {
+                               "path":  "models\\rf_model_rating.pkl",
+                               "bytes":  175569
+                           },
+                           {
+                               "path":  "models\\scaler_bds.pkl",
+                               "bytes":  1103
+                           },
+                           {
+                               "path":  "pdf_preview\\page-1.png",
+                               "bytes":  13502739
+                           },
+                           {
+                               "path":  "rf_model_rating.onnx",
+                               "bytes":  225958
+                           },
+                           {
+                               "path":  "rf_model_rating.pkl",
+                               "bytes":  175569
+                           },
+                           {
+                               "path":  "rf_model_rating_pipeline.pkl",
+                               "bytes":  72666
+                           },
+                           {
+                               "path":  "scaler_bds.pkl",
+                               "bytes":  1103
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_reference_dxf_audit.cpython-311.pyc",
+                               "bytes":  4905
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_portal.cpython-311.pyc",
+                               "bytes":  10760
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_result_join.cpython-311.pyc",
+                               "bytes":  10623
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_cad_diagnostics.cpython-311.pyc",
+                               "bytes":  16747
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_map_layers.cpython-311.pyc",
+                               "bytes":  15146
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_reference_excel_audit.cpython-311.pyc",
+                               "bytes":  8151
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_preview_assets.cpython-311.pyc",
+                               "bytes":  6663
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_fixed_predictions.cpython-311.pyc",
+                               "bytes":  19167
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_project_maps.cpython-311.pyc",
+                               "bytes":  13326
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_python_app.cpython-311.pyc",
+                               "bytes":  27966
+                           },
+                           {
+                               "path":  "tests\\__pycache__\\test_prediction_grid.cpython-311.pyc",
+                               "bytes":  20558
+                           },
+                           {
+                               "path":  "tests\\preview.test.cjs",
+                               "bytes":  7221
+                           },
+                           {
+                               "path":  "tests\\test_preview_assets.py",
+                               "bytes":  2518
+                           },
+                           {
+                               "path":  "tmp\\pdfs\\map-visible-test.png",
+                               "bytes":  52307
+                           },
+                           {
+                               "path":  "tmp\\verification-20261027\\grid-preview.dxf",
+                               "bytes":  19431
+                           },
+                           {
+                               "path":  "tmp\\verification-20261027\\results-preview.csv",
+                               "bytes":  29
+                           },
+                           {
+                               "path":  "tools\\__pycache__\\audit_reference_excel.cpython-311.pyc",
+                               "bytes":  17754
+                           },
+                           {
+                               "path":  "tools\\__pycache__\\audit_reference_dxf.cpython-311.pyc",
+                               "bytes":  17524
+                           },
+                           {
+                               "path":  "tools\\ODAFileConverter\\ODAFileConverter_QT6_vc16_amd64dll_27.1.msi",
+                               "bytes":  262144
+                           },
+                           {
+                               "path":  "wwwroot\\preview\\index.html",
+                               "bytes":  11229
+                           },
+                           {
+                               "path":  "wwwroot\\preview\\preview.css",
+                               "bytes":  15093
+                           },
+                           {
+                               "path":  "wwwroot\\preview\\preview.js",
+                               "bytes":  9620
+                           }
+                       ],
+    "active_pipeline":  {
+                            "sha256":  "F58D3AC1A1E84927FCA2A911CF8BC19B4119BCFFF14DEDF8D8CEC918304FA5CD",
+                            "path":  "models\\rf_model_rating_pipeline.pkl"
+                        },
+    "protected":  "Documentation, journals, reference files, GIS data, active runtime, installed dependencies and local server logs"
+}

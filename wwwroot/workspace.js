@@ -2,7 +2,7 @@
 (() => {
     "use strict";
     const store = new WorkspaceStore();
-    const fileInputs = ["csv-file", "model-file", "scaler-file", "result-file"];
+    const fileInputs = ["csv-file", "result-file"];
     let ready = false;
     let blocked = false;
     let dirty = false;
@@ -13,6 +13,7 @@
     function status(text, error = false) {
         $("workspace-save-status").textContent = text;
         $("workspace-save-status").classList.toggle("text-danger", error);
+        $("workspace-save-status").parentElement.classList.toggle("has-error", error);
     }
     function fileValue(file) {
         return file ? { name: file.name, type: file.type, lastModified: file.lastModified } : null;
@@ -57,7 +58,7 @@
             tab: $("map-panel").hidden ? "predict-tab" : "map-tab",
             view: center ? { center: [center.lat, center.lng], zoom: map.getZoom() } : null,
             basemap: activeBasemap, labels: $("basemap-labels").checked,
-            joins: { layer: $("gpkg-join").value, csv: $("csv-join").value,
+            joins: { layer: $("gpkg-join").value, csv: $("csv-join").value, mode: $("join-mode").value,
                 csvColumns: [...$("csv-join").options].map((option) => option.value) },
             offsetX: $("prediction-offset-x").value, offsetY: $("prediction-offset-y").value,
             inspector: { selectedLayerId, scope: inspectorScope,
@@ -69,7 +70,7 @@
     function schedule() {
         if (!ready || blocked) return;
         dirty = true;
-        status("Chưa lưu thay đổi…");
+        status("Đang chờ tự lưu…");
         clearTimeout(timer);
         timer = setTimeout(flush, 180);
     }
@@ -82,11 +83,11 @@
             try {
                 while (dirty) {
                     dirty = false;
-                    status("Đang lưu trên trình duyệt…");
+                    status("Đang tự lưu trên trình duyệt…");
                     const snapshot = capture();
                     await store.write(snapshot.state, snapshot.assets);
                 }
-                status("Đã lưu trên trình duyệt");
+                status("Đã tự lưu trên trình duyệt");
                 return true;
             } catch (error) {
                 dirty = true;
@@ -96,7 +97,7 @@
                 } else {
                     status(error.name === "QuotaExceededError"
                         ? "Không đủ dung lượng lưu. Chưa lưu được thay đổi mới."
-                        : "Không lưu được phiên. Giữ trang mở và thử Lưu ngay.", true);
+                        : "Chưa tự lưu được. Giữ trang mở; ứng dụng sẽ thử lại khi bạn thao tác.", true);
                 }
                 return false;
             } finally { saving = null; }
@@ -119,6 +120,7 @@
             if (!Array.isArray(assets.get(`layer:${layer.id}`)?.data?.features)) throw new Error("Saved layer missing");
         }
         for (const [id] of Object.entries(state.inputs)) {
+            if (!fileInputs.includes(id)) continue;
             if (!(assets.get(`input:${id}`) instanceof Blob)) throw new Error("Saved input missing");
         }
         const sources = (entries) => entries.map((entry) => ({ ...entry,
@@ -150,6 +152,7 @@
         if (view) renderPredictionTable(view.rows, view.isResult, view.total);
         fillSelect($("csv-join"), state.joins.csvColumns);
         $("csv-join").value = state.joins.csv;
+        $("join-mode").value = state.joins.mode === "numeric" ? "numeric" : "exact";
         if ([...$("gpkg-join").options].some((option) => option.value === state.joins.layer)) $("gpkg-join").value = state.joins.layer;
         $("prediction-offset-x").value = state.offsetX;
         $("prediction-offset-y").value = state.offsetY;
@@ -179,15 +182,13 @@
     async function boot() {
         const surfaces = [...document.querySelectorAll(".workspace-panel, .workspace-header > :not(.workspace-save)")];
         surfaces.forEach((element) => { element.inert = true; });
-        $("workspace-save-now").disabled = true;
         try {
             const snapshot = await store.read();
             if (snapshot) {
                 restore(snapshot);
-                status("Đã khôi phục bản lưu trên trình duyệt");
+                status("Đã khôi phục phiên tự lưu");
             } else {
-                await loadSavedResults();
-                status("Tự lưu phiên trên trình duyệt");
+                status("Tự động lưu thao tác trên trình duyệt");
             }
             // Drain synthetic click/toggle/resize events produced by restoration.
             // Merely opening another tab must not create a new saved revision.
@@ -199,7 +200,6 @@
             status("Không mở được bản lưu. Phiên cũ không bị ghi đè; kiểm tra quyền lưu trữ rồi tải lại.", true);
         } finally {
             surfaces.forEach((element) => { element.inert = false; });
-            $("workspace-save-now").disabled = !ready || blocked;
         }
         if (ready && predictionFiles.some((entry) => !entry.columns)) await readPredictionSources();
     }
@@ -208,7 +208,6 @@
     for (const event of ["input", "change", "click"]) document.addEventListener(event, schedule);
     document.addEventListener("toggle", schedule, true);
     map?.on("moveend zoomend", schedule);
-    $("workspace-save-now").addEventListener("click", () => { schedule(); void flush(); });
     window.addEventListener("pagehide", () => { void flush(); });
     document.addEventListener("visibilitychange", () => { if (document.hidden) void flush(); });
     void boot();

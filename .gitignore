@@ -1,0 +1,65 @@
+# Generated files for the new frontend/backend scaffold.
+/frontend/node_modules/
+/frontend/dist/
+/frontend/coverage/
+/frontend/.vite/
+/backend/**/__pycache__/
+/Tailieuthamkhao/
+# Python bytecode and local verification output.
+__pycache__/
+*.py[cod]
+/tmp/
+/pdf_preview/
+
+# Retired .NET build output.
+/.vs/
+/bin/
+/obj/
+*.user
+*.suo
+
+# Installed dependencies and local environments, recreated during CI.
+venv/
+.venv/
+env/
+node_modules/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vite/
+.coverage*
+coverage/
+/dist/
+/.idea/
+/.vscode/
+bin/
+obj/
+*.tsbuildinfo
+
+# Local configuration, credentials, logs and user uploads.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.log
+/logs/
+/data/
+/uploads/
+/instance/
+/*.csv
+/*.dxf
+/*.dwg
+/*.xlsx
+
+# Native CAD converter stays installed locally.
+/tools/ODAFileConverter/
+
+# Keep only the active pipeline and its documentation.
+*.pkl
+*.onnx
+/models/*
+!/models/README.md
+!/models/rf_model_rating_pipeline.pkl

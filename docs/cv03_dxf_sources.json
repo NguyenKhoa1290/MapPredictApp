@@ -1,0 +1,55 @@
+{
+  "purpose": "CV-03 survey only; not approved runtime import settings",
+  "source_folder": "Tailieuthamkhao/Giaodienfrontend/luoi",
+  "geometry_location": "modelspace",
+  "user_declared_crs_family_all_projects": "VN-2000",
+  "user_recalled_epsg_unconfirmed": 9201,
+  "recalled_epsg_validation": "CRS.from_epsg(9201) failed in installed PROJ; EPSG unit-of-measure 9201 is unity, not a confirmed source CRS. Do not apply.",
+  "projection_confirmation": "Pending EPSG or central meridian/projection parameters for each source; VN-2000 alone does not select a projection",
+  "label_rule": "Numeric TEXT/MTEXT on selected layer only; no POINT Z or drawing-order IDs",
+  "projects": [
+    {
+      "id": "hcm", "file": "luoi_hcm.dxf",
+      "sha256": "8c8e87c8acde6c7a9fa9b2cc02919c9d1d5c69bd23f818a51a5132c64270a1fe",
+      "geometry_layer": "DTL-1D", "geometry_type": "LWPOLYLINE",
+      "label_layer": "0", "label_type": "MTEXT",
+      "polygons": 1695, "unique_exact_geometries": 1695, "labels": 1695,
+      "label_extent": [1, 1695], "insert_unique_inside": 0,
+      "insert_boundary_or_overlap": 1695, "insert_outside": 0,
+      "insunits": 6, "declared_epsg": null, "confirmed_epsg": null,
+      "approved_offset": null, "approved_unit_scale": null,
+      "requires": ["Account for MTEXT top-left attachment rather than using raw insert as label center", "Confirm CRS before WGS84 conversion"]
+    },
+    {
+      "id": "bac-kan", "file": "bắc kan.dxf",
+      "sha256": "b5548c2b21bbfa34569ba9eb0156934fd484a06fee2caf73e0f33704d043c086",
+      "geometry_layer": "00.Ranh gioi", "geometry_type": "LWPOLYLINE",
+      "label_layer": "0", "label_type": "MTEXT",
+      "polygons": 400, "unique_exact_geometries": 400, "labels": 400,
+      "label_extent": [1, 400], "insert_unique_inside": 185,
+      "insert_boundary_or_overlap": 213, "insert_outside": 2,
+      "insunits": 6, "declared_epsg": null, "confirmed_epsg": null,
+      "approved_offset": null, "approved_unit_scale": null,
+      "unscored_excel_codes": "BK1..BK20",
+      "unscored_policy": {"exclude_from_evaluation": true, "show_grid_outline": true, "fill": false},
+      "requires": ["Exclude TEXT elevation/survey numbers even on layer 0", "Account for MTEXT attachment and numerical edge cases without nearest-label fallback", "Confirm CRS"]
+    },
+    {
+      "id": "phu-quoc", "file": "phú quốc.dxf",
+      "sha256": "22853f6e3701e2b116a3dbf2116af4c5e33ad0f02d801b37335f9105a74ff7cf",
+      "geometry_layer": "Docao", "geometry_type": "LWPOLYLINE",
+      "label_layer": "0", "label_type": "TEXT",
+      "polygons": 1734, "unique_exact_geometries": 1676,
+      "duplicate_extra_polygons": 58, "labels": 1677,
+      "label_extent": [1, 1677], "insert_unique_inside": 1618,
+      "insert_boundary_or_overlap": 58, "insert_outside": 1,
+      "outside_label": {"code": "1232", "handle": "2D74", "distance_to_grid_raw_units": 2.034447476209607},
+      "user_approved_deduplication": "Exact duplicate grid polygons in memory only, retaining original handles; do not modify DXF",
+      "user_approved_code_1232_policy": {"apply_result": false, "fill": false, "show_viewer_warning": false, "retain_internal_diagnostic": true},
+      "insunits": 4, "declared_epsg": null, "confirmed_epsg": null,
+      "approved_offset": null, "approved_unit_scale": null,
+      "external_xref": ".\\SR62HA_XREF_NENDIAHINHTTHCPQ.dwg",
+      "requires": ["Implement approved exact deduplication in memory without changing DXF", "Skip result 1232 without viewer warning; retain internal trace", "Do not merge partial overlaps", "Confirm actual coordinate units despite millimeter header", "Confirm CRS"]
+    }
+  ]
+}

@@ -126,9 +126,10 @@ class PredictionGridTests(unittest.TestCase):
     def test_invalid_join_and_conflicting_csv_ids_are_rejected(self):
         with self.assertRaises(ValueError):
             predicted_dxf_grid(self.path, [{"id": "1", "Y": "2"}], "tenlodat", "id", "EPSG:9208")
-        with self.assertRaises(ValueError):
-            predicted_dxf_grid(self.path, [{"id": "1", "Y": "2"}, {"id": "1", "Y": "0"}],
-                               "grid_id", "id", "EPSG:9208")
+        conflicts = predicted_dxf_grid(self.path, [{"id": "1", "Y": "2"}, {"id": "1", "Y": "0"}],
+                                       "grid_id", "id", "EPSG:9208")
+        self.assertEqual(conflicts["join_summary"]["ambiguous"], 1)
+        self.assertTrue(all(item["properties"]["Y"] is None for item in conflicts["features"]))
         invalid = predicted_dxf_grid(self.path, [{"id": "1", "Y": "unknown"}], "grid_id", "id", "EPSG:9208")
         self.assertEqual(invalid["join_summary"]["matched"], 0)
         self.assertTrue(invalid["warnings"])
@@ -162,7 +163,7 @@ class PredictionGridTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.json)
         self.assertEqual([layer["format"] for layer in response.json["layers"]], ["dxf", "gpkg"])
         self.assertEqual(response.json["layers"][0]["data"]["join_summary"]["matched"], 2)
-        self.assertTrue(self.result_path.exists())
+        self.assertFalse(self.result_path.exists())
 
     def test_bad_grid_upload_does_not_replace_saved_results(self):
         self.result_path.write_bytes(b"id,Y\nold,1\n")

@@ -1,0 +1,46 @@
+{
+  "purpose": "CV-02 reference inventory; not yet an application import configuration",
+  "source": "Tailieuthamkhao/Giaodienfrontend/luoi/File ex.xlsx",
+  "sha256": "b7373684cb05ee3dc91308f0fd97523e714e785fbd6ad7e5a2a6aa925ad48b0f",
+  "header_rows": [1, 2, 3],
+  "columns": {
+    "sample_number_not_join_id": "A",
+    "land_plot_code": "B",
+    "x1": "C", "x2": "D", "x3": "E", "x4": "F", "x5": "G",
+    "x6": "H", "x7": "I", "x8": "J", "x9": "K", "Y": "L"
+  },
+  "projects": [
+    {
+      "id": "hcm", "sheet": "data tp. HCM", "grid": "luoi_hcm.dxf",
+      "data_first_row": 4, "data_last_row": 300, "data_range": "A4:L300",
+      "excluded_summary_rows": [301, 302, 303], "code_excel_type": "text",
+      "rows": 297, "rows_with_valid_Y": 297,
+      "Y_counts": {"0": 135, "1": 162, "2": 0},
+      "warnings": ["No TP267 code in source; do not synthesize it", "L302 summary excludes L4 and undercounts Y=0 by 1"]
+    },
+    {
+      "id": "bac-kan", "sheet": "bắc kan", "grid": "bắc kan.dxf",
+      "data_first_row": 4, "data_last_row": 403, "data_range": "A4:L403",
+      "excluded_summary_rows": [404, 405, 406], "code_excel_type": "text",
+      "rows": 400, "rows_with_valid_Y": 380,
+      "Y_counts": {"0": 0, "1": 12, "2": 368},
+      "missing_x1_to_x9_and_Y_rows": {"first": 4, "last": 23, "codes": "BK1..BK20"},
+      "user_confirmed_unscored_policy": {
+        "source_rows_inclusive": [4, 23], "code_range": "BK1..BK20",
+        "exclude_from_evaluation": true, "show_grid_outline": true,
+        "fill": false, "impute_Y": false
+      },
+      "warnings": ["Sample numbers 1..20 each occur twice; column A is not a unique join ID", "Do not fill missing Y with 0"]
+    },
+    {
+      "id": "phu-quoc", "sheet": "data Phú Quốc", "grid": "phú quốc.dxf",
+      "data_first_row": 4, "data_last_row": 1680, "data_range": "A4:L1680",
+      "excluded_summary_rows": [], "code_excel_type": "number",
+      "rows": 1677, "rows_with_valid_Y": 1677,
+      "Y_counts": {"0": 90, "1": 57, "2": 1530},
+      "warnings": ["Numeric integral Excel codes may be serialized as 1.0; preserve type, do not split decimal serialization as code tokens"]
+    }
+  ],
+  "unresolved": ["Grid geometry and CRS: CV-03", "Approved cross-format join rules and Y meaning/colors: CV-04"],
+  "policy": "Read only; no model execution, source repair, Y imputation or DXF matching in CV-02"
+}

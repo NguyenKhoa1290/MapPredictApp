@@ -1,0 +1,63 @@
+{
+  "purpose": "User-approved CV-04 specification; not yet wired into runtime",
+  "join": {
+    "scope": "one_project_only",
+    "exact_match_first": true,
+    "numeric_fallback": true,
+    "text_trim": true,
+    "text_case_sensitive": false,
+    "numeric_text_pattern": "^[^0-9]*([0-9]+)[^0-9]*$",
+    "numeric_text_rule": "Exactly one contiguous integer digit group; discard leading zeros for numeric fallback only; preserve original value",
+    "typed_excel_numeric_rule": "Finite integral number to integer key, preserving original type/value; never parse serialized decimal text as separate IDs",
+    "multiple_numeric_groups": "do_not_numeric_match",
+    "nonintegral_number": "do_not_numeric_match",
+    "ambiguous_or_duplicate_fallback_key": "do_not_auto_match",
+    "conflicting_Y": "do_not_auto_match",
+    "nearest_numeric_match": false,
+    "nearest_spatial_label": false,
+    "row_order_match": false,
+    "use_sample_column_A_as_ID": false,
+    "examples": [
+      {"left": "TP01", "right": "1", "numeric_key": "1", "allowed_if_unique_within_project": true},
+      {"left": "BK21", "right": "21", "numeric_key": "21", "allowed_if_unique_within_project": true},
+      {"left": "TP001", "right": "1", "numeric_key": "1", "allowed_if_unique_within_project": true},
+      {"left": "A1", "competing_left": "B1", "right": "1", "allowed_if_unique_within_project": false},
+      {"left": "A1B2", "right": "12", "allowed_if_unique_within_project": false}
+    ]
+  },
+  "palette": {
+    "source": ["prediction_grid.py:predicted_dxf_grid", "gis.py:predicted_geojson", "wwwroot/layer_manager.js:componentKey"],
+    "Y": {
+      "0": {"color": "#ff0000", "label": "Kết quả Y = 0"},
+      "1": {"color": "#ffa500", "label": "Kết quả Y = 1"},
+      "2": {"color": "#008000", "label": "Kết quả Y = 2"}
+    },
+    "source_fill_opacity": 0.6,
+    "new_business_meanings_invented": false
+  },
+  "unmatched": {"show_outline": true, "fill": false, "impute_Y": false},
+  "bac_kan_unscored": {
+    "original_excel_codes": "BK1..BK20", "numeric_keys_inclusive": [1, 20],
+    "exclude_from_evaluation": true, "show_outline": true, "fill": false, "impute_Y": false
+  },
+  "phu_quoc": {
+    "deduplicate_exact_geometry_in_memory": true,
+    "deduplicate_scope": "selected_grid_layer_within_one_project",
+    "preserve_source_file": true,
+    "preserve_all_original_handles": true,
+    "partial_overlap_merge": false,
+    "conflicting_labels_after_deduplication": "do_not_auto_match",
+    "code_1232": {
+      "apply_result": false, "fill": false, "create_new_polygon": false,
+      "move_label_or_assign_nearest_polygon": false,
+      "show_viewer_warning": false, "include_in_viewer_warning_totals": false,
+      "retain_internal_diagnostic": true
+    }
+  },
+  "still_required": [
+    "CV-12/CV-14 implement and test the policy without changing source files",
+    "MTEXT attachment-aware position assignment must be validated independently of numeric code matching",
+    "Do not claim geometric join coverage until label placement has been resolved",
+    "Confirm VN-2000 projection parameters for each source before map positioning"
+  ]
+}

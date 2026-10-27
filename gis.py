@@ -230,22 +230,13 @@ def base_geojson(path, source_crs=None, offset_x=0, offset_y=0):
 
 
 def predicted_geojson(path, rows, gpkg_join, csv_join, source_crs=None,
-                      offset_x=0, offset_y=0):
-    labels = {}
-    for row in rows:
-        key = str(row.get(csv_join, "")).strip().casefold()
-        try:
-            if key:
-                labels[key] = int(row["Y"])
-        except (KeyError, TypeError, ValueError):
-            continue
-
+                      offset_x=0, offset_y=0, join_mode="exact"):
+    from result_join import apply_results
     with closing(sqlite3.connect(path)) as connection:
         layers = _layers(connection)
         if not layers:
             raise ValueError("GeoPackage không có lớp dữ liệu hình học.")
         features = []
-        colors = {0: "#ff0000", 1: "#ffa500", 2: "#008000"}
         for table, geometry_column, _, srs_id in layers:
             transformer = _transformer(_source_crs(connection, srs_id, source_crs))
             columns = [name for name in _columns(connection, table) if name != geometry_column]
@@ -261,8 +252,6 @@ def predicted_geojson(path, rows, gpkg_join, csv_join, source_crs=None,
                         continue
                     properties = {name: (value.hex() if isinstance(value, bytes) else value)
                                   for name, value in zip(columns, values)}
-                    value = "" if properties[gpkg_join] is None else str(properties[gpkg_join])
-                    label = labels.get(value.strip().casefold())
                 except (ValueError, IndexError, TypeError):
                     continue
                 geometry = _to_wgs84(geometry, transformer, offset_x, offset_y)
@@ -272,13 +261,10 @@ def predicted_geojson(path, rows, gpkg_join, csv_join, source_crs=None,
                     "properties": {
                         **properties,
                         "source_table": table,
-                        gpkg_join: value,
-                        "fillColor": colors.get(label, "#cccccc"),
-                        "fillOpacity": 0.6 if label is not None else 0,
-                        "Y": label,
                     },
                 })
-    return {"type": "FeatureCollection", "features": features}
+    return apply_results({"type": "FeatureCollection", "features": features},
+                         rows, gpkg_join, csv_join, join_mode)
 
 
 def cad_geojson(path, source_crs, offset_x=0, offset_y=0):

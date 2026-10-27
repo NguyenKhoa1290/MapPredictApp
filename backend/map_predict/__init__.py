@@ -1,0 +1,50 @@
+"""Application factory for the portal, public maps and request-scoped predictions."""
+from uuid import uuid4
+
+from flask import Flask, g, jsonify, redirect, request
+from werkzeug.exceptions import HTTPException
+
+from .config import Config, ROOT
+
+
+def create_app(config=None, *, legacy_blueprint=None, legacy_error_handler=None):
+    application = Flask(__name__, static_folder=str(ROOT / "wwwroot"), static_url_path="/static",
+                        template_folder=str(ROOT / "templates"))
+    application.config.from_object(Config)
+    if config:
+        application.config.update(config)
+    application.config["LEGACY_ENABLED"] = legacy_blueprint is not None
+
+    @application.before_request
+    def request_identity():
+        g.request_id = uuid4().hex
+
+    @application.after_request
+    def response_identity(response):
+        response.headers["X-Request-ID"] = g.request_id
+        return response
+
+    from .api.frontend import frontend
+    from .api.v1.public import public_api
+    from .api.v1.predictions import predictions
+    application.register_blueprint(frontend)
+    application.register_blueprint(public_api)
+    application.register_blueprint(predictions)
+
+    if legacy_blueprint is not None:
+        application.register_blueprint(legacy_blueprint)
+    else:
+        application.add_url_rule("/", "portal_home", lambda: redirect("/portal/"))
+
+    @application.errorhandler(Exception)
+    def handle_error(error):
+        if legacy_error_handler is not None and not request.path.startswith(("/api/v1/", "/portal")):
+            return legacy_error_handler(error)
+        if isinstance(error, HTTPException):
+            return jsonify(error={"code": error.name.upper().replace(" ", "_"),
+                                  "message": error.description}, request_id=g.request_id), error.code
+        application.logger.exception("Unhandled request error")
+        return jsonify(error={"code": "INTERNAL_ERROR", "message": "Không thể xử lý yêu cầu."},
+                       request_id=g.request_id), 500
+
+    return application

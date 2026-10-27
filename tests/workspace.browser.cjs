@@ -4,8 +4,9 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 const root = path.resolve(__dirname, "..");
-const url = process.env.WORKSPACE_TEST_URL;
-if (!url) throw new Error("WORKSPACE_TEST_URL must point to a disposable test server, not user data.");
+const serverUrl = process.env.WORKSPACE_TEST_URL;
+if (!serverUrl) throw new Error("WORKSPACE_TEST_URL must point to a disposable test server, not user data.");
+const url = new URL('/legacy/?embedded=1', serverUrl).href;
 const python = process.env.PYTHON || path.join(root, "venv", "Scripts", "python.exe");
 const dxf = execFileSync(python, ["-c", `
 import ezdxf,io
@@ -29,7 +30,7 @@ async function state(page) {
     return page.evaluate(() => ({
         cad: cadFiles.map(e => ({ id: e.id, name: e.file.name, size: e.file.size })),
         prediction: predictionFiles.map(e => ({ id: e.id, name: e.file.name, columns: e.columns })),
-        inputs: ["csv-file", "model-file", "scaler-file", "result-file"].map(id => [...$(id).files].map(f => f.name)),
+        inputs: ["csv-file", "result-file"].map(id => [...$(id).files].map(f => f.name)),
         offsets: [...document.querySelectorAll('[name="cad_offset_x"], [name="cad_offset_y"]')].map(e => e.value),
         predictionOffsets: [$("prediction-offset-x").value, $("prediction-offset-y").value],
         joins: [$("gpkg-join").value, $("csv-join").value],
@@ -54,6 +55,11 @@ async function state(page) {
         page.on("request", request => { if (request.url().includes("/api/")) apiCalls.push(new URL(request.url()).pathname); });
         await page.goto(url);
         await initialized(page);
+        assert.equal(await page.locator("#workspace-save-now").count(), 0);
+        assert.equal(await page.locator(".workspace-header #map-export-pdf").count(), 0);
+        assert.equal(await page.locator("#map-export-pdf").evaluate(button =>
+            button.previousElementSibling.id === "map-button" && button.type === "button"
+            && button.closest("form").id === "map-form"), true);
         assert.equal(await page.evaluate(() => overlays.length), 0);
         await page.selectOption("#project-crs", "EPSG:9208");
         await page.setInputFiles("#cad-file", { name: "base.dxf", mimeType: "application/dxf", buffer: dxf });
@@ -67,8 +73,6 @@ async function state(page) {
         await page.click("#predict-tab");
         const csv = "id,x1,x2,x3,x4,x5,x6,x7,x8,x9\n" + [1,2,3,4].map(i=>`${i},0,0,0,0,0,0,0,0,0`).join("\n");
         await page.setInputFiles("#csv-file", { name: "input.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
-        await page.setInputFiles("#model-file", path.join(root, "rf_model_rating.pkl"));
-        await page.setInputFiles("#scaler-file", path.join(root, "scaler_bds.pkl"));
         await page.click("#predict-button");
         await page.waitForFunction(() => predictionRows.length === 4 && predictionView?.isResult);
         await page.click("#map-tab");
@@ -100,7 +104,7 @@ async function state(page) {
         assert.deepEqual(await state(page), before);
         assert.deepEqual(apiCalls.slice(countBeforeReload), []); // No automatic model/map POST or server results overwrite.
         assert.deepEqual(errors, []);
-        console.log("PASS: files/models, data, offsets, CRS, groups/colors/hue/invert, visibility, view and active tab survive reload without API calls");
+        console.log("PASS: files, data, offsets, CRS, groups/colors/hue/invert, visibility, view and active tab survive reload without API calls");
 
         // A new tab in the same browser sees the saved workspace too.
         const newTab = await context.newPage();
@@ -148,7 +152,7 @@ async function state(page) {
         console.log("PASS: quota failure reports unsaved changes and keeps last good snapshot");
 
         await page.locator("#prediction-offset-x").fill("44");
-        await page.waitForFunction(() => $("workspace-save-status").textContent === "Đã lưu trên trình duyệt");
+        await page.waitForFunction(() => $("workspace-save-status").textContent === "Đã tự lưu trên trình duyệt");
         await page.reload(); await initialized(page);
         assert.equal(await page.locator("#prediction-offset-x").inputValue(),"44");
         console.log("PASS: autosave persists input changes without pressing Save");

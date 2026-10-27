@@ -1,0 +1,27 @@
+/* Consistent outlined actions and compact spacing for retained arrows. */
+.button, .text-link, .project-open { gap: 8px; }
+.site-header nav a { gap: 6px; }
+.site-header nav a:last-child span { margin-left: 0; }
+
+.text-link, .project-open, .assessment-model .text-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cddbd1;
+  border-radius: 7px;
+  padding: 10px 14px;
+  min-height: 42px;
+  background: transparent;
+  text-decoration: none;
+}
+
+.text-link:hover, .project-open:hover, .assessment-model .text-link:hover {
+  border-color: #92b49e;
+  background: var(--pale);
+  text-decoration: none;
+}
+
+button:hover, a.button:hover, .site-header nav a:hover,
+.brand:hover, .footer-brand:hover { text-decoration: none; }
+.project-bottom { flex-wrap: wrap; gap: 12px; }
+.project-list-summary { margin-top: 24px; color: var(--muted); font-size: 14px; }

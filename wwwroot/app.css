@@ -1,7 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-
 html, body {
-    font-family: 'Inter', sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     margin: 0;
     padding: 0;
     width: 100%;
@@ -12,6 +10,10 @@ html, body {
     animation: gradientMove 15s ease infinite;
     color: #1e293b;
     overflow-x: hidden;
+}
+
+body.workspace-mode .leaflet-container {
+    font-family: "Segoe UI", Arial, sans-serif;
 }
 
 *, *::before, *::after {
@@ -118,7 +120,7 @@ html, body {
     color: #0f172a;
     margin-bottom: 15px;
     text-align: center;
-    letter-spacing: -0.5px;
+    letter-spacing: normal;
     text-shadow: 0 2px 10px rgba(255, 255, 255, 0.8);
 }
 
@@ -414,8 +416,9 @@ body.workspace-mode .tabs-glass {
     position: relative; z-index: 2; background: #fff;
 }
 .workspace-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 16px; border-bottom: 1px solid #e2e8e7; background: #fff; position: relative; z-index: 2; }
-.workspace-save { order: 3; flex-basis: 100%; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 4px 24px 8px; color: #52695c; font-size: 12px; }
-.workspace-save .cad-action { margin: 0; padding: 4px 10px; font-size: 12px; }
+.workspace-save { order: 3; flex-basis: 100%; display: none; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding: 4px 24px 8px; color: #52695c; font-size: 12px; }
+.workspace-save.has-error { display: flex; }
+#map-export-status:empty { display: none; }
 .workspace-crs { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 24px 10px 0; }
 .workspace-crs label { color: #344c3c; font-size: 12px; font-weight: 600; }
 .workspace-crs select, .workspace-crs input[type="text"] { padding: 9px; border: 1px solid #cddbd1; border-radius: 7px; background: #fff; font: inherit; font-size: 12px; }
@@ -459,6 +462,7 @@ body.workspace-mode .workspace-panel { height: 100%; min-height: 0; }
 .cad-action { margin-top: 10px; padding: 7px 9px; border: 1px solid #cddbd1; border-radius: 6px; background: #fff; color: #28523a; font: inherit; font-size: 12px; cursor: pointer; }
 .cad-action:hover:not(:disabled) { background: #e8f5ec; }
 .cad-action:disabled { opacity: 0.6; cursor: not-allowed; }
+.map-export-button { display: block; width: 100%; padding: 12px; border-radius: 8px; font-size: 14px; }
 .cad-action-apply { background: #e8f5ec; font-weight: 600; }
 .cad-analysis { color: #53695b; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .cad-analysis:empty { display: none; }
@@ -479,7 +483,7 @@ body.workspace-mode .workspace-panel { height: 100%; min-height: 0; }
 .layer-card { border: 1px solid #dce6df; border-radius: 10px; padding: 12px; background: #fbfdfb; }
 .layer-card.selected { border-color: #0b8753; box-shadow: 0 0 0 1px #0b8753; }
 .layer-select { min-width: 0; padding: 0; background: transparent; border: 0; color: #244634; font: inherit; font-size: 13px; font-weight: 600; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
-.layer-select:hover { color: #087b43; text-decoration: underline; }
+.layer-select:hover { color: #087b43; text-decoration: none; }
 .source-remove { margin-left: 6px; color: #92400e; }
 .prediction-source { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid #e4eae6; font-size: 12px; }
 .prediction-source > span { flex: 1; }
@@ -575,6 +579,10 @@ body.workspace-mode .workspace-panel { height: 100%; min-height: 0; }
 .prediction-table tbody tr:nth-child(even) > * { background: #f8fbf9; }
 .prediction-table tbody tr:hover > * { background: #edf6f0; }
 .prediction-table .prediction-output { color: #087b43; font-weight: 600; }
+.join-preview { padding: 12px; border: 1px solid #cddbd1; border-radius: 8px; margin-block: 10px; overflow-wrap: anywhere; }
+.join-preview h3 { font-size: 15px; margin-block: 12px 6px; }
+.join-preview p, .join-preview li { font-size: 13px; line-height: 1.6; }
+.join-preview ul { padding-left: 18px; }
 
 @media (max-width: 760px) {
     .map-workspace, .prediction-workspace { grid-template-columns: minmax(160px, 42vw) minmax(0, 1fr); }

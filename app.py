@@ -8,21 +8,21 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 from werkzeug.exceptions import HTTPException
 
 from cad_diagnostics import cad_diagnostics
 from gis import (cad_geojson, gpkg_columns, gpkg_diagnostics, parse_source_crs,
                  predicted_geojson, source_crs_options)
-from predict_pkl import predict_rows
+from backend.map_predict.services.prediction import PredictionError, run_prediction
 from prediction_grid import dxf_grid_metadata, predicted_dxf_grid
+from backend.map_predict import create_app
 
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / "MapPredictApp"
 RESULT_CSV = DATA_DIR / "KetQua.csv"
-app = Flask(__name__, static_folder="wwwroot", static_url_path="/static", template_folder="templates")
-app.config["MAX_CONTENT_LENGTH"] = 600 * 1024 * 1024
+legacy = Blueprint("legacy", __name__)
 
 
 def _csv_rows(data):
@@ -43,36 +43,6 @@ def _csv_rows(data):
     if any(None in row for row in rows):
         raise ValueError("Một số dòng CSV có nhiều cột hơn hàng tiêu đề.")
     return rows
-
-
-def _write_results(rows):
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    columns = list(dict.fromkeys(key for row in rows for key in row))
-    with RESULT_CSV.open("w", encoding="utf-8-sig", newline="") as output:
-        writer = csv.DictWriter(output, fieldnames=columns)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def _saved_results():
-    if not RESULT_CSV.is_file():
-        return []
-    return _csv_rows(RESULT_CSV.read_bytes())
-
-
-def _model_source(field, default_name):
-    uploaded = request.files.get(field)
-    if uploaded and uploaded.filename:
-        if Path(uploaded.filename).suffix.lower() != ".pkl":
-            raise ValueError("Mô hình và bộ chuẩn hóa phải có định dạng .pkl.")
-        try:
-            return io.BytesIO(uploaded.read())
-        finally:
-            uploaded.close()
-    default = ROOT / default_name
-    if not default.is_file():
-        raise ValueError(f"Không tìm thấy file mặc định {default_name}.")
-    return default
 
 
 def _uploaded_file(name, suffix, directory):
@@ -115,57 +85,61 @@ def _offset(value, label):
     return number
 
 
-@app.errorhandler(Exception)
 def _api_error(error):
     if isinstance(error, HTTPException):
         return jsonify(error=str(error.description)), error.code
     if isinstance(error, (ValueError, OSError, sqlite3.Error)):
         return jsonify(error=str(error)), 400
-    app.logger.exception("Unexpected application error")
+    current_app.logger.exception("Unexpected application error")
     return jsonify(error="Không thể xử lý yêu cầu. Kiểm tra nhật ký ứng dụng."), 500
 
 
-@app.get("/")
+@legacy.get("/")
+@legacy.get("/legacy/")
 def home():
+    if request.path == '/':
+        return redirect('/portal/')
+    if request.args.get('embedded') != '1':
+        return redirect('/portal/assessment')
     asset_version = max((ROOT / "wwwroot" / filename).stat().st_mtime_ns
                         for filename in ("app.css", "app.js", "basemaps.js", "color_adjustments.js", "layer_manager.js",
-                                         "workspace_store.js", "workspace.js"))
-    response = app.make_response(render_template(
+                                         "workspace_store.js", "workspace.js", "pdf_export.js", "join_preview.js"))
+    response = current_app.make_response(render_template(
         "index.html", asset_version=asset_version, crs_options=source_crs_options()))
     response.headers["Cache-Control"] = "no-store"
     return response
 
 
-@app.get("/api/results")
+@legacy.get("/api/results")
 def results():
-    try:
-        rows = _saved_results()
-    except ValueError:
-        rows = []
-    return jsonify(rows=rows)
+    return jsonify(rows=[])
 
 
-@app.post("/api/predict")
+@legacy.post("/api/predict")
 def predict():
+    request.max_content_length = current_app.config["PREDICTION_MAX_REQUEST_BYTES"]
+    if set(request.files) - {"csv"} or request.form:
+        return jsonify(error="Chỉ nhận CSV, mô hình được quản lý trên máy chủ"), 400
     uploaded = request.files.get("csv")
     if not uploaded or not uploaded.filename:
         raise ValueError("Vui lòng chọn file CSV.")
     if Path(uploaded.filename).suffix.lower() != ".csv":
         raise ValueError("File dữ liệu phải có định dạng .csv.")
     try:
-        rows = _csv_rows(uploaded.read())
+        content = uploaded.read(current_app.config["PREDICTION_MAX_CSV_BYTES"] + 1)
+        if len(content) > current_app.config["PREDICTION_MAX_CSV_BYTES"]:
+            return jsonify(error="CSV vượt giới hạn dung lượng cho phép"), 413
+        rows = _csv_rows(content)
+        result = run_prediction(rows, current_app.config)
+    except PredictionError as error:
+        return jsonify(error=str(error)), error.status
     finally:
         uploaded.close()
-    predicted = predict_rows(
-        rows,
-        _model_source("model", "rf_model_rating.pkl"),
-        _model_source("scaler", "scaler_bds.pkl"),
-    )
-    _write_results(predicted)
-    return jsonify(rows=predicted, saved_to=str(RESULT_CSV))
+    predicted = result["rows"]
+    return jsonify(rows=predicted, model_version=result["model_version"])
 
 
-@app.post("/api/preview-csv")
+@legacy.post("/api/preview-csv")
 def preview_csv():
     uploaded = request.files.get("csv")
     if not uploaded or not uploaded.filename or Path(uploaded.filename).suffix.lower() != ".csv":
@@ -177,14 +151,12 @@ def preview_csv():
     return jsonify(rows=rows[:200], count=len(rows))
 
 
-@app.get("/api/export")
+@legacy.get("/api/export")
 def export():
-    if not RESULT_CSV.is_file():
-        raise ValueError("Chưa có kết quả để xuất.")
-    return send_file(RESULT_CSV, mimetype="text/csv", as_attachment=True, download_name="KetQua.csv")
+    return jsonify(error="Xuất CSV từ bảng kết quả trong phiên đang mở"), 410
 
 
-@app.post("/api/gpkg-columns")
+@legacy.post("/api/gpkg-columns")
 def columns():
     with tempfile.TemporaryDirectory(prefix="map-predict-columns-") as directory:
         path = _uploaded_file("gpkg", {".gpkg"}, directory)
@@ -195,7 +167,7 @@ def columns():
                        diagnostics=diagnostics)
 
 
-@app.post("/api/result-columns")
+@legacy.post("/api/result-columns")
 def result_columns():
     uploaded = request.files.get("result")
     if not uploaded or not uploaded.filename or Path(uploaded.filename).suffix.lower() != ".csv":
@@ -209,7 +181,7 @@ def result_columns():
     return jsonify(columns=[name for name in rows[0] if name != "Y"], count=len(rows))
 
 
-@app.post("/api/prediction-columns")
+@legacy.post("/api/prediction-columns")
 def prediction_columns():
     with tempfile.TemporaryDirectory(prefix="map-predict-grid-columns-") as directory:
         path = _uploaded_file("layer", {".gpkg", ".dxf"}, directory)
@@ -224,7 +196,7 @@ def prediction_columns():
                        format="gpkg", diagnostics=diagnostics)
 
 
-@app.post("/api/cad-diagnostics")
+@legacy.post("/api/cad-diagnostics")
 def diagnose_cad():
     source_crs = request.form.get("source_crs", "").strip().upper()
     if not source_crs:
@@ -237,8 +209,11 @@ def diagnose_cad():
         return jsonify(cad_diagnostics(path, source_crs))
 
 
-@app.post("/api/map")
+@legacy.post("/api/map")
 def map_layers():
+    join_mode = request.form.get("join_mode", "exact")
+    if join_mode not in ("exact", "numeric"):
+        raise ValueError("Chế độ ghép phải là exact hoặc numeric")
     shared_crs = request.form.get("source_crs", "").strip().upper()
     if not shared_crs:
         raise ValueError("Vui lòng chọn hệ tọa độ chung (EPSG) ở thanh trên.")
@@ -260,7 +235,7 @@ def map_layers():
             if "Y" not in rows[0]:
                 raise ValueError("File kết quả phải có cột Y.")
         else:
-            rows = _saved_results() if prediction_layers else []
+            rows = []
 
         layers = []
         cad_x_values = request.form.getlist("cad_offset_x")
@@ -280,8 +255,6 @@ def map_layers():
                            "data": cad_geojson(cad, shared_crs, offset_x, offset_y)})
         for index, (layer, name) in enumerate(prediction_layers):
             is_dxf = layer.suffix.lower() == ".dxf"
-            if not rows and not is_dxf:
-                raise ValueError("Vui lòng chạy dự đoán hoặc chọn file kết quả CSV.")
             gpkg_join = (prediction_joins[index] if index < len(prediction_joins)
                          else request.form.get("gpkg_join", ""))
             csv_join = request.form.get("csv_join", "")
@@ -291,9 +264,9 @@ def map_layers():
             prediction_offset_y = _offset(request.form.get("prediction_offset_y"), "Dịch Y layer dự đoán")
             declared_crs = None if is_dxf else gpkg_diagnostics(layer)["declared_crs"]
             data = (predicted_dxf_grid(layer, rows, gpkg_join, csv_join, shared_crs,
-                                       prediction_offset_x, prediction_offset_y) if is_dxf else
+                                       prediction_offset_x, prediction_offset_y, join_mode) if is_dxf else
                     predicted_geojson(layer, rows, gpkg_join, csv_join, shared_crs,
-                                      prediction_offset_x, prediction_offset_y))
+                                      prediction_offset_x, prediction_offset_y, join_mode))
             layers.append({
                 "kind": "prediction",
                 "name": name,
@@ -306,12 +279,13 @@ def map_layers():
             })
         if not layers:
             raise ValueError("Vui lòng chọn ít nhất một file bản đồ.")
-        if result and result.filename:
-            _write_results(rows)
         counts = {str(label): sum(str(row.get("Y", "")) == str(label) for row in rows)
                   for label in (0, 1, 2)}
         return jsonify(layers=layers, source_crs=shared_crs, output_crs="EPSG:4326",
                        count=len(rows), counts=counts)
+
+
+app = create_app(legacy_blueprint=legacy, legacy_error_handler=_api_error)
 
 
 if __name__ == "__main__":

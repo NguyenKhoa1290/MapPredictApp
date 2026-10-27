@@ -8,6 +8,16 @@
 
     const MAX_ZOOM = 22;
 
+    function motionOptions(reducedMotion = null) {
+        const reduced = reducedMotion ?? (typeof globalThis.matchMedia === "function"
+            && globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        return {
+            zoomAnimation: !reduced, fadeAnimation: !reduced, markerZoomAnimation: !reduced,
+            zoomSnap: 0, zoomDelta: 0.5,
+            wheelDebounceTime: 40, wheelPxPerZoomLevel: 120,
+        };
+    }
+
     function tileRequest(template, coords, depth = 0, size = 256) {
         const scale = 2 ** depth;
         const x = Math.floor(coords.x / scale);
@@ -32,9 +42,8 @@
                 image.draggable = false;
                 image.className = "basemap-tile-image";
                 tile.append(image);
-                // L_DISABLE_3D keeps this app's sidebar safe, but Leaflet's
-                // native overzoom only scales grid levels when 3D is enabled.
-                // Keep the grid at display zoom and crop/scale images ourselves.
+                // Keep geographic cropping correct with or without CSS 3D.
+                // Fractional zoom is handled by the shared Leaflet map transform.
                 let depth = Math.max(0, coords.z - this.options.nativeMaxZoom);
                 let cancelled = false;
                 const maxDepth = Math.min(coords.z, depth + this.options.fallbackDepth);
@@ -69,11 +78,11 @@
         });
         const layer = new FallbackLayer({
             minZoom: 0, maxZoom: MAX_ZOOM, nativeMaxZoom: 19,
-            fallbackDepth: 4, keepBuffer: 1, ...options,
+            fallbackDepth: 4, keepBuffer: 2, updateWhenZooming: false, updateInterval: 120, ...options,
         });
         layer.on("tileunload", ({ tile }) => tile.cancelBasemapLoad?.());
         return layer;
     }
 
-    return { MAX_ZOOM, tileRequest, createFallbackLayer };
+    return { MAX_ZOOM, motionOptions, tileRequest, createFallbackLayer };
 });
