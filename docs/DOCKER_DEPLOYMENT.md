@@ -51,6 +51,10 @@ Máy hiện tại đã có đủ file riêng, không cần cấu hình lại tun
 
 ## Cập nhật code
 
+Máy hiện tại đã cài tác vụ Windows `MapPredictApp-AutoDeploy`, tự kiểm tra mỗi năm phút và triển khai commit main được CI đánh dấu thành công
+Không chạy thêm container updater, chi tiết và cách tạm dừng tại [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md)
+Nếu workspace có thay đổi chưa commit, tác vụ tự bỏ qua, vẫn có thể triển khai thủ công như dưới đây
+
 ```powershell
 .\tools\deploy_docker.ps1 -Pull
 ```

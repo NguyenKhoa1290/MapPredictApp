@@ -1,5 +1,14 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-27 Tự triển khai sau CI
+
+- Thêm job deploy-ready chỉ đánh dấu commit main sau khi kiểm thử và đóng gói thành công
+- Cài Windows Task Scheduler MapPredictApp-AutoDeploy, kiểm tra mỗi năm phút rồi thoát, không thêm container thường trực
+- Không cần API token hay webhook, kiểm tra tín hiệu CI bằng Git remote refs
+- Chỉ triển khai main khớp tín hiệu CI, workspace sạch và Git fast-forward được tới đúng SHA
+- Ghi revision đang chạy, xoay log và giữ quy trình chuyển slot, dữ liệu cùng tunnel hiện có
+- Sáu kiểm thử mới cho điều kiện cho phép triển khai, bỏ qua code chưa commit và không ghi thành công khi build lỗi
+
 ## 2026-10-27 Tinh gọn stack Docker
 
 - Bình thường chỉ chạy một backend cùng Nginx và Cloudflared, frontend là file tĩnh

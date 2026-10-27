@@ -59,7 +59,9 @@ print('Candidate model and frontend are ready')
         if ($LASTEXITCODE -ne 0) { throw 'Proxy configuration is invalid' }
         docker compose exec -T app nginx -s reload
         if ($LASTEXITCODE -ne 0) { throw 'Proxy reload failed' }
-        $stateJson = @{active=$next; updated=(Get-Date).ToUniversalTime().ToString('o')} | ConvertTo-Json
+        $revision = (git rev-parse HEAD).Trim()
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot record deployed revision' }
+        $stateJson = @{active=$next; revision=$revision; updated=(Get-Date).ToUniversalTime().ToString('o')} | ConvertTo-Json
         [IO.File]::WriteAllText($statePath,$stateJson,[Text.UTF8Encoding]::new($false))
     } catch {
         [IO.File]::WriteAllText($configPath,$previousConfiguration,[Text.UTF8Encoding]::new($false))
