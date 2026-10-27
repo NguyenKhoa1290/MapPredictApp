@@ -1,5 +1,16 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-27 Tinh gọn stack Docker
+
+- Bình thường chỉ chạy một backend cùng Nginx và Cloudflared, frontend là file tĩnh
+- Slot dự phòng chỉ bật lúc triển khai, dừng và gỡ sau khi Nginx xử lý xong request cũ
+- Một Gunicorn worker với hai thread, một Nginx worker, giới hạn luồng thư viện số học
+- Image ứng dụng giảm từ 837255739 byte xuống 617451381 byte
+- Mẫu đo RAM của ba container khoảng 224 MiB sau nạp bản đồ và dự đoán, trước thay đổi khoảng 583 MiB
+- 84 kiểm thử Python đạt trong image production tinh gọn, giữ dữ liệu nguồn và cổng 8765
+- Bổ sung tools/start_docker.ps1 để khởi động riêng slot đang hoạt động
+- CI kiểm tra thêm toàn bộ test Python trong image production
+
 ## 2026-10-27 Xác minh bản Docker cuối cùng
 
 - Mã nguồn cấu hình 31c2920472ba4a0c57828c06fe21409a0612f337 đã được push lên main

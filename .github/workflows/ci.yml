@@ -73,6 +73,8 @@ jobs:
           docker run -d --name map-predict-ci
           --read-only --tmpfs /tmp:rw,nosuid,noexec,size=536870912
           -v "${{ github.workspace }}/models:/app/models:ro"
+          -v "${{ github.workspace }}/tests:/app/tests:ro"
+          -v "${{ github.workspace }}/layer_du_doan.gpkg:/app/layer_du_doan.gpkg:ro"
           -p 127.0.0.1:8766:8000 map-predict-ci
       - name: Verify readiness and mounted model
         run: |
@@ -82,6 +84,8 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:8766/portal/ > /dev/null
           docker exec map-predict-ci python -c "import json, urllib.request; assert json.load(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/predictions/model'))['data']['ready']"
+      - name: Test production dependency set
+        run: docker exec map-predict-ci python -B -W ignore::ResourceWarning -m unittest discover -s tests -p "test_*.py"
       - name: Container diagnostics
         if: failure()
         run: docker logs map-predict-ci

@@ -305,6 +305,8 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
 
 ## 7. Nhật ký cập nhật note
 
+- 2026-10-27: tối ưu Docker còn ba container chạy thường xuyên, một backend với frontend tĩnh, Nginx và tunnel giữ cổng cố định. Slot dự phòng chỉ bật khi cập nhật rồi gỡ sau khi request cũ hoàn thành. Image 837 MB còn 617 MB, mẫu RAM khoảng 583 MiB còn 224 MiB, 84 kiểm thử production đạt. Hướng dẫn khởi động tại docs/DOCKER_DEPLOYMENT.md
+
 - 2026-10-26: bắt đầu CV-06 theo yêu cầu, dựng prototype local riêng và giữ nguyên công cụ đang chạy; 3 mục điều hướng, các khối Giới thiệu/Dự án/thành viên và mẫu Đánh giá. 6 kiểm thử logic + 3 kiểm thử static đạt; chưa QA trực quan và chưa được duyệt mẫu.
 - 2026-10-26: thử lại dcsolution.vn thành công qua web/HTTP, đọc trang chủ/Sứ mệnh/Dự án và đối chiếu CSS dự án. Viết định hướng CV-06, chưa tạo mẫu hoặc sửa frontend; không sao chép ảnh/thương hiệu và không thay đổi website tham khảo.
 - 2026-10-26: người dùng xác nhận website sẽ public. Chốt CV-05 nền tảng cho nhiều người, cách ly workspace; chuyển chi tiết đăng nhập/ẩn danh, hạn mức và thời hạn lưu thành điều kiện CV-25 trước triển khai. Chưa public ứng dụng hoặc mua dịch vụ.

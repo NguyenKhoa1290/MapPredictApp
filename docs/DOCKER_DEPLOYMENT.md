@@ -5,11 +5,15 @@
 
 ## Cấu trúc
 
-Docker Compose project `map-predict` gồm bốn service
+Docker Compose project `map-predict` định nghĩa bốn service, bình thường chỉ chạy ba container
 
 - `app` là Nginx giữ cổng host cố định và chuyển tiếp tới slot đang hoạt động
 - `app-blue` và `app-green` chạy Python bằng Gunicorn, chỉ mở cổng trong mạng Docker
 - `cloudflared` dùng tunnel riêng, kết nối tới `http://app:8000`, không đi vòng qua cổng host
+
+Chỉ một slot Python chạy thường xuyên với một Gunicorn worker và hai thread
+Frontend được build thành file tĩnh trong image, không chạy thêm Node server
+Slot còn lại chỉ chạy trong lúc cập nhật, sau khi request cũ kết thúc sẽ được dừng và gỡ container
 
 Tunnel và Nginx không bị tạo lại khi cập nhật một slot ứng dụng
 Không dùng network_mode host và không thay đổi stack Docker của các dự án khác
@@ -39,8 +43,7 @@ Clone mã nguồn từ GitHub, chuẩn bị pipeline và bộ dữ liệu riêng
 .\tools\initialize_docker.ps1
 python tools/configure_cloudflare.py --account-id YOUR_ACCOUNT_ID --hostname YOUR_HOSTNAME --zone YOUR_ZONE
 docker compose build app-blue
-docker tag map-predict-app:blue map-predict-app:green
-docker compose up -d --no-build --wait
+.\tools\start_docker.ps1
 ```
 
 Script cấu hình Cloudflare từ chối thay bản ghi DNS của ứng dụng khác và không in token ra màn hình
@@ -57,7 +60,7 @@ Script khóa để tránh hai lần triển khai đồng thời, chờ các requ
 Sau đó build và khởi động lại slot không hoạt động, kiểm tra model cùng frontend trước khi đổi upstream Nginx
 Nếu build hoặc kiểm tra model thất bại, slot cũ tiếp tục phục vụ
 Nginx reload theo cách graceful, không dùng docker compose down để cập nhật code
-Giữ slot cũ chạy để các request đang xử lý có thể hoàn thành
+Chờ request trên slot cũ hoàn thành rồi dừng và gỡ container đó để giải phóng RAM
 
 Thay model hoặc dữ liệu mount có hiệu lực độc lập với image, blue/green không phải cơ chế sao lưu model hoặc dữ liệu gốc
 Không xóa `.secrets`, `.env` hoặc `deploy/local` khi cập nhật
@@ -67,12 +70,25 @@ Không xóa `.secrets`, `.env` hoặc `deploy/local` khi cập nhật
 ```powershell
 docker compose ps
 docker compose logs --tail 100 app app-blue app-green cloudflared
-docker compose up -d --no-build --wait
+.\tools\start_docker.ps1
 ```
 
 Docker Desktop và máy tính cần hoạt động để tên miền tiếp tục truy cập được
 Các service có restart policy unless-stopped và log được giới hạn kích thước
 Khởi động lại toàn stack chỉ dùng khi cần, cập nhật code dùng script blue/green
+Không dùng `docker compose up` cho toàn bộ service vì sẽ bật cả slot dự phòng
+
+## Tối ưu tài nguyên ngày 2026-10-27
+
+- Image ứng dụng giảm từ 837255739 byte xuống 617451381 byte, khoảng 26 phần trăm
+- Bỏ test suite của thư viện và bytecode khỏi image bằng build nhiều giai đoạn
+- Giới hạn luồng BLAS/OpenMP, một Nginx worker và một Gunicorn worker với hai thread
+- Đo Docker stats sau khi nạp bản đồ và dự đoán cho tổng khoảng 224 MiB RAM, trước thay đổi khoảng 583 MiB
+- Các số RAM là mẫu đo trên máy hiện tại, có thể tăng theo dữ liệu và số request đồng thời
+- 84 kiểm thử Python đạt trong image production đã tinh gọn, gồm dữ liệu dự án thực tế
+- CI chạy thêm bộ kiểm thử Python trực tiếp trong image production
+
+Giữ image slot cũ để sử dụng lại cache khi cập nhật, không tự dọn cache Docker hoặc image của các dự án khác
 
 ## Xác minh thực tế ngày 2026-10-27
 

@@ -18,6 +18,7 @@ try {
     if ($state.active -notin @('blue','green')) { throw 'Invalid active slot' }
     $next = if ($state.active -eq 'blue') { 'green' } else { 'blue' }
     $service = "app-$next"
+    $previousService = "app-$($state.active)"
     # Old nginx workers may still have an in-flight request to the inactive slot.
     $deadline = (Get-Date).AddSeconds(190)
     do {
@@ -65,7 +66,22 @@ print('Candidate model and frontend are ready')
         docker compose exec -T app nginx -s reload
         throw
     }
-    Write-Output "Deployment complete, active slot: $next. Gateway, tunnel and host port were preserved."
+    # Free standby RAM only after old nginx workers finish their requests.
+    $deadline = (Get-Date).AddSeconds(190)
+    do {
+        $processList = @(docker compose exec -T app ps -o args)
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect gateway, previous slot was kept running' }
+        $draining = @($processList | Where-Object { $_ -match '^nginx: worker process is shutting down' }).Count -gt 0
+        if ($draining) {
+            if ((Get-Date) -gt $deadline) { throw 'Deployment switched successfully, previous slot is still draining and was preserved' }
+            Start-Sleep -Seconds 3
+        }
+    } while ($draining)
+    docker compose stop $previousService
+    if ($LASTEXITCODE -ne 0) { throw 'Deployment switched successfully, cannot stop previous slot' }
+    docker compose rm -f $previousService
+    if ($LASTEXITCODE -ne 0) { throw 'Deployment switched successfully, stopped slot could not be removed' }
+    Write-Output "Deployment complete, active slot: $next. Standby was stopped, gateway, tunnel and host port were preserved."
 } finally {
     if ($lockStream) { $lockStream.Dispose() }
     Set-Location -LiteralPath $originalLocation
