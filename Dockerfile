@@ -34,7 +34,7 @@ COPY backend/ ./backend/
 COPY config/ ./config/
 COPY templates/ ./templates/
 COPY wwwroot/ ./wwwroot/
-COPY tools/audit_reference_excel.py tools/audit_reference_dxf.py tools/auto_deploy.py ./tools/
+COPY tools/audit_reference_excel.py tools/audit_reference_dxf.py tools/auto_deploy.py tools/docker_stack.py tools/install_linux.py ./tools/
 COPY --from=frontend /build/frontend/dist/ ./frontend/dist/
 RUN mkdir -p /app/models /app/project-data
 USER 10001:10001

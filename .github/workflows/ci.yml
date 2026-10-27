@@ -51,6 +51,25 @@ jobs:
         run: npm test
       - name: Test backend
         run: python -B -W ignore::ResourceWarning -m unittest discover -s tests -p "test_*.py"
+      - name: Validate Linux service units
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          import subprocess
+          import sys
+          from tools.install_linux import units
+          folder = Path(os.environ['RUNNER_TEMP']) / 'map-predict-units'
+          folder.mkdir(exist_ok=True)
+          paths = []
+          for name, content in units(Path.cwd(), sys.executable, 'root').items():
+              path = folder / name
+              path.write_text(content)
+              paths.append(str(path))
+          subprocess.run(['systemd-analyze', '--man=no', 'verify', *paths], check=True)
+          PY
       - name: Test map rendering utilities
         run: node --test tests/basemaps.test.cjs tests/color_adjustments.test.cjs tests/pdf_export.test.cjs
       - name: Package and verify extracted application

@@ -50,7 +50,8 @@ Chức năng DWG cần cài ODA riêng, DXF không cần bộ cài này
 
 CI kiểm tra thêm Docker image trên Ubuntu trước khi tạo artifact
 Ứng dụng đã có triển khai Docker local và tunnel riêng theo yêu cầu mới, xem [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
-Máy cá nhân kiểm tra nhánh tín hiệu CI mỗi năm phút bằng Windows Task Scheduler rồi tự gọi script deploy_docker.ps1
+Máy cá nhân kiểm tra nhánh tín hiệu CI mỗi năm phút bằng Windows Task Scheduler rồi gọi Python tools/docker_stack.py deploy
+VPS Linux dùng cùng mã cập nhật qua systemd timer, hướng dẫn cài tại [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
 VS Code và đăng nhập Git giúp commit/push, không tự tạo một môi trường chạy web public
 Không mở cổng webhook, không cần GitHub API token, không đưa quyền điều khiển Docker vào container khác
 

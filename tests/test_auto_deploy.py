@@ -53,7 +53,7 @@ class DeploymentGateTests(unittest.TestCase):
                     return f'{revision}\trefs/heads/main\n{revision}\trefs/heads/deploy-ready'
                 if args[:2] == ('git', 'rev-parse'):
                     return revision
-                if args[0] == 'powershell.exe':
+                if args[-1] == 'deploy':
                     state.write_text(json.dumps({'active': 'green', 'revision': revision}))
                 return ''
 

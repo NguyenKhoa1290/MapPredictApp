@@ -1,5 +1,15 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-27 Chuẩn bị tự triển khai trên VPS Linux
+
+- Giữ tác vụ Windows hiện có, chuyển initialize/start/deploy sang Python dùng chung cho Windows và Linux
+- Trình cập nhật chỉ triển khai main trùng SHA deploy-ready sau khi CI đạt, giữ kiểm tra workspace sạch và fast-forward
+- Bổ sung cài đặt systemd gồm stack khởi động theo VPS và timer cập nhật mỗi năm phút, không thêm container thường trực
+- Các lệnh PowerShell cũ chuyển thành wrapper gọi Python, giữ nguyên cổng và cơ chế chuyển slot
+- Kiểm thử lỗi candidate, rollback proxy và giữ slot cũ trong khi request đang xử lý
+- Chưa có VPS để cài thực tế, hướng dẫn chuyển dữ liệu và cấp token tại docs/DOCKER_DEPLOYMENT.md
+- 96 kiểm thử đạt trên Windows và 96 kiểm thử đạt trong container Linux, CI bổ sung xác minh cú pháp unit bằng systemd-analyze
+
 ## 2026-10-27 Tự triển khai sau CI
 
 - Thêm job deploy-ready chỉ đánh dấu commit main sau khi kiểm thử và đóng gói thành công

@@ -1,4 +1,4 @@
-"""Short-lived local deployment check, invoked by Windows Task Scheduler."""
+"""Short-lived deployment check for Windows Task Scheduler or Linux systemd."""
 from __future__ import annotations
 
 import json
@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 from contextlib import contextmanager
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,8 +82,8 @@ def check_once() -> bool:
     if command('git', 'rev-parse', 'HEAD') != revision:
         raise RuntimeError('Checkout differs from verified revision')
     LOG.info('Deploying verified revision %s', revision)
-    output = command('powershell.exe', '-NoProfile', '-NonInteractive', '-File',
-                     str(ROOT / 'tools' / 'deploy_docker.ps1'), timeout=3600)
+    output = command(sys.executable, '-B', str(ROOT / 'tools' / 'docker_stack.py'),
+                     'deploy', timeout=3600)
     LOG.info('%s', output[-6000:])
     deployed = json.loads((ROOT / '.secrets' / 'deployment-state.json').read_text(encoding='utf-8-sig'))
     if deployed.get('revision') != revision:

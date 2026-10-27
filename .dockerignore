@@ -21,6 +21,9 @@
 !tools/
 !tools/audit_reference_excel.py
 !tools/audit_reference_dxf.py
+!tools/auto_deploy.py
+!tools/docker_stack.py
+!tools/install_linux.py
 !frontend/
 !frontend/package.json
 !frontend/package-lock.json

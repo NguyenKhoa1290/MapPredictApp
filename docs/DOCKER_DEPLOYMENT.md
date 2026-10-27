@@ -51,6 +51,9 @@ Máy hiện tại đã có đủ file riêng, không cần cấu hình lại tun
 
 ## Cập nhật code
 
+Windows và Linux dùng chung `python tools/docker_stack.py deploy`
+Các file PowerShell là lệnh gọi tương thích với cách vận hành cũ, không còn giữ thuật toán triển khai riêng
+
 Máy hiện tại đã cài tác vụ Windows `MapPredictApp-AutoDeploy`, tự kiểm tra mỗi năm phút và triển khai commit main được CI đánh dấu thành công
 Không chạy thêm container updater, chi tiết và cách tạm dừng tại [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md)
 Nếu workspace có thay đổi chưa commit, tác vụ tự bỏ qua, vẫn có thể triển khai thủ công như dưới đây
@@ -81,6 +84,51 @@ Docker Desktop và máy tính cần hoạt động để tên miền tiếp tụ
 Các service có restart policy unless-stopped và log được giới hạn kích thước
 Khởi động lại toàn stack chỉ dùng khi cần, cập nhật code dùng script blue/green
 Không dùng `docker compose up` cho toàn bộ service vì sẽ bật cả slot dự phòng
+
+## Chuyển sang VPS Linux
+
+Cấu hình Compose và mã ứng dụng giữ nguyên, không cần thêm container updater
+Trình cập nhật chạy một lần rồi thoát bằng systemd timer, chỉ triển khai SHA main đã được CI đánh dấu qua nhánh deploy-ready
+Mặc định kiểm tra sau khi khởi động hai phút và năm phút sau khi lần kiểm tra trước kết thúc
+Stack tự khởi động cùng VPS và chỉ bật slot ứng dụng đang hoạt động
+
+Điều kiện ban đầu trên VPS dùng systemd, ví dụ Ubuntu hoặc Debian
+
+- Cài Docker Engine cùng Compose plugin, Git và Python 3
+- Clone repo vào thư mục do tài khoản triển khai sở hữu, tài khoản đó cần có quyền chạy Docker
+- Chuyển `models`, thư mục dữ liệu dự án, ảnh, nội dung, `.env` và `.secrets/cloudflared-token` sang VPS theo đúng đường dẫn
+- Không đưa API token Cloudflare lên VPS nếu chỉ chạy tunnel đã cấu hình
+- Trong `.env`, dùng đường dẫn Linux hoặc giữ đường dẫn tương đối mặc định, không dùng đường dẫn ổ đĩa Windows
+- Nếu chuyển thay cho máy Windows, dừng stack trên máy Windows để tunnel chỉ phục vụ bộ dữ liệu trên VPS
+
+Không cần cài Node, venv hoặc thư viện GIS trên host Linux, Docker build đảm nhiệm các phần này
+Chạy dưới tài khoản triển khai, từ thư mục repo
+
+```bash
+python3 tools/docker_stack.py initialize
+sudo python3 tools/install_linux.py --user "$(id -un)"
+```
+
+Lần cài đầu có thể mất thời gian do build image, các lần cập nhật sau tự dùng cache Docker
+Không cần cấu hình SSH từ GitHub, mở webhook hoặc cấp Docker socket cho container phụ
+
+```bash
+# Trạng thái và nhật ký
+systemctl status map-predict-stack.service map-predict-update.timer
+journalctl -u map-predict-update.service -n 50
+tail -n 30 logs/auto-deploy.log
+# Kiểm tra ngay hoặc tạm dừng tự cập nhật
+sudo systemctl start map-predict-update.service
+sudo systemctl disable --now map-predict-update.timer
+# Cập nhật thủ công hoặc khởi động lại các container cần thiết
+python3 tools/docker_stack.py deploy --pull
+python3 tools/docker_stack.py start
+```
+
+Host Windows đã kiểm tra khởi động bằng Python, luồng triển khai được kiểm thử cả Windows và container Linux
+Chưa cài thực tế trên VPS vì chưa có máy chủ Linux được cung cấp
+
+Nguồn systemd: [timer](https://www.freedesktop.org/software/systemd/man/260/systemd.timer.html)
 
 ## Tối ưu tài nguyên ngày 2026-10-27
 

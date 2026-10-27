@@ -305,6 +305,8 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
 
 ## 7. Nhật ký cập nhật note
 
+- 2026-10-27: bổ sung triển khai tự động dùng chung Windows/Linux bằng Python, Linux dùng systemd timer và dịch vụ khởi động stack. Không tăng container thường trực, không đổi mã khi chuyển VPS. Cần cấp máy Linux, dữ liệu riêng và token tunnel trong lần cài đầu
+
 - 2026-10-27: thêm tự triển khai sau CI bằng Windows Task Scheduler mỗi năm phút, không thêm container, chỉ cập nhật commit main khớp nhánh tín hiệu deploy-ready và workspace sạch. Đã cài tác vụ trên máy hiện tại, chi tiết vận hành trong docs/GITHUB_ACTIONS.md
 
 - 2026-10-27: tối ưu Docker còn ba container chạy thường xuyên, một backend với frontend tĩnh, Nginx và tunnel giữ cổng cố định. Slot dự phòng chỉ bật khi cập nhật rồi gỡ sau khi request cũ hoàn thành. Image 837 MB còn 617 MB, mẫu RAM khoảng 583 MiB còn 224 MiB, 84 kiểm thử production đạt. Hướng dẫn khởi động tại docs/DOCKER_DEPLOYMENT.md
