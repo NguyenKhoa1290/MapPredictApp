@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import shutil
 import subprocess
 import time
@@ -90,6 +91,27 @@ def initialize() -> None:
     config = ROOT / 'deploy/local/nginx/active.conf'
     if not config.exists():
         config.write_text(configuration(state['active']), encoding='utf-8')
+    key = ROOT / '.secrets/assistant-key'
+    if not key.exists():
+        descriptor = os.open(str(key), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, 'w') as stream:
+            stream.write(secrets.token_hex(32))
+    if os.name != 'nt':
+        # Compose file-backed secrets preserve host UID, allow container UID 10001
+        # to read the mounted file while the private host directory stays closed.
+        (ROOT / '.secrets').chmod(0o700)
+        key.chmod(0o644)
+
+
+def start_assistant() -> None:
+    settings = (ROOT / '.env').read_text(encoding='utf-8-sig').splitlines()
+    enabled = '1'
+    for line in settings:
+        if line.startswith('MAP_PREDICT_ASSISTANT_ENABLED='):
+            enabled = line.split('=', 1)[1].strip()
+    enabled = os.environ.get('MAP_PREDICT_ASSISTANT_ENABLED', enabled)
+    if enabled == '1':
+        compose('up', '-d', '--build', '--no-deps', '--wait', '--wait-timeout', '90', 'gemini')
 
 
 def wait_for_drain() -> None:
@@ -106,6 +128,7 @@ def wait_for_drain() -> None:
 
 def start() -> None:
     initialize()
+    start_assistant()
     slot = f"app-{read_state()['active']}"
     compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', slot)
     compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'app', 'cloudflared')
@@ -115,6 +138,8 @@ def start() -> None:
 def deploy(pull: bool = False) -> None:
     if pull:
         run('git', 'pull', '--ff-only', 'origin', 'main')
+    initialize()
+    start_assistant()
     state = read_state()
     revision = run('git', 'rev-parse', 'HEAD')
     if not re.fullmatch('[0-9a-f]{40}', revision):

@@ -763,3 +763,47 @@ $("map-form").addEventListener("submit", async (event) => {
 });
 
 initializeMap();
+
+// The assistant only receives the files explicitly selected in its popup.
+window.assistantWorkspace = {
+    sources() {
+        return [...cadFiles.map(entry => ({ ...entry, kind: 'cad' })),
+            ...predictionFiles.map(entry => ({ ...entry, kind: 'prediction' }))]
+            .filter(entry => entry.file.name.toLowerCase().endsWith('.dxf'));
+    },
+    csv() { return $('csv-file').files[0] || null; },
+    version() { return predictionTableVersion; },
+    crs() { return sharedSourceCrs(); },
+    async commit({ sourceId, original, dxf, rows }) {
+        const entry = [...cadFiles, ...predictionFiles].find(item => item.id === sourceId);
+        if (sourceId && (!entry || entry.file !== original)) throw new Error('File DXF đã thay đổi, hãy tạo lại bản xem trước');
+        if (rows) {
+            const file = new File([await resultsCsvFile(rows).arrayBuffer()], 'TieuChi.csv', { type: 'text/csv;charset=utf-8' });
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            $('csv-file').files = transfer.files;
+            const label = document.querySelector('[data-file-label="csv-file"]');
+            if (label) label.textContent = file.name;
+            ++predictionTableVersion;
+            renderResults([], false);
+            renderPredictionTable(rows, false);
+            showStatus('predict-message', 'Đã áp dụng tiêu chí từ chatbot, có thể kiểm tra bảng rồi chạy mô hình');
+        }
+        if (dxf) {
+            if (entry) {
+                entry.file = dxf;
+                entry.key = JSON.stringify([dxf.name, dxf.size, dxf.lastModified]);
+                delete entry.columns;
+                delete entry.diagnostics;
+                delete entry.error;
+            } else appendSourceFiles(cadFiles, [dxf]);
+            ++mapRequestVersion;
+            mapRequestController?.abort();
+            updateCadOptions();
+            updatePredictionSources();
+            await readPredictionSources();
+            if (sharedSourceCrs()) $('map-form').requestSubmit();
+        }
+        window.workspacePersistence?.schedule();
+    },
+};

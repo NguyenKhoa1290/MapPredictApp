@@ -15,7 +15,7 @@
 - Đã kiểm tra hồi quy API, mô hình, lưới và lưu phiên ở mức kiểm thử tự động, các checkbox nghiệm thu trực quan hoặc vị trí bản đồ bên dưới chưa tự đánh dấu
 - Vị trí ba dự án vẫn chờ người dùng chốt, không mặc định xem thử EPSG:9208 là đã xác nhận
 - Đã chốt phần Đánh giá dùng không cần đăng nhập, người dùng chưa có hosting và ưu tiên hoàn thiện bản local trước, phần public cùng các quyết định môi trường và hạn mức để sau
-- Các bước local tiếp theo ưu tiên kiểm tra khả năng thao tác bằng bàn phím và kiểm thử hồi quy, chatbot vẫn là giai đoạn riêng chưa duyệt phạm vi
+- Chatbot đã được yêu cầu và duyệt phạm vi dùng server Gemini, xem trước rồi áp dụng, triển khai tại CV-26 và CV-27
 - Chi tiết luồng mới tại [CV21_GHEP_KET_QUA.md](docs/CV21_GHEP_KET_QUA.md)
 
 Cập nhật: 2026-10-26. Đây là kế hoạch làm lần lượt, chưa phải các chức năng đã triển khai.
@@ -280,14 +280,16 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
   - Giữ bản lưu IndexedDB theo trình duyệt, không tự bổ sung lưu file hoặc kết quả chung trên máy chủ, không tự chia sẻ phiên hoặc đồng bộ giữa thiết bị
   - Điều kiện phát hành: HTTPS, kiểm tra quyền workspace/asset/result, CSRF/origin checks cho thao tác ghi, giới hạn tài nguyên/tần suất và kiểm thử cách ly. Không dùng nguyên máy chủ Flask local hoặc endpoint fallback/upload model cũ làm bản public.
 
-### Giai đoạn H — Chatbot, làm sau
+### Giai đoạn H — Trợ lý GIS
 
-- [ ] **CV-26 — Chốt phạm vi và quyền của chatbot popup.**
+- [x] **CV-26 — Chốt phạm vi và quyền của chatbot popup.**
+  - Chốt 2026-10-27 dùng server Gemini được cung cấp, đọc/sửa DXF và hỗ trợ điểm có nguồn, xem trước rồi áp dụng. Đặc tả và giới hạn tại docs/CV26_27_CHATBOT.md
   - Xác định chỉ hỏi đáp hay được thao tác, nguồn tri thức, nhà cung cấp, dữ liệu được gửi ra ngoài và hành động cần xác nhận. Rà soát chọn lọc mã tham khảo `gemini-agent`, không tự dùng cookie/tài khoản có sẵn.
   - Hoàn thành khi: người dùng duyệt đặc tả và quyền; chưa chạy agent khi chưa thống nhất.
   - Phụ thuộc: CV-23, CV-25; chỉ bắt đầu khi người dùng yêu cầu.
 
 - [ ] **CV-27 — Triển khai và kiểm thử chatbot theo phạm vi đã duyệt.**
+  - Đã dựng popup, API request-scoped và service Gemini, đang kiểm tra bản triển khai và CI. Kiểm thử trực quan còn cần trình duyệt khả dụng
   - Popup thống nhất style; xử lý đang trả lời/lỗi/ngắt kết nối. Nếu có thao tác, giới hạn công cụ và yêu cầu xác nhận hành động thay đổi dữ liệu.
   - Hoàn thành khi: các kịch bản được duyệt chạy đúng, không tự suy diễn kết quả đánh giá hoặc thực hiện hành động ngoài quyền.
   - Phụ thuộc: CV-26.

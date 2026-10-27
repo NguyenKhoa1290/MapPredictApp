@@ -14,7 +14,7 @@ class PortableDeploymentTests(unittest.TestCase):
         self.root = Path(self.folder.name)
         (self.root / '.secrets').mkdir()
         (self.root / 'deploy/local/nginx').mkdir(parents=True)
-        (self.root / '.env').write_text('MAP_PREDICT_MAX_UPLOAD_BYTES=1000\n')
+        (self.root / '.env').write_text('MAP_PREDICT_MAX_UPLOAD_BYTES=1000\nMAP_PREDICT_ASSISTANT_ENABLED=0\n')
         (self.root / 'deploy/site.template.conf').write_text('__BACKEND__ __UPLOAD_BYTES__')
         self.config = self.root / 'deploy/local/nginx/active.conf'
         self.config.write_text('app-blue 1000')

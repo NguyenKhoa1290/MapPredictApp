@@ -35,6 +35,8 @@ def create_app(config=None, *, legacy_blueprint=None, legacy_error_handler=None)
     application.register_blueprint(frontend)
     application.register_blueprint(public_api)
     application.register_blueprint(predictions)
+    from .api.v1.assistant import assistant_api
+    application.register_blueprint(assistant_api)
 
     if legacy_blueprint is not None:
         application.register_blueprint(legacy_blueprint)

@@ -17,3 +17,8 @@ class Config:
     PREDICTION_MAX_CSV_BYTES = 5 * 1024 * 1024
     PREDICTION_MAX_REQUEST_BYTES = 8 * 1024 * 1024
     PREDICTION_MAX_ROWS = 10000
+    ASSISTANT_ENABLED = os.environ.get('MAP_PREDICT_ASSISTANT_ENABLED', '0') == '1'
+    ASSISTANT_URL = os.environ.get('MAP_PREDICT_ASSISTANT_URL', 'http://127.0.0.1:8081/v1')
+    ASSISTANT_MODEL = os.environ.get('MAP_PREDICT_ASSISTANT_MODEL', 'gemini-3.6-flash')
+    ASSISTANT_SECRET_FILE = os.environ.get('MAP_PREDICT_ASSISTANT_SECRET_FILE')
+    ASSISTANT_RUBRIC = ROOT / 'config' / 'assistant' / 'rubric.md'

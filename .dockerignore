@@ -1,5 +1,10 @@
 **
 !Dockerfile
+!integrations/
+!integrations/gemini_web2api/
+!integrations/gemini_web2api/*.py
+!integrations/run_gemini.py
+!integrations/GEMINI_LICENSE
 !requirements.txt
 !requirements-production.txt
 !app.py

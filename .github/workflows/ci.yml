@@ -71,7 +71,7 @@ jobs:
           subprocess.run(['systemd-analyze', '--man=no', 'verify', *paths], check=True)
           PY
       - name: Test map rendering utilities
-        run: node --test tests/basemaps.test.cjs tests/color_adjustments.test.cjs tests/pdf_export.test.cjs
+        run: node --test tests/basemaps.test.cjs tests/color_adjustments.test.cjs tests/pdf_export.test.cjs tests/assistant.test.cjs
       - name: Package and verify extracted application
         run: python -B tools/package_release.py --output dist/MapPredictApp.zip --smoke-test
   docker:
@@ -84,7 +84,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Build production image
-        run: docker build --tag map-predict-ci .
+        run: |
+          docker build --tag map-predict-ci .
+          docker build --target gemini --tag map-predict-gemini-ci .
       - name: Validate Compose without local credentials
         run: docker compose config --quiet
       - name: Start image without host credentials
@@ -105,12 +107,21 @@ jobs:
           docker exec map-predict-ci python -c "import json, urllib.request; assert json.load(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/predictions/model'))['data']['ready']"
       - name: Test production dependency set
         run: docker exec map-predict-ci python -B -W ignore::ResourceWarning -m unittest discover -s tests -p "test_*.py"
+      - name: Verify private Gemini adapter without account cookies
+        run: |
+          python3 -c "from pathlib import Path; import os,secrets; p=Path(os.environ['RUNNER_TEMP'],'assistant-ci-key'); p.write_text(secrets.token_hex(32)); p.chmod(0o644)"
+          docker run -d --name map-predict-gemini-ci --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" map-predict-gemini-ci
+          for attempt in $(seq 1 15); do
+            if [ "$(docker inspect --format '{{.State.Health.Status}}' map-predict-gemini-ci)" = healthy ]; then break; fi
+            sleep 2
+          done
+          test "$(docker inspect --format '{{.State.Health.Status}}' map-predict-gemini-ci)" = healthy
       - name: Container diagnostics
         if: failure()
         run: docker logs map-predict-ci
       - name: Stop CI container
         if: always()
-        run: docker rm -f map-predict-ci
+        run: docker rm -f map-predict-ci map-predict-gemini-ci
   delivery:
     name: Deliver verified application
     needs: [verify, docker]

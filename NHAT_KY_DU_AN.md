@@ -1,5 +1,16 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-27 Trợ lý GIS cho dự án thứ tư
+
+- Người dùng chốt dùng server Gemini trong tài liệu tham khảo và xem trước rồi áp dụng
+- Thêm cửa sổ nổi trong công cụ Đánh giá quỹ đất, chọn DXF/CSV, lịch sử riêng trên trình duyệt và dẫn nguồn
+- Sửa màu/layer/chữ/dịch đối tượng trên bản sao, đề xuất điểm x1..x9 theo tiêu chí gốc, không tự chọn điểm từ ô gộp
+- Xem trước có chữ ký và hash file, thay file hoặc hết hạn phải tạo lại, không lưu upload chung
+- Thêm Gemini adapter vào mạng Docker riêng, không dùng cookie/tài khoản từ thư mục tham khảo
+- Đã thử Gemini thật: đọc DXF tổng hợp, đề xuất và áp dụng màu, lấy nguồn ezdxf có trích dẫn đối chiếu được
+- Đã thử đề xuất x4 = 9 theo ô L9 trên CSV tổng hợp và áp dụng đúng điểm, Y cũ được loại bỏ
+- 106 kiểm thử Python và ba kiểm thử DOM assistant đã đạt, chưa kiểm tra trực quan do không có trình duyệt điều khiển khả dụng
+
 ## 2026-10-27 Chuẩn bị tự triển khai trên VPS Linux
 
 - Giữ tác vụ Windows hiện có, chuyển initialize/start/deploy sang Python dùng chung cho Windows và Linux

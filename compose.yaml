@@ -11,6 +11,11 @@ x-worker: &worker
     MAP_PREDICT_MAX_UPLOAD_BYTES: '${MAP_PREDICT_MAX_UPLOAD_BYTES:-67108864}'
     MAP_PREDICT_MODEL_DIR: /app/models
     MAP_PREDICT_PROJECT_SOURCE_FOLDER: /app/project-data
+    MAP_PREDICT_ASSISTANT_ENABLED: '${MAP_PREDICT_ASSISTANT_ENABLED:-1}'
+    MAP_PREDICT_ASSISTANT_URL: http://gemini:8081/v1
+    MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.6-flash}'
+    MAP_PREDICT_ASSISTANT_SECRET_FILE: /run/secrets/assistant_key
+  secrets: [assistant_key]
   volumes:
     - type: bind
       source: ./wwwroot/image
@@ -51,6 +56,25 @@ x-worker: &worker
       max-file: '3'
 
 services:
+  gemini:
+    image: map-predict-gemini:local
+    build:
+      context: .
+      target: gemini
+    restart: unless-stopped
+    init: true
+    secrets: [assistant_key]
+    read_only: true
+    tmpfs: ['/tmp:rw,nosuid,noexec,size=33554432']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 1
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '2'
   app-blue:
     <<: *worker
     image: map-predict-app:blue
@@ -104,5 +128,7 @@ services:
         max-file: '3'
 
 secrets:
+  assistant_key:
+    file: ./.secrets/assistant-key
   tunnel_token:
     file: ./.secrets/cloudflared-token

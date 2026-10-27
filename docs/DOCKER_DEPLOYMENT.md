@@ -5,15 +5,17 @@
 
 ## Cấu trúc
 
-Docker Compose project `map-predict` định nghĩa bốn service, bình thường chỉ chạy ba container
+Docker Compose project `map-predict` định nghĩa năm service, khi bật chatbot chạy bốn container
 
 - `app` là Nginx giữ cổng host cố định và chuyển tiếp tới slot đang hoạt động
 - `app-blue` và `app-green` chạy Python bằng Gunicorn, chỉ mở cổng trong mạng Docker
 - `cloudflared` dùng tunnel riêng, kết nối tới `http://app:8000`, không đi vòng qua cổng host
+- `gemini` là adapter chatbot trong mạng Docker riêng, không mở cổng host, xem [hướng dẫn trợ lý](CV26_27_CHATBOT.md)
 
 Chỉ một slot Python chạy thường xuyên với một Gunicorn worker và hai thread
 Frontend được build thành file tĩnh trong image, không chạy thêm Node server
 Slot còn lại chỉ chạy trong lúc cập nhật, sau khi request cũ kết thúc sẽ được dừng và gỡ container
+Trước khi tích hợp chatbot stack chỉ chạy ba container, muốn tắt chatbot đặt `MAP_PREDICT_ASSISTANT_ENABLED=0`, triển khai lại và dừng riêng service gemini
 
 Tunnel và Nginx không bị tạo lại khi cập nhật một slot ứng dụng
 Không dùng network_mode host và không thay đổi stack Docker của các dự án khác
@@ -71,6 +73,7 @@ Chờ request trên slot cũ hoàn thành rồi dừng và gỡ container đó �
 
 Thay model hoặc dữ liệu mount có hiệu lực độc lập với image, blue/green không phải cơ chế sao lưu model hoặc dữ liệu gốc
 Không xóa `.secrets`, `.env` hoặc `deploy/local` khi cập nhật
+Khóa nội bộ assistant được tự sinh tại `.secrets/assistant-key`, chỉ cấp cho backend và Gemini, không dùng API token Cloudflare
 
 ## Vận hành
 
