@@ -95,6 +95,7 @@ class PortableDeploymentTests(unittest.TestCase):
         self.assertIn('OnUnitInactiveSec=5min', units['map-predict-update.timer'])
         self.assertIn('Type=oneshot', units['map-predict-update.service'])
         self.assertIn('"/srv/map app/tools/auto_deploy.py"', units['map-predict-update.service'])
+        self.assertIn('WorkingDirectory=/srv/map app\n', units['map-predict-update.service'])
         self.assertIn('Requires=docker.service', units['map-predict-stack.service'])
         self.assertIn('User=deploy', units['map-predict-stack.service'])
 

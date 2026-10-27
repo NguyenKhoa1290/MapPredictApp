@@ -22,7 +22,9 @@ def quote(value: str, *, command: bool = False) -> str:
 
 
 def units(root: Path, python: str, user: str) -> dict[str, str]:
-    directory = quote(str(root))
+    # WorkingDirectory takes a literal path, unlike ExecStart's argument parser.
+    quote(str(root))  # Reject control characters before writing unit files.
+    directory = str(root).replace('%', '%%')
     executable = quote(python, command=True)
     return {
         'map-predict-stack.service': f'''[Unit]
