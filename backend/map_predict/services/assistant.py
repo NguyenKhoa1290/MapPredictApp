@@ -75,6 +75,16 @@ def describe(document, layer_filter=''):
                 'color': entity.dxf.get('color', 256)}
         if entity.dxftype() in ('TEXT', 'MTEXT'):
             item['text'] = (entity.dxf.text if entity.dxftype() == 'TEXT' else entity.plain_text())[:1000]
+        if entity.dxftype() == 'LWPOLYLINE':
+            item['vertex_count'] = len(entity)
+            item['vertices_xy_bulge'] = [list(point) for point in entity.get_points('xyb')[:16]]
+            item['closed'] = entity.closed
+        elif entity.dxftype() == 'POLYLINE':
+            item['vertex_count'] = len(entity.vertices)
+            item['vertices_xyz'] = [list(vertex.dxf.location) for vertex in entity.vertices[:16]]
+            item['closed'] = entity.is_closed
+        elif entity.dxftype() == 'INSERT':
+            item['block'] = entity.dxf.name
         for name in ('insert', 'start', 'end', 'center'):
             if entity.dxf.hasattr(name):
                 item[name] = list(entity.dxf.get(name))

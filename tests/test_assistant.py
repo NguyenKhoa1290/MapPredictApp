@@ -114,6 +114,16 @@ class AssistantTests(unittest.TestCase):
         self.assertEqual(response.status_code, 429)
         self.assertEqual(self.client.get('/api/v1/health').status_code, 200)
 
+    def test_polyline_context_has_geometry_and_explicit_limits(self):
+        doc = ezdxf.new()
+        doc.modelspace().add_lwpolyline([(i, i * 2) for i in range(20)], close=True)
+        doc.modelspace().add_polyline3d([(0, 0, 2), (1, 0, 3), (1, 1, 4)], close=True)
+        context = assistant.describe(doc)
+        self.assertEqual(context['entities'][0]['vertex_count'], 20)
+        self.assertEqual(len(context['entities'][0]['vertices_xy_bulge']), 16)
+        self.assertTrue(context['entities'][0]['closed'])
+        self.assertEqual(context['entities'][1]['vertices_xyz'][0], [0, 0, 2])
+
     def test_source_verification_rejects_private_and_local_hosts(self):
         for address in ('127.0.0.1', '169.254.169.254', '10.1.2.3', '::1'):
             with patch.object(assistant_sources.socket, 'getaddrinfo', return_value=[(2, 1, 6, '', (address, 443))]):
