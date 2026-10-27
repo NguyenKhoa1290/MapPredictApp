@@ -76,6 +76,9 @@ Khởi động lại toàn stack chỉ dùng khi cần, cập nhật code dùng 
 
 ## Xác minh thực tế ngày 2026-10-27
 
+CI của bản cấu hình cuối cùng đã đạt tại [lần chạy 40478081017](https://github.com/NguyenKhoa1290/MapPredictApp/actions/runs/40478081017)
+Các job Windows, Ubuntu, Docker image, Compose validation và delivery đều thành công
+
 - Cả hai slot và Nginx đạt healthcheck, Cloudflare báo tunnel healthy
 - HTTP qua proxy đọc đúng 1695 ô TP.HCM, 400 ô Bắc Kạn và 1676 ô Phú Quốc
 - Cả API legacy và API v1 dự đoán được với Origin HTTPS qua proxy

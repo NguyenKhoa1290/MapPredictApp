@@ -1,5 +1,15 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-27 Xác minh bản Docker cuối cùng
+
+- Mã nguồn cấu hình 31c2920472ba4a0c57828c06fe21409a0612f337 đã được push lên main
+- Lần chạy GitHub Actions 40478081017 đạt đủ Windows, Ubuntu, Docker image, kiểm tra Compose và job delivery
+- Artifact MapPredictApp-31c2920472ba4a0c57828c06fe21409a0612f337 đã được tạo thành công
+- Slot đang phục vụ trên máy là blue sau lần thử chuyển về từ green, proxy và tunnel vẫn giữ nguyên ID container
+- Bổ sung mount chỉ đọc cho config và wwwroot/image để sửa nội dung hoặc thay ảnh rồi reload mà không phải rebuild
+- Kiểm tra cuối stack đang chạy, các slot và proxy healthy, Cloudflare báo tunnel healthy, cổng host chỉ bind 127.0.0.1:8765
+- Không có API token, tunnel token, dotenv hoặc cấu hình sinh tự động nào được đưa vào Git
+
 ## 2026-10-27 Triển khai Docker và Cloudflare Tunnel trên máy hiện tại
 
 - Người dùng cung cấp API token và tên miền danhgiaquyhoach.top, cho phép cấu hình tunnel và triển khai trên máy này
