@@ -55,9 +55,40 @@ jobs:
         run: node --test tests/basemaps.test.cjs tests/color_adjustments.test.cjs tests/pdf_export.test.cjs
       - name: Package and verify extracted application
         run: python -B tools/package_release.py --output dist/MapPredictApp.zip --smoke-test
+  docker:
+    name: Verify Docker image
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build production image
+        run: docker build --tag map-predict-ci .
+      - name: Start image without host credentials
+        run: >-
+          docker run -d --name map-predict-ci
+          --read-only --tmpfs /tmp:rw,nosuid,noexec,size=536870912
+          -v "${{ github.workspace }}/models:/app/models:ro"
+          -p 127.0.0.1:8766:8000 map-predict-ci
+      - name: Verify readiness and mounted model
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8766/api/v1/health; then break; fi
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:8766/portal/ > /dev/null
+          docker exec map-predict-ci python -c "import json, urllib.request; assert json.load(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/predictions/model'))['data']['ready']"
+      - name: Container diagnostics
+        if: failure()
+        run: docker logs map-predict-ci
+      - name: Stop CI container
+        if: always()
+        run: docker rm -f map-predict-ci
   delivery:
     name: Deliver verified application
-    needs: verify
+    needs: [verify, docker]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15

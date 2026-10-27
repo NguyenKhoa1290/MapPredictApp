@@ -2,6 +2,9 @@
 
 ## Trạng thái mới nhất ngày 2026-10-27
 
+- Theo yêu cầu mới đã triển khai Docker Compose blue/green và tunnel riêng trên máy hiện tại tại danhgiaquyhoach.top, hướng dẫn tại [DOCKER_DEPLOYMENT.md](docs/DOCKER_DEPLOYMENT.md)
+- Token và cấu hình riêng nằm ngoài Git, model và nguồn dự án mount chỉ đọc, cổng local 8765 được giữ cố định
+
 - Đã đưa mã nguồn lên origin GitHub, CI Windows/Ubuntu và job phân phối ZIP đều đạt ở lần chạy [40472565755](https://github.com/NguyenKhoa1290/MapPredictApp/actions/runs/40472565755), chưa tự triển khai lên hosting, hướng dẫn tại [GITHUB_ACTIONS.md](docs/GITHUB_ACTIONS.md)
 
 - Đã dọn 51 file không còn dùng ra thư mục lưu trữ ngoài dự án, giữ nhật ký, tài liệu và dữ liệu gốc, chi tiết tại [CLEANUP_20261027.md](docs/CLEANUP_20261027.md)

@@ -1,5 +1,19 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-27 Triển khai Docker và Cloudflare Tunnel trên máy hiện tại
+
+- Người dùng cung cấp API token và tên miền danhgiaquyhoach.top, cho phép cấu hình tunnel và triển khai trên máy này
+- Tạo tunnel riêng cho MapPredictApp cùng bản ghi DNS mới, không thay tunnel hoặc container của dự án khác
+- Dùng Compose project map-predict gồm proxy Nginx cố định, hai slot Gunicorn blue/green và cloudflared
+- Chuyển cổng 8765 từ tiến trình Flask cũ sang Nginx sau khi kiểm tra ứng dụng Docker tại cổng tạm 8766
+- Mount model và nguồn ba dự án chỉ đọc, giữ dữ liệu trình duyệt, token riêng không nằm trong Git hoặc Docker image
+- Thêm kiểm tra Origin cho legacy, hỗ trợ HTTPS qua proxy, cấu hình giới hạn upload cho stack và kiểm thử tương ứng
+- Đã chạy dự đoán trên tên miền qua trình duyệt, đọc đúng số ô của cả ba dự án và xác minh hai API qua proxy
+- Thử triển khai blue sang green, giữ nguyên container proxy/tunnel và cổng host, 335 lần kiểm tra health đều trả 200
+- Thêm script khởi tạo và cập nhật có kiểm tra sức khỏe trước chuyển lưu lượng, không cần compose down khi đổi code
+- 84 kiểm thử Python đạt, bổ sung job xác minh Docker image vào GitHub Actions
+- Cấu hình và dữ liệu riêng giữ local, chi tiết vận hành ở docs/DOCKER_DEPLOYMENT.md
+
 ## 2026-10-27 Đã push GitHub và xác minh CI thành công
 
 - Đã commit và push lên main của NguyenKhoa1290/MapPredictApp, commit mã nguồn 7acf8b4dced76650415d1ef9db41bf6275a91433

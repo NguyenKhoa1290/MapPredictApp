@@ -7,6 +7,7 @@ import os
 import sqlite3
 import tempfile
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 from werkzeug.exceptions import HTTPException
@@ -23,6 +24,14 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / "MapPredictApp"
 RESULT_CSV = DATA_DIR / "KetQua.csv"
 legacy = Blueprint("legacy", __name__)
+
+
+@legacy.before_request
+def legacy_same_origin():
+    if request.method == "POST" and request.headers.get("Origin"):
+        origin, host = urlsplit(request.headers["Origin"]), urlsplit(request.host_url)
+        if (origin.scheme, origin.netloc) != (host.scheme, host.netloc):
+            return jsonify(error="Yêu cầu phải gửi từ cùng website"), 403
 
 
 def _csv_rows(data):

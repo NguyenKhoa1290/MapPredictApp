@@ -49,6 +49,8 @@ obj/
 /data/
 /uploads/
 /instance/
+/.secrets/
+/deploy/local/
 /*.csv
 /*.dxf
 /*.dwg

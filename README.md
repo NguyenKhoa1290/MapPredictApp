@@ -1,5 +1,8 @@
 # MapPredictApp (Python)
 
+Đã có Docker Compose blue/green cùng Cloudflare Tunnel tại [danhgiaquyhoach.top](https://danhgiaquyhoach.top)
+Cổng local vẫn là 8765, cập nhật bằng `tools/deploy_docker.ps1`, xem [hướng dẫn Docker](docs/DOCKER_DEPLOYMENT.md)
+
 [![CI and delivery](https://github.com/NguyenKhoa1290/MapPredictApp/actions/workflows/ci.yml/badge.svg)](https://github.com/NguyenKhoa1290/MapPredictApp/actions/workflows/ci.yml)
 
 CI trên GitHub tự build và kiểm thử trên Windows/Ubuntu, sau đó tạo gói ZIP tải về trong Actions

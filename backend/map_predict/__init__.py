@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from flask import Flask, g, jsonify, redirect, request
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config, ROOT
 
@@ -13,6 +14,10 @@ def create_app(config=None, *, legacy_blueprint=None, legacy_error_handler=None)
     application.config.from_object(Config)
     if config:
         application.config.update(config)
+    if application.config["PROXY_HOPS"]:
+        application.wsgi_app = ProxyFix(application.wsgi_app,
+                                       x_for=application.config["PROXY_HOPS"],
+                                       x_proto=application.config["PROXY_HOPS"], x_host=0, x_port=0, x_prefix=0)
     application.config["LEGACY_ENABLED"] = legacy_blueprint is not None
 
     @application.before_request

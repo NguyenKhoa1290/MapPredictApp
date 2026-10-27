@@ -47,7 +47,9 @@ Các nguồn ba bản đồ dự án được cấp riêng, không nằm trong G
 Nếu chưa có, API trả PROJECT_NOT_READY, công cụ đánh giá vẫn dùng được với file người dùng nạp
 Chức năng DWG cần cài ODA riêng, DXF không cần bộ cài này
 
-Đây là CI và phân phối bản build, chưa có bước tự triển khai lên máy chủ vì hiện chưa chọn hosting
+CI kiểm tra thêm Docker image trên Ubuntu trước khi tạo artifact
+Ứng dụng đã có triển khai Docker local và tunnel riêng theo yêu cầu mới, xem [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
+GitHub Actions hiện chưa tự điều khiển Docker trên máy cá nhân, cập nhật tại máy bằng script deploy_docker.ps1
 VS Code và đăng nhập Git giúp commit/push, không tự tạo một môi trường chạy web public
 Khi có máy chủ, bổ sung bước triển khai và cấu hình quyền, không đặt khóa SSH hoặc token vào mã nguồn
 
