@@ -223,11 +223,13 @@ def call_model(messages, config):
             raise ValueError('Invalid action lists')
         return result
     except HTTPError as error:
+        try:
+            code = json.loads(error.read(8192)).get('error', {}).get('code')
+        except Exception:
+            code = None
+        if code == 'effort_not_applied':
+            raise PredictionError('EFFORT_NOT_APPLIED', 'Gemini chưa áp dụng được mức effort đã chọn, dữ liệu chưa thay đổi', 503) from None
         if config['ASSISTANT_MODEL'] == 'gemini-4-argon':
-            try:
-                code = json.loads(error.read(8192)).get('error', {}).get('code')
-            except Exception:
-                code = None
             if code == 'cookie_required':
                 from .ai_settings import COOKIE_MESSAGE
                 raise PredictionError('COOKIE_REQUIRED', COOKIE_MESSAGE, 503) from None

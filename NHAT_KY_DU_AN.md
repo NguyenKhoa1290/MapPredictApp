@@ -2,6 +2,10 @@
 
 ## 2026-10-28 Kiểm tra effort thật và sửa giao thức Gemini Web
 
+- Sau triển khai lần đầu, Google đã báo applied_level đúng 1/4/2 cho cả ba mức của Argon, nhưng Flash ở route cũ vẫn báo 1 khi yêu cầu 4 hoặc 2
+- Đối chiếu manifest tài khoản qua RPC otAQ7b xác nhận cả Flash và Argon có Low=1, Medium=4, High=2, route Flash cũ thiếu model ID đã xác minh nên bổ sung discovery và sử dụng profile Flash riêng từ cùng pool cookie
+- Không dùng route hoặc quota Argon cho Nhanh, vẫn giữ đường Nhanh cũ nếu chưa có phiên hợp lệ, từ chối phản hồi khi Google báo mức đã áp dụng khác mức yêu cầu
+
 - Kiểm tra trực tiếp 6 lượt gọi hai model ở ba mức, xác nhận bản cũ gửi được request nhưng chưa đủ cơ sở kết luận mức suy nghĩ đã áp dụng đúng
 - Đối chiếu bundle Gemini Web hiện tại, hàm XJb/kBd ánh xạ STANDARD=1, MEDIUM=4, EXTENDED=2, khác ánh xạ low=4, medium=2, high=0 trong server tham khảo cũ
 - Phát hiện header x-goog-ext-525001261-jspb luôn thêm giá trị 1 ở trường 16 nên các lượt Argon bị cố định mức Low dù body nhận effort khác nhau

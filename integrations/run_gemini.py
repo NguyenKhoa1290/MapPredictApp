@@ -75,6 +75,13 @@ class ManagedGeminiHandler(GeminiHandler):
     def _handle_chat(self, body):
         request = self._parse_body(body)
         if not isinstance(request, dict) or request.get('model') != ARGON:
+            if isinstance(request, dict) and request.get('model') in ('gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash'):
+                try:
+                    with pool.fast_profile(request['model']):
+                        return super()._handle_chat(body)
+                except QuotaRejected as error:
+                    self.send_json(error.response(), error.status)
+                    return
             return super()._handle_chat(body)
         try:
             thinking_depth(request.get('reasoning_effort'), 1)
@@ -90,7 +97,13 @@ class ManagedGeminiHandler(GeminiHandler):
             return
         try:
             reasoning = {}
-            text = pool.run(lambda mode, think: generate(prompt, mode, thinking_depth(request.get('reasoning_effort'), 1), metadata=reasoning))
+            level = thinking_depth(request.get('reasoning_effort'), 1)
+            def generate_argon(mode, think):
+                text = generate(prompt, mode, level, metadata=reasoning)
+                if reasoning.get('applied_level', level) != level:
+                    raise ValueError('Argon thinking level was not honored')
+                return text
+            text = pool.run(generate_argon)
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
                             'created': int(time.time()), 'model': ARGON,
                             'reasoning': reasoning,

@@ -94,6 +94,19 @@ class AssistantTests(unittest.TestCase):
                 else:
                     self.assertEqual(payload['reasoning_effort'], effort)
 
+    def test_upstream_effort_mismatch_is_reported_without_claiming_success(self):
+        from urllib.error import HTTPError
+        from backend.map_predict.services.prediction import PredictionError
+        for model in ('gemini-3.6-flash', 'gemini-4-argon'):
+            error = HTTPError('http://test/chat/completions', 503, 'Unavailable', {},
+                             io.BytesIO(b'{"error":{"code":"effort_not_applied"}}'))
+            opener = Mock()
+            opener.open.side_effect = error
+            with patch.object(assistant, 'build_opener', return_value=opener):
+                with self.assertRaises(PredictionError) as result:
+                    assistant.call_model([], {**self.app.config, 'ASSISTANT_MODEL': model})
+            self.assertEqual(result.exception.code, 'EFFORT_NOT_APPLIED')
+
     def test_edit_requires_preview_and_apply_only_returns_a_copy(self):
         original = self.dxf
         preview = self.plan(edits=[{'handle': self.handle, 'operation': 'color', 'value': 1}])

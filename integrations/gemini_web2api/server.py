@@ -234,6 +234,9 @@ class GeminiHandler(BaseHTTPRequestHandler):
         try:
             reasoning = {}
             text = generate(prompt, model_id, think_mode, file_refs, extra_fields, metadata=reasoning)
+            if reasoning.get('applied_level', think_mode) != think_mode:
+                self.send_json({'error': {'code': 'effort_not_applied', 'message': 'Google không áp dụng đúng effort đã chọn, không coi là phản hồi đúng cấu hình'}}, 503)
+                return
         except Exception as e:
             self.send_json({"error": {"message": f"upstream error: {e}"}}, 502)
             return

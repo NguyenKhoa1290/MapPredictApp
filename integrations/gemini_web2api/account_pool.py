@@ -106,12 +106,16 @@ class AccountPool:
 
     @contextmanager
     def profile(self, settings):
-        previous = {key: CONFIG.get(key) for key in SESSION_FIELDS}
+        previous = {key: CONFIG[key] for key in SESSION_FIELDS if key in CONFIG}
         try:
             CONFIG.update({key: settings.get(key) for key in SESSION_FIELDS})
             yield
         finally:
-            CONFIG.update(previous)
+            for key in SESSION_FIELDS:
+                if key in previous:
+                    CONFIG[key] = previous[key]
+                else:
+                    CONFIG.pop(key, None)
 
     def run(self, generate):
         if not self.lock.acquire(blocking=False):
@@ -160,3 +164,34 @@ class AccountPool:
                                 status=503, code='quota_unverified')
         finally:
             self.lock.release()
+
+    @contextmanager
+    def fast_profile(self, model):
+        """Use a verified Flash identity so Google honors its thinking levels.
+
+        No Argon route/quota is used. An installation without accounts retains
+        the existing anonymous Fast route; upstream level mismatches are explicit.
+        """
+        with self.lock:
+            entries = self.store.registry()['accounts']
+            if not entries:
+                yield
+                return
+            for entry in entries:
+                try:
+                    path = self.store.path(entry['id'])
+                    settings = json.loads(path.read_text(encoding='utf-8'))
+                    if model not in settings.get('extra_models', {}) or time.time() - settings.get('model_checked_at', 0) > 3600:
+                        self.store.discover(entry['id'])
+                        settings = json.loads(path.read_text(encoding='utf-8'))
+                    route = settings.get('extra_models', {}).get(model)
+                    if not route or not settings.get('xsrf_token') or str(route['mode']) not in settings.get('model_headers', {}):
+                        continue
+                except Exception:
+                    continue
+                with self.profile(settings):
+                    yield
+                return
+            # Preserve anonymous Fast when all saved sessions need login.
+            # The caller checks the applied level and rejects silent effort changes.
+            yield

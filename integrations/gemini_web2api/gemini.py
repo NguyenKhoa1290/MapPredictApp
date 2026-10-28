@@ -251,6 +251,8 @@ def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None
                             if frame[0] != 'wrb.fr' or not isinstance(frame[2], str):
                                 continue
                             value = json.loads(frame[2])
+                            if len(value) > 58 and type(value[58]) is int:
+                                metadata['applied_model_category'] = value[58]
                             if len(value) > 59 and type(value[59]) is int and value[59] in (1, 2, 3, 4):
                                 metadata['applied_level'] = value[59]
                     except (ValueError, TypeError, IndexError, KeyError):
