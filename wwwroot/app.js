@@ -370,22 +370,21 @@ applySharedCrs();
 $("project-crs").addEventListener("change", () => applySharedCrs(true));
 $("project-crs-custom").addEventListener("change", () => applySharedCrs(true));
 
-function resultsCsvFile(rows) {
-    const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+function resultsCsvFile(rows, columns = [...new Set(rows.flatMap((row) => Object.keys(row)))]) {
     const quote = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
     const lines = [columns.map(quote).join(","), ...rows.map((row) => columns.map((key) => quote(row[key])).join(","))];
     return new File(["\ufeff", lines.join("\r\n")], "KetQua.csv", { type: "text/csv;charset=utf-8" });
 }
 
-function renderPredictionTable(rows, isResult, total = rows.length) {
-    predictionView = { rows, isResult, total };
+function renderPredictionTable(rows, isResult, total = rows.length, columns = [...new Set(rows.flatMap((row) => Object.keys(row)))]) {
+    predictionView = columns.length ? { rows, isResult, total, columns } : { rows, isResult, total };
     window.workspacePersistence?.schedule();
-    const hasData = rows.length > 0;
+    const hasData = rows.length > 0 || columns.length > 0;
     $("prediction-empty").hidden = hasData;
     $("prediction-table-scroll").hidden = !hasData;
     $("prediction-export").hidden = !hasData;
     if (predictionDownloadUrl) URL.revokeObjectURL(predictionDownloadUrl);
-    const exportFile = isResult ? resultsCsvFile(rows) : $('csv-file').files[0] || $('result-file').files[0] || resultsCsvFile(rows);
+    const exportFile = isResult ? resultsCsvFile(rows, columns) : $('csv-file').files[0] || $('result-file').files[0] || resultsCsvFile(rows, columns);
     predictionDownloadUrl = hasData ? URL.createObjectURL(exportFile) : null;
     $("prediction-export").href = predictionDownloadUrl || "#";
     $("prediction-export").download = exportFile.name;
@@ -398,7 +397,6 @@ function renderPredictionTable(rows, isResult, total = rows.length) {
         return;
     }
 
-    const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
     const header = document.createElement("thead");
     const headerRow = document.createElement("tr");
     const numberHeader = document.createElement("th");
@@ -814,7 +812,7 @@ window.assistantWorkspace = {
             && overlay.item.crs === sharedSourceCrs()));
         return { scope, csv: null, csvId: '', resources, version: this.version() };
     },
-    async commit({ sourceId, original, dxf, dxfs = [], rows, csvId = 'csv-file' }) {
+    async commit({ sourceId, original, dxf, dxfs = [], rows, columns, csvId = 'csv-file' }) {
         if (!window.workspacePersistence?.ready) throw new Error('Workspace chưa khôi phục xong, hãy chờ hoặc kiểm tra trạng thái bản lưu');
         const entry = [...cadFiles, ...predictionFiles].find(item => item.id === sourceId);
         if (sourceId && (!entry || entry.file !== original)) throw new Error('File DXF đã thay đổi, hãy tạo lại bản xem trước');
@@ -825,7 +823,7 @@ window.assistantWorkspace = {
         }
         if (rows) {
             const name = this.csv(csvId)?.name || 'TieuChi.csv';
-            const file = new File([await resultsCsvFile(rows).arrayBuffer()], name, { type: 'text/csv;charset=utf-8' });
+            const file = new File([await resultsCsvFile(rows, columns).arrayBuffer()], name, { type: 'text/csv;charset=utf-8' });
             const transfer = new DataTransfer();
             transfer.items.add(file);
             $('csv-file').files = transfer.files;
@@ -837,8 +835,8 @@ window.assistantWorkspace = {
             if (label) label.textContent = file.name;
             ++predictionTableVersion;
             renderResults([], false);
-            renderPredictionTable(rows, false);
-            showStatus('predict-message', 'Đã áp dụng tiêu chí từ chatbot, có thể kiểm tra bảng rồi chạy mô hình');
+            renderPredictionTable(rows, false, rows.length, columns);
+            showStatus('predict-message', 'Đã cập nhật bảng từ chatbot, có thể kiểm tra rồi chạy mô hình');
         }
         if (changes.length) {
             for (const change of changes) {

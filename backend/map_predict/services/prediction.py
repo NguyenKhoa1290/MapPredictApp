@@ -42,7 +42,7 @@ def model_status(config):
         return {"ready": False, "model_version": None, "features": FEATURES, "message": str(error)}
 
 
-def read_csv(data, max_rows):
+def read_csv(data, max_rows, *, allow_empty=False, with_columns=False):
     for encoding in ("utf-8-sig", "cp1258", "cp1252"):
         try:
             content = data.decode(encoding)
@@ -65,9 +65,9 @@ def read_csv(data, max_rows):
             rows.append({name: value if value is not None else "" for name, value in row.items()})
     except (csv.Error, UnicodeError) as error:
         raise PredictionError("INVALID_CSV", "Không đọc được cấu trúc CSV") from error
-    if not rows:
+    if not rows and not allow_empty:
         raise PredictionError("EMPTY_CSV", "CSV chưa có dòng dữ liệu")
-    return rows
+    return (rows, names) if with_columns else rows
 
 
 def run_prediction(rows, config):

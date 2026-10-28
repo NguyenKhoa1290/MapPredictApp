@@ -81,6 +81,23 @@ test('real workspace restores DXF, empty CSV input and table across confirm undo
         assert.equal(w.inspectResources().name, 'base_edited.dxf', w.document.querySelector('.assistant-history-bar').textContent);
         assert.equal(w.inspectResources().table.rows[0].x1, 5);
         assert.equal(w.document.querySelector('.map-sidebar').inert, false);
+        await w.assistantWorkspace.stage({ rows: [], columns: ['id', 'x1'] });
+        assert.equal(w.inspectResources().table.rows.length, 0);
+        assert.equal(w.document.querySelectorAll('#prediction-table thead th').length, 3);
+        assert.equal(w.document.querySelector('#prediction-export').hidden, false);
+        const emptyCsv = await w.inspectResources().csv.arrayBuffer();
+        assert.match(new TextDecoder().decode(emptyCsv), /"id","x1"/);
+        w.assistantWorkspace.confirm();
+        await w.workspacePersistence.flush();
+        const emptyHistory = w.structuredClone(w.savedWorkspace.assets.get('history:assistant'));
+        await w.assistantWorkspace.travel('undo');
+        assert.equal(w.inspectResources().table.rows[0].x1, 5);
+        await w.assistantWorkspace.travel('redo');
+        assert.equal(w.inspectResources().table.rows.length, 0);
+        assert.deepEqual([...w.inspectResources().table.columns], ['id', 'x1']);
+        w.assistantWorkspace.restoreHistory(emptyHistory);
+        await w.assistantWorkspace.travel('undo');
+        assert.equal(w.inspectResources().table.rows[0].x1, 5);
     } finally { w.close(); }
 });
 
@@ -186,9 +203,10 @@ function fixture(status = { enabled: true }) {
     let draft = false;
     let scope = 'map', active = true, currentCsv = csvFile;
     const calls = [], commits = [];
-    const proposal = { answer: '<img src=x onerror=alert(1)>', sources: [],
+    let proposal = { answer: '<img src=x onerror=alert(1)>', sources: [],
         edits: [{ handle: 'AB', operation: 'color', before: 7, value: 1 }], scores: [],
         token: 'signed-preview', rejected: [], scope: '1/1 đối tượng' };
+    let tableResult = { dxfs: [], rows: [{ id: 'A1', x1: '' }] };
     window.assistantWorkspace = { sources: () => [{ id: 'dxf-1', file: sourceFile }],
         tables: () => [{ id: 'csv-file', file: csvFile }],
         csv: () => csvFile, version: () => 1, crs: () => 'EPSG:9208',
@@ -204,7 +222,7 @@ function fixture(status = { enabled: true }) {
         return { ok: true, blob: async () => new window.Blob(['DXF edited']), json: async () => ({ data: url.endsWith('/status') ? status
             : url.endsWith('/authorize') ? { authorized: true }
             : url.endsWith('/apply') ? scope === 'map' ? { dxfs: [{ source_id: 'dxf-1', dxf: window.btoa('DXF edited') }], rows: null }
-                : { dxfs: [], rows: [{ id: 'A1', x1: '' }] } : scope === 'map' && !active
+                : tableResult : scope === 'map' && !active
                     ? { ...proposal, token: null, edits: [], scores: [] } : proposal }) };
     };
     window.HTMLAnchorElement.prototype.click = function () {};
@@ -218,8 +236,29 @@ function fixture(status = { enabled: true }) {
     };
     return { window, get, calls, commits, submit, close: () => window.close(),
         setScope: value => { scope = value; }, setActive: value => { active = value; }, clearCsv: () => { currentCsv = null; },
+        setTableProposal: (value, result) => { proposal = { ...proposal, ...value }; tableResult = result; },
         changeFile: () => { sourceFile = new window.File(['CHANGED'], 'test.dxf'); } };
 }
+
+test('table operation previews describe deletions and stage an empty table with its headers', async () => {
+    const f = fixture();
+    try {
+        f.setScope('prediction');
+        f.setTableProposal({ edits: [], scores: [], table_edits: [
+            { operation: 'delete_row', row_index: 0, before: { id: 'A1' } },
+            { operation: 'delete_column', column: 'custom', affected_rows: 1 },
+        ] }, { dxfs: [], rows: [], columns: ['id', 'x1'] });
+        await f.submit();
+        assert.match(f.get('preview').textContent, /Xóa dòng 1/);
+        assert.match(f.get('preview').textContent, /Xóa cột custom/);
+        assert.match(f.get('preview').textContent, /Xác nhận 2 thay đổi/);
+        assert.equal(f.commits[0].rows.length, 0);
+        assert.deepEqual([...f.commits[0].columns], ['id', 'x1']);
+        assert.equal(f.window.assistantWorkspace.hasDraft(), true);
+        f.get('preview').querySelector('button').click();
+        assert.equal(f.window.assistantWorkspace.hasDraft(), false);
+    } finally { f.close(); }
+});
 
 test('chat uses project resources only when submitted and stages a signed draft', async () => {
     const f = fixture();

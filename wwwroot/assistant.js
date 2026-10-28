@@ -151,12 +151,18 @@
         if (!result.token) return;
         pending = { token: result.token, files };
         preview.hidden = false;
-        const count = result.edits.length + result.scores.length;
+        const count = result.edits.length + result.scores.length + (result.table_edits || []).length;
         preview.append(element('strong', 'Xem trước thay đổi'));
         if (result.create_table) preview.append(element('p', 'Tạo bảng cho ' + result.row_count + ' ô có mã xác định'));
         const list = document.createElement('ul');
         for (const action of result.edits) list.append(element('li', `${action.handle} · ${action.operation}: ${JSON.stringify(action.before)} → ${JSON.stringify(action.value)}${action.reason ? '\n' + action.reason : ''}`));
         for (const score of result.scores) list.append(element('li', `Dòng ${score.row_index + 1} · ${score.column}: ${score.before || 'Trống'} → ${score.value}\nÔ nguồn ${score.rule} · ${score.evidence}${score.qdrant_id ? '\nQdrant ' + score.qdrant_id : ''}\n${score.quote}\n${score.reason}`));
+        for (const edit of result.table_edits || []) {
+            const description = edit.operation === 'delete_column' ? `Xóa cột ${edit.column} trên ${edit.affected_rows} dòng`
+                : edit.operation === 'delete_row' ? `Xóa dòng ${edit.row_index + 1}: ${JSON.stringify(edit.before)}`
+                    : `Dòng ${edit.row_index + 1} · ${edit.column}: ${JSON.stringify(edit.before)} → ${JSON.stringify(edit.value)}`;
+            list.append(element('li', description + (edit.reason ? '\n' + edit.reason : '')));
+        }
         preview.append(list);
         const apply = element('button', 'Xác nhận' + (count ? ' ' + count + ' thay đổi' : ' tạo bảng'));
         apply.disabled = true;
@@ -228,7 +234,7 @@
             if (plan.files.scope === 'map' && result.rows || plan.files.scope === 'prediction' && (dxfs.length || result.dxf)) {
                 throw new Error('Kết quả AI vượt phạm vi tab đang mở');
             }
-            await window.assistantWorkspace.stage({ dxfs, rows: result.rows, csvId: plan.files.csvId });
+            await window.assistantWorkspace.stage({ dxfs, rows: result.rows, columns: result.columns, csvId: plan.files.csvId });
             plan.staged = true;
             for (const control of preview.querySelectorAll('button')) control.disabled = false;
             notice.textContent = 'Bản sửa nháp đã hiển thị, hãy kiểm tra rồi Xác nhận hoặc Bỏ bản nháp';

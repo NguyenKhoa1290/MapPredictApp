@@ -1,5 +1,14 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-28 Agent chỉnh cấu trúc và giá trị CSV
+
+- Bổ sung table_edits cho CSV đang nạp ở tab dự đoán, gồm set_cell, delete_row và delete_column, tối đa 200 thao tác mỗi lượt trên các dòng đã gửi trong ngữ cảnh
+- Sửa ô chỉ dùng giá trị người dùng nêu rõ, chấm điểm tự động vẫn qua scores và kiểm tra nguồn, không cho AI điền kết quả Y
+- Bản nháp mô tả hàng, cột, giá trị cũ và mới trước xác nhận, chỉ số hàng theo bảng gốc để việc xóa không làm lệch các thao tác khác
+- Từ chối thao tác trùng, xung đột, ngoài phạm vi hoặc xóa cột đầu vào cuối cùng, giữ kiểm tra chữ ký và hash CSV trước áp dụng
+- Giữ tiêu đề và khả năng xuất CSV khi xóa hết hàng, lưu cả schema cột trong workspace và lịch sử để hoàn tác, làm lại hoặc tải lại trang
+- Thay đổi dữ liệu làm mất hiệu lực kết quả dự đoán cũ, không ghi đè file gốc trên máy
+
 ## 2026-10-28 Xác nhận passcode trong chat
 
 - Thêm nút Xác nhận và phím Enter cho passcode Thông minh, kiểm tra trực tiếp bằng hash ở service AI mà không gọi model hoặc gửi tài nguyên dự án

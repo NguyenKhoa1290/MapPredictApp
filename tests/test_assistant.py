@@ -124,6 +124,107 @@ class AssistantTests(unittest.TestCase):
         self.assertNotIn('Y', rows[0])
         self.assertIsNone(response.json['data']['dxf'])
 
+    def table_preview(self, edits, message='Xóa dòng đầu, xóa custom và sửa x1 thành 7', csv=None, scope='prediction', **result):
+        source = self.csv if csv is None else csv
+        with patch.object(assistant, 'call_model', return_value={
+                'answer': 'Đề xuất sửa bảng', 'table_edits': edits, **result}):
+            response = self.client.post('/api/v1/assistant/preview', data={
+                'csv': (io.BytesIO(source), 'table.csv'), 'message': message, 'scope': scope, 'web': 'false'})
+        self.assertEqual(response.status_code, 200, response.json)
+        return response.json['data']
+
+    def table_apply(self, preview, csv=None):
+        return self.client.post('/api/v1/assistant/apply', data={'scope': 'prediction',
+            'csv': (io.BytesIO(self.csv if csv is None else csv), 'table.csv'), 'token': preview['token']})
+
+    def test_table_edit_delete_row_and_column_use_original_indexes_and_stale_guard(self):
+        edits = [{'operation': 'delete_row', 'row_index': 0},
+                 {'operation': 'delete_column', 'column': 'custom'},
+                 {'operation': 'set_cell', 'row_index': 1, 'column': 'x1', 'value': 7,
+                  'quote': 'sửa x1 thành 7'}]
+        preview = self.table_preview(edits)
+        self.assertEqual(len(preview['table_edits']), 3)
+        self.assertEqual(preview['table_edits'][0]['before']['id'], 'A1')
+        self.assertEqual(preview['table_edits'][1]['affected_rows'], 2)
+        response = self.table_apply(preview)
+        self.assertEqual(response.status_code, 200, response.json)
+        self.assertEqual(response.json['data']['rows'], [{'id': 'A2', 'x1': 7, 'x4': '4'}])
+        self.assertEqual(response.json['data']['columns'], ['id', 'x1', 'x4'])
+        self.assertIn(b'also-keep', self.csv)
+        self.assertEqual(self.table_apply(preview, csv=self.csv + b'A3,,,,\n').status_code, 409)
+
+    def test_table_can_delete_all_rows_and_keep_headers_without_creating_new_csv(self):
+        preview = self.table_preview([{'operation': 'delete_row', 'row_index': 0},
+                                      {'operation': 'delete_row', 'row_index': 1}], message='Xóa hai dòng')
+        response = self.table_apply(preview)
+        self.assertEqual(response.status_code, 200, response.json)
+        self.assertEqual(response.json['data']['rows'], [])
+        self.assertEqual(response.json['data']['columns'], ['id', 'x1', 'x4', 'custom'])
+        blank = self.table_preview([], csv=b'id,x1,x4,custom\r\n')
+        self.assertIsNone(blank['token'])
+        self.assertFalse(blank['create_table'])
+        from backend.map_predict.services.prediction import read_csv
+        from backend.map_predict.services.prediction import PredictionError
+        with self.assertRaises(PredictionError):
+            read_csv(b'id,x1\r\n', 100)
+
+    def test_scoring_a_missing_criterion_retains_its_column_in_export_schema(self):
+        source = b'id,x1\nA1,3\n'
+        preview = self.table_preview([], csv=source, message='Ô A1 là đất nông nghiệp xen kẹt', scores=[
+            {'row_index': 0, 'column': 'x4', 'value': 9, 'rule': 'L9',
+             'evidence': 'USER', 'quote': 'đất nông nghiệp xen kẹt'}])
+        response = self.table_apply(preview, csv=source)
+        self.assertEqual(response.status_code, 200, response.json)
+        self.assertEqual(response.json['data']['columns'], ['id', 'x1', 'x4'])
+        self.assertEqual(response.json['data']['rows'][0]['x4'], 9)
+
+    def test_table_edits_reject_unknown_cells_guessed_scores_and_model_output(self):
+        invalid = [None, {'operation': 'run_code'},
+            {'operation': 'delete_row', 'row_index': -1}, {'operation': 'delete_row', 'row_index': True},
+            {'operation': 'delete_column', 'column': 'missing'},
+            {'operation': 'set_cell', 'row_index': 0, 'column': 'missing', 'value': '7'},
+            {'operation': 'set_cell', 'row_index': 0, 'column': 'Y', 'value': 2},
+            {'operation': 'set_cell', 'row_index': 0, 'column': 'x1', 'value': 5, 'quote': 'sửa x1 thành 7'},
+            {'operation': 'set_cell', 'row_index': 0, 'column': 'x1', 'value': 7, 'quote': 'Người dùng chưa nói'},
+            {'operation': 'set_cell', 'row_index': 0, 'column': 'x1', 'value': float('nan')}]
+        preview = self.table_preview(invalid)
+        self.assertEqual(len(preview['rejected']), len(invalid))
+        self.assertIsNone(preview['token'])
+        self.assertEqual(preview['table_edits'], [])
+        # A number inside a different number is not an explicitly supplied value.
+        preview = self.table_preview([{'operation': 'set_cell', 'row_index': 0, 'column': 'x1',
+                                      'value': 1, 'quote': 'sửa x1 thành 10'}], message='sửa x1 thành 10')
+        self.assertIsNone(preview['token'])
+
+    def test_table_edit_conflicts_are_rejected_and_last_input_column_is_retained(self):
+        preview = self.table_preview([
+            {'operation': 'set_cell', 'row_index': 0, 'column': 'x1', 'value': 7, 'quote': 'sửa x1 thành 7'},
+            {'operation': 'delete_row', 'row_index': 0}, {'operation': 'delete_column', 'column': 'x1'},
+            {'operation': 'delete_row', 'row_index': 1}, {'operation': 'delete_row', 'row_index': 1}])
+        self.assertEqual(len(preview['table_edits']), 2)
+        self.assertEqual(len(preview['rejected']), 3)
+        last = self.table_preview([{'operation': 'delete_column', 'column': 'id'}], csv=b'id,Y\nA1,2\n')
+        self.assertIsNone(last['token'])
+        self.assertTrue(last['rejected'])
+
+    def test_manual_text_edit_and_clearing_are_supported_without_automatic_scoring(self):
+        message = 'Sửa custom thành mới, xóa nội dung x1'
+        preview = self.table_preview([
+            {'operation': 'set_cell', 'row_index': 0, 'column': 'custom', 'value': 'mới', 'quote': 'Sửa custom thành mới'},
+            {'operation': 'set_cell', 'row_index': 1, 'column': 'x1', 'value': '', 'quote': 'xóa nội dung x1'}], message=message)
+        response = self.table_apply(preview)
+        self.assertEqual(response.status_code, 200, response.json)
+        self.assertEqual(response.json['data']['rows'][0]['custom'], 'mới')
+        self.assertEqual(response.json['data']['rows'][1]['x1'], '')
+
+    def test_map_scope_cannot_edit_csv_with_table_edits(self):
+        with patch.object(assistant, 'call_model', return_value={'answer': 'Đề xuất', 'table_edits': [
+                {'operation': 'delete_column', 'column': 'id'}]}):
+            response = self.client.post('/api/v1/assistant/preview', data={'scope': 'map', 'message': 'Xóa cột', 'web': 'false'})
+        self.assertEqual(response.status_code, 200, response.json)
+        self.assertEqual(response.json['data']['table_edits'], [])
+        self.assertIsNone(response.json['data']['token'])
+
     def test_scope_rejects_wrong_files_and_map_cannot_create_a_new_dxf(self):
         with patch.object(assistant, 'call_model') as model:
             response = self.client.post('/api/v1/assistant/apply', data={'scope': 'map', 'token': 'no-file'})

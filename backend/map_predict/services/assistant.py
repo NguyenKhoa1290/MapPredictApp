@@ -21,13 +21,21 @@ from .knowledge import retrieve
 EPHEMERAL_KEY = secrets.token_hex(32)
 MAX_FILE = 12 * 1024 * 1024
 PROMPT = '''Bạn là trợ lý GIS của công cụ Đánh giá quỹ đất, trả lời tiếng Việt
-Chỉ trả một JSON object có answer, sources, edits, scores, create_table, chưa tự áp dụng thay đổi
+Chỉ trả một JSON object có answer, sources, edits, scores, table_edits, create_table, chưa tự áp dụng thay đổi
 Trong answer dùng từ đề xuất, không nói đã sửa hay đã điền điểm trước khi người dùng áp dụng
 scope=prediction chỉ được đọc và đề xuất bảng CSV, không dùng DXF hay tạo bản vẽ
 Khi scope=prediction chưa có CSV, có thể tạo bảng với create_table=true và table_rows=[{id:"A1",...}]
 Bảng mới tối đa 100 dòng, id duy nhất, x1..x9 để trống, không điền điểm qua table_rows
-Chỉ điền x1..x9 qua scores có đủ căn cứ hiện trạng và ngưỡng điểm duy nhất
-scope=map chỉ được sửa DXF đã có trong dxf.files, tuyệt đối không tự tạo file DXF mới hoặc chỉnh CSV
+Tự động chấm x1..x9 chỉ qua scores có đủ căn cứ hiện trạng và ngưỡng điểm duy nhất
+scope=prediction có CSV cho phép table_edits tối đa 200 thao tác trên bảng đang nạp
+set_cell có {operation:"set_cell",row_index,column,value,quote,reason}, chỉ sửa cột đã có và giá trị do người dùng nêu rõ trong yêu cầu hiện tại
+quote là nguyên văn yêu cầu, phải chứa tên cột và giá trị mới, value="" để xóa nội dung ô
+Người dùng chỉ định rõ điểm x1..x9 thì có thể sửa trực tiếp bằng set_cell, không tự chấm hoặc chọn điểm từ nhóm bằng table_edits, không điền Y
+delete_row có {operation:"delete_row",row_index,reason}, xóa cả hàng
+delete_column có {operation:"delete_column",column,reason}, xóa cột trên toàn bộ bảng, giữ ít nhất một cột ngoài Y
+row_index của table_edits và scores luôn theo bảng GỐC bắt đầu từ 0, chỉ dùng dòng đã gửi trong ngữ cảnh, không đánh số lại sau khi xóa
+Không vừa xóa vừa sửa cùng một hàng hoặc cột, không thêm cột bằng set_cell, dùng [] nếu không sửa bảng
+scope=map chỉ được sửa DXF đã có trong dxf.files, tuyệt đối không tự tạo file DXF mới hoặc chỉnh CSV, trả table_edits=[]
 Khi scope=map chưa có DXF thì vẫn trò chuyện, giải thích và hướng dẫn bình thường, trả edits=[], scores=[], create_table=false
 Nếu người dùng yêu cầu sửa hoặc vẽ mà chưa có DXF, hướng dẫn nạp và bật hiển thị file trước khi sửa
 Mỗi đối tượng DXF có handle gồm tiền tố file, giữ nguyên handle như ngữ cảnh để không lẫn giữa các file
@@ -69,7 +77,7 @@ evidence là USER, DXF:HANDLE:tên_trường, hoặc WEB:chỉ_số_source_bắt
 quote phải là nguyên văn ít nhất 8 ký tự từ evidence, không dùng mô tả của bản thân
 sources tối đa 3 phần tử {url,title,quote}, quote web tối thiểu 30 ký tự
 Không chỉnh handle, xref, block, đường dẫn, xóa entity hay sửa đối tượng ngoài modelspace
-Các trường sources, edits, scores dùng [] khi không có
+Các trường sources, edits, scores, table_edits dùng [] khi không có
 
 Numeric fields row_index and score/color value must be JSON integers, never ranges or prose. Preserve handles and source references exactly.
 
@@ -152,7 +160,7 @@ def describe(document, layer_filter=''):
 def load(path, dxf, csv):
     document = ezdxf.readfile(path) if dxf else None
     if csv:
-        rows = read_csv(csv, 10000)
+        rows = read_csv(csv, 10000, allow_empty=True)
     elif dxf:
         from prediction_grid import read_dxf_grid
         try:
@@ -211,7 +219,7 @@ def call_model(messages, config):
         result = json.loads(text)
         if not isinstance(result, dict) or not isinstance(result.get('answer'), str):
             raise ValueError('Invalid response')
-        if any(not isinstance(result.get(key, []), list) for key in ('sources', 'edits', 'scores')):
+        if any(not isinstance(result.get(key, []), list) for key in ('sources', 'edits', 'scores', 'table_edits')):
             raise ValueError('Invalid action lists')
         return result
     except HTTPError as error:
@@ -377,7 +385,9 @@ def preview(path, dxf, csv, options, config, resources=None):
                 catalog[key] = {**rule, 'qdrant_id': record['id']}
     start = max(0, int(options.get('start', 1)) - 1)
     selected = [{'row_index': index, 'data': row} for index, row in enumerate(rows[start:start + 100], start)]
+    columns = read_csv(csv, 10000, allow_empty=True, with_columns=True)[1] if csv else list(dict.fromkeys(key for row in rows for key in row))
     context = {'scope': options.get('scope', 'legacy'), 'dxf': summary, 'rows': selected, 'row_count': len(rows),
+               'columns': columns,
                'source_crs': options.get('crs', ''), 'web_search': options.get('web') == 'true'}
     prompt_file = config.get('ASSISTANT_PROMPT')
     instructions = Path(prompt_file).read_text(encoding='utf-8-sig') if prompt_file else PROMPT
@@ -465,11 +475,21 @@ def preview(path, dxf, csv, options, config, resources=None):
         except (TypeError, KeyError, IndexError, AttributeError):
             rejected.append('Đề xuất điểm thiếu căn cứ, sai phạm vi hoặc chỉ có nhóm điểm')
     create_table = result.get('create_table') is True and not csv and bool(rows) and options.get('scope') != 'map'
-    plan = {'hash': file_hash(dxf, csv), 'edits': actions, 'scores': scores, 'create_table': create_table}
+    from .assistant_tables import validate_edit
+    table_edits = []
+    for edit in (result.get('table_edits') or [])[:200]:
+        try:
+            if options.get('scope') != 'prediction' or not csv:
+                raise ValueError('Sửa bảng chỉ dùng CSV đã nạp trong tab dự đoán')
+            table_edits.append(validate_edit(edit, rows, columns, start, message, table_edits, scores))
+        except (ValueError, TypeError, KeyError) as error:
+            rejected.append(str(error))
+    plan = {'hash': file_hash(dxf, csv), 'edits': actions, 'scores': scores, 'create_table': create_table,
+            'table_edits': table_edits, 'columns': columns}
     if generated_rows is not None:
         plan['new_rows'] = generated_rows
-    token = signature(config).dumps(plan) if actions or scores or create_table else None
-    return {'answer': result['answer'][:16000], 'sources': sources, 'edits': actions, 'scores': scores,
+    token = signature(config).dumps(plan) if actions or scores or create_table or table_edits else None
+    return {'answer': result['answer'][:16000], 'sources': sources, 'edits': actions, 'scores': scores, 'table_edits': table_edits,
             'knowledge': {**knowledge, 'records': [{k: v for k, v in row.items() if k != 'content'}
                                                  for row in knowledge['records']]},
             'rejected': rejected, 'token': token, 'row_count': len(rows), 'create_table': create_table,
@@ -534,10 +554,21 @@ def apply(path, dxf, csv, token, config, resources=None):
             entity.dxf.set(operation, value)
     for score in plan['scores']:
         rows[score['row_index']][score['column']] = score['value']
-    if plan['scores']:
+    table_edits = plan.get('table_edits', [])
+    columns = read_csv(csv, 10000, allow_empty=True, with_columns=True)[1] if csv else list(dict.fromkeys(key for row in rows for key in row))
+    if table_edits:
+        if columns != plan['columns']:
+            raise PredictionError('PREVIEW_STALE', 'Cách đọc cột đã thay đổi, cần xem trước lại', 409)
+    columns = list(dict.fromkeys(columns + [score['column'] for score in plan['scores']]))
+    if table_edits:
+        from .assistant_tables import apply_edits
+        rows, columns = apply_edits(rows, columns, table_edits)
+    if plan['scores'] or table_edits:
         for row in rows:
             row.pop('Y', None)
-    result = {'rows': rows if plan['scores'] or plan.get('create_table') else None, 'dxf': None}
+        columns = [column for column in columns if column != 'Y']
+    result = {'rows': rows if plan['scores'] or plan.get('create_table') or table_edits else None,
+              'columns': columns, 'dxf': None}
     def encoded(document):
         stream = io.StringIO()
         document.write(stream, fmt='asc')

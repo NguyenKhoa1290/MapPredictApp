@@ -150,7 +150,7 @@
         restoredResults = predictionRows.length > 0;
         renderResults(predictionRows, false);
         const view = assets.get("table:view");
-        if (view) renderPredictionTable(view.rows, view.isResult, view.total);
+        if (view) renderPredictionTable(view.rows, view.isResult, view.total, view.columns);
         else renderPredictionTable([], false);
         fillSelect($("csv-join"), state.joins.csvColumns);
         $("csv-join").value = state.joins.csv;

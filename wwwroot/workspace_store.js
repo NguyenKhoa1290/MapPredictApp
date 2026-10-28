@@ -94,7 +94,8 @@
             const { view, tab, details, inspector, basemap, labels, ...data } = snapshot.state;
             if (Array.isArray(data.layers)) data.layers = data.layers.map(({ id, sourceKey }) => ({ id, sourceKey }));
             return JSON.stringify([data, [...snapshot.assets].sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) =>
-                [key, key === 'table:view' && !value?.rows?.length ? null
+                [key, key === 'table:view' ? !value?.rows?.length && !value?.columns?.length ? null
+                    : { ...value, columns: value.columns || [...new Set(value.rows.flatMap(row => Object.keys(row)))] }
                     : value instanceof Blob ? [value.size, value.type] : value])]);
         }
         export() { return this.persisted ||= { version: 1, past: this.past, future: this.future }; }
