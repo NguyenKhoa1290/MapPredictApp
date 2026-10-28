@@ -50,3 +50,9 @@
 .assistant-passcode-label { padding: 8px 16px; }
 .assistant-passcode-label:not([hidden]) { display: flex; align-items: center; gap: 12px; }
 .assistant-passcode { flex: 1; min-width: 0; padding: 7px; border: 1px solid #b8cec1; border-radius: 6px; }
+.assistant-history-bar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:13px; width:100%; padding:8px 16px; border-top:1px solid #e2e8e7; box-sizing:border-box; }
+.assistant-history-bar span { color:#52695e; }
+.assistant-history-bar button { padding:7px 10px; border:1px solid #b8cec1; border-radius:7px; background:#fff; color:#087445; cursor:pointer; text-decoration:none!important; }
+.assistant-history-bar button:disabled { opacity:.45; cursor:default; }
+.assistant-history-bar [hidden] { display:none; }
+.assistant-history-bar button:focus-visible { outline:3px solid #79b994; outline-offset:2px; }

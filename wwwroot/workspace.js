@@ -9,6 +9,7 @@
     let timer = null;
     let saving = null;
     let restoredResults = false;
+    let previewPaused = false;
 
     function status(text, error = false) {
         $("workspace-save-status").textContent = text;
@@ -68,7 +69,7 @@
         } };
     }
     function schedule() {
-        if (!ready || blocked) return;
+        if (!ready || blocked || previewPaused) return;
         dirty = true;
         status("Đang chờ tự lưu…");
         clearTimeout(timer);
@@ -76,7 +77,7 @@
     }
     function flush() {
         clearTimeout(timer);
-        if (!ready || blocked) return Promise.resolve(false);
+        if (!ready || blocked || previewPaused) return Promise.resolve(false);
         if (saving) return saving;
         // Start the transaction synchronously when the page is being hidden.
         saving = (async () => {
@@ -130,12 +131,11 @@
         predictionFiles = sources(state.prediction);
         for (const id of fileInputs) {
             const metadata = state.inputs[id];
-            if (!metadata) continue;
             const transfer = new DataTransfer();
-            transfer.items.add(restoreFile(assets.get(`input:${id}`), metadata));
+            if (metadata) transfer.items.add(restoreFile(assets.get(`input:${id}`), metadata));
             $(id).files = transfer.files;
             const label = document.querySelector(`[data-file-label="${id}"]`);
-            if (label) label.textContent = metadata.name;
+            if (label) label.textContent = metadata?.name || label.dataset.defaultLabel || 'Chưa chọn file';
         }
         const crs = state.crs || "";
         const listed = [...$("project-crs").options].some((option) => option.value === crs);
@@ -150,6 +150,7 @@
         renderResults(predictionRows, false);
         const view = assets.get("table:view");
         if (view) renderPredictionTable(view.rows, view.isResult, view.total);
+        else renderPredictionTable([], false);
         fillSelect($("csv-join"), state.joins.csvColumns);
         $("csv-join").value = state.joins.csv;
         $("join-mode").value = state.joins.mode === "numeric" ? "numeric" : "exact";
@@ -204,6 +205,26 @@
         if (ready && predictionFiles.some((entry) => !entry.columns)) await readPredictionSources();
     }
     window.workspacePersistence = { schedule, flush,
+        checkpoint() {
+            if (!ready || blocked) throw new Error('Phiên làm việc chưa sẵn sàng');
+            return structuredClone(capture());
+        },
+        async pausePreview() {
+            if (!ready || blocked || !await flush()) throw new Error('Chưa lưu được dữ liệu trước khi xem bản nháp');
+            previewPaused = true;
+        },
+        resumePreview() { previewPaused = false; schedule(); },
+        restoreCheckpoint(snapshot) {
+            // Undo data without moving the user's viewport or changing the active tab.
+            const current = capture().state;
+            ++predictionTableVersion;
+            ++resultColumnsVersion;
+            invalidateMapPreview();
+            const copy = structuredClone(snapshot);
+            restore({ assets: copy.assets, state: { ...copy.state,
+                view: current.view, tab: current.tab, details: current.details,
+                basemap: current.basemap, labels: current.labels } });
+        },
         get ready() { return ready; }, get restoredResults() { return restoredResults; } };
     for (const event of ["input", "change", "click"]) document.addEventListener(event, schedule);
     document.addEventListener("toggle", schedule, true);

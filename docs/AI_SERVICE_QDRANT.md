@@ -1,5 +1,18 @@
 # Service AI và Qdrant
 
+## Chỉnh sửa tài nguyên dự án qua chatbot
+
+- Chatbot lấy DXF nền, DXF lưới và CSV đã nạp trong dự án, không có ô đính kèm riêng trong chat
+- Khi có nhiều file, chọn DXF và CSV cần làm việc trong mục Tài nguyên trong dự án
+- Đề xuất hợp lệ được dựng thành bản nháp ngay trên bản đồ và bảng dữ liệu, chưa tự lưu cho đến khi xác nhận
+- Xác nhận thay đổi hoặc Bỏ bản nháp ở chatbot hay thanh công cụ dùng chung cho hai tab
+- Hoàn tác và Làm lại khôi phục cả DXF, bảng CSV, kết quả dự đoán và layer hiển thị của cùng một lần sửa AI
+- Lịch sử tối đa 10 lần sửa trong bộ nhớ của tab, tải lại trang chỉ khôi phục dữ liệu đã xác nhận, không giữ lịch sử hoàn tác
+- Sửa điểm làm mất hiệu lực Y cũ và CSV kết quả cũ, cần chạy lại mô hình để tính kết quả mới
+- Nếu không dựng được bản đồ, khôi phục cả bảng và DXF trước lần sửa, không giữ nửa thay đổi
+- File gốc trên máy không bị ghi đè, có thể xuất tài nguyên đã xác nhận từ chatbot
+- Nếu tài nguyên đã được sửa bằng thao tác khác, không cho lịch sử AI ghi đè dữ liệu mới
+
 ## Cấu hình quản trị hiện tại
 
 Trang `/portal/admin/ai` xác thực mật khẩu tại service AI, tách khỏi khóa nội bộ

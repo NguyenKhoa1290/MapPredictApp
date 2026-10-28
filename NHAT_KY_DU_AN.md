@@ -490,3 +490,14 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Giữ pool tài khoản cùng model, kiểm tra quota trước và sau generation, giữ passcode Thông minh theo yêu cầu trước
 - Đổi tên các mục quản trị tương ứng, giữ nguyên cookie và hash passcode đã lưu
 - Kiểm thử 141 test Python, 41 test giao diện và 7 test bong bóng trợ lý đã đạt
+
+## 2026-10-28 Chatbot dùng tài nguyên dự án và lịch sử hai chiều
+
+- Bỏ ô gửi DXF riêng trong chat, tự nhận DXF và CSV đang nạp trong dự án
+- Hiển thị bản sửa nháp trên tab bản đồ và bảng dữ liệu trước khi xác nhận
+- Thêm Xác nhận thay đổi, Bỏ bản nháp, Hoàn tác và Làm lại dùng chung cho hai tab
+- Tạm dừng tự lưu bản nháp, chỉ lưu khi xác nhận, bản nháp bị bỏ khi tải lại trang
+- Gộp thay đổi DXF và CSV thành một thao tác, lỗi dựng bản đồ sẽ phục hồi cả hai
+- Lịch sử giữ tối đa 10 thao tác trong bộ nhớ tab, không tạo file sao lưu hoặc phiên service
+- Sửa điểm loại kết quả dự đoán cũ, giữ xuất file từ tài nguyên đã xác nhận
+- Đã đạt 141 kiểm thử Python, 41 kiểm thử frontend và 41 kiểm thử JavaScript, gồm 11 kiểm thử chatbot cùng lịch sử tài nguyên

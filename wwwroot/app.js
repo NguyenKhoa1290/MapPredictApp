@@ -606,7 +606,7 @@ $("csv-file").addEventListener("change", async (event) => {
 
 $("predict-form").addEventListener("submit", async (event) => {
     event.preventDefault();
-    ++predictionTableVersion;
+    const version = ++predictionTableVersion;
     const form = new FormData(event.currentTarget);
     const inputs = [...event.currentTarget.querySelectorAll('input[type="file"]')];
     inputs.forEach((input) => { input.disabled = true; });
@@ -619,6 +619,7 @@ $("predict-form").addEventListener("submit", async (event) => {
         const payload = await api("/api/predict", {
             method: "POST", body: form,
         });
+        if (version !== predictionTableVersion) return;
         renderResults(payload.rows);
         showStatus("predict-message", `Đã dự đoán ${payload.rows.length.toLocaleString("vi-VN")} dòng. Có thể xuất CSV ở bảng bên phải.`);
     } catch (error) {
@@ -764,25 +765,32 @@ $("map-form").addEventListener("submit", async (event) => {
 
 initializeMap();
 
-// The assistant only receives the files explicitly selected in its popup.
+// Project resources are the assistant's inputs, not separate chat attachments.
 window.assistantWorkspace = {
     sources() {
         return [...cadFiles.map(entry => ({ ...entry, kind: 'cad' })),
             ...predictionFiles.map(entry => ({ ...entry, kind: 'prediction' }))]
             .filter(entry => entry.file.name.toLowerCase().endsWith('.dxf'));
     },
-    csv() { return $('csv-file').files[0] || null; },
-    version() { return predictionTableVersion; },
+    tables() { return ['csv-file', 'result-file'].flatMap(id =>
+        $(id).files[0] ? [{ id, file: $(id).files[0] }] : []); },
+    csv(id = 'csv-file') { return $(id)?.files[0] || null; },
+    version() { return `${predictionTableVersion}:${mapRequestVersion}:${resultColumnsVersion}:${sharedSourceCrs()}`; },
     crs() { return sharedSourceCrs(); },
-    async commit({ sourceId, original, dxf, rows }) {
+    async commit({ sourceId, original, dxf, rows, csvId = 'csv-file' }) {
         if (!window.workspacePersistence?.ready) throw new Error('Workspace chưa khôi phục xong, hãy chờ hoặc kiểm tra trạng thái bản lưu');
         const entry = [...cadFiles, ...predictionFiles].find(item => item.id === sourceId);
         if (sourceId && (!entry || entry.file !== original)) throw new Error('File DXF đã thay đổi, hãy tạo lại bản xem trước');
         if (rows) {
-            const file = new File([await resultsCsvFile(rows).arrayBuffer()], 'TieuChi.csv', { type: 'text/csv;charset=utf-8' });
+            const name = this.csv(csvId)?.name || 'TieuChi.csv';
+            const file = new File([await resultsCsvFile(rows).arrayBuffer()], name, { type: 'text/csv;charset=utf-8' });
             const transfer = new DataTransfer();
             transfer.items.add(file);
             $('csv-file').files = transfer.files;
+            // Scoring invalidates old predictions, including a separately imported result CSV.
+            $('result-file').files = new DataTransfer().files;
+            const resultLabel = document.querySelector('[data-file-label="result-file"]');
+            if (resultLabel) resultLabel.textContent = 'Chưa chọn file';
             const label = document.querySelector('[data-file-label="csv-file"]');
             if (label) label.textContent = file.name;
             ++predictionTableVersion;
@@ -803,8 +811,82 @@ window.assistantWorkspace = {
             updateCadOptions();
             updatePredictionSources();
             await readPredictionSources();
-            if (sharedSourceCrs()) $('map-form').requestSubmit();
+        }
+        if ((dxf || rows) && sharedSourceCrs() && (cadFiles.length || predictionFiles.length)) {
+            const version = ++mapRequestVersion;
+            mapRequestController?.abort();
+            mapRequestController = new AbortController();
+            $('source-crs').value = sharedSourceCrs();
+            const form = new FormData($('map-form'));
+            form.delete('cad'); form.delete('layer');
+            for (const item of cadFiles) { form.append('cad', item.file); form.append('cad_id', item.id); }
+            for (const item of predictionFiles) {
+                if (item.error || !item.columns) throw new Error('Không đọc được lưới đã sửa');
+                form.append('layer', item.file); form.append('layer_id', item.id);
+                form.append('layer_join', individualPredictionJoins() ? item.joinColumn : $('gpkg-join').value);
+            }
+            if (predictionRows.length && !$('result-file').files.length) form.set('result', resultsCsvFile(predictionRows));
+            const payload = await api('/api/map', { method: 'POST', body: form, signal: mapRequestController.signal });
+            if (version !== mapRequestVersion) throw new Error('Bản đồ vừa thay đổi, hãy tạo lại đề xuất');
+            const center = map?.getCenter(), zoom = map?.getZoom();
+            const styles = overlays;
+            renderMap(payload.layers, styles);
+            if (center) { pendingMapBounds = null; map.setView(center, zoom, { animate: false }); }
+        } else if (dxf && overlays.length) {
+            throw new Error('Chọn hệ tọa độ để hiển thị DXF đã sửa trên bản đồ');
         }
         window.workspacePersistence?.schedule();
     },
 };
+
+const assistantHistory = new WorkspaceHistory({
+    capture: () => window.workspacePersistence.checkpoint(),
+    restore: snapshot => window.workspacePersistence.restoreCheckpoint(snapshot),
+    pause: async () => {
+        if ($('predict-button').disabled || resultColumnsLoading || predictionFiles.some(item => item.loading)) {
+            throw new Error('Chờ tác vụ dữ liệu hiện tại hoàn tất trước khi xem bản nháp');
+        }
+        invalidateMapPreview(); ++predictionTableVersion;
+        await window.workspacePersistence.pausePreview();
+    },
+    resume: () => window.workspacePersistence.resumePreview(),
+    changed: () => updateAssistantHistory(),
+});
+const historyBar = document.createElement('div');
+historyBar.className = 'assistant-history-bar';
+historyBar.innerHTML = `<span role="status" aria-live="polite">Lịch sử chỉnh sửa AI</span>
+    <button type="button" data-action="confirm" hidden>Xác nhận thay đổi</button>
+    <button type="button" data-action="discard" hidden>Bỏ bản nháp</button>
+    <button type="button" data-action="undo" disabled>Hoàn tác</button>
+    <button type="button" data-action="redo" disabled>Làm lại</button>`;
+document.querySelector('.workspace-header').append(historyBar);
+function updateAssistantHistory() {
+    if (typeof historyBar === 'undefined') return;
+    const { pending, busy, past, future } = assistantHistory;
+    for (const action of ['confirm', 'discard']) {
+        const button = historyBar.querySelector(`[data-action="${action}"]`);
+        button.hidden = !pending; button.disabled = busy;
+    }
+    historyBar.querySelector('[data-action="undo"]').disabled = busy || !!pending || !past.length;
+    historyBar.querySelector('[data-action="redo"]').disabled = busy || !!pending || !future.length;
+    historyBar.querySelector('[role="status"]').textContent = busy ? 'Đang dựng bản nháp AI'
+        : pending ? 'Bản nháp AI chưa xác nhận' : 'Lịch sử chỉnh sửa AI';
+    // Leave tabs, map pan/zoom and the table available for inspection.
+    document.querySelectorAll('.map-sidebar, .workspace-crs, #layer-inspector .style-editor')
+        .forEach(node => { node.inert = busy || !!pending; });
+    window.dispatchEvent(new Event('assistant-workspace-change'));
+}
+Object.assign(window.assistantWorkspace, {
+    stage: change => assistantHistory.stage(() => window.assistantWorkspace.commit(change)),
+    confirm: () => assistantHistory.confirm(),
+    discard: () => assistantHistory.travel('discard'),
+    hasDraft: () => !!assistantHistory.pending,
+});
+historyBar.addEventListener('click', async event => {
+    const action = event.target.closest('button')?.dataset.action;
+    if (!action) return;
+    try {
+        if (action === 'confirm') assistantHistory.confirm();
+        else await assistantHistory.travel(action);
+    } catch (error) { historyBar.querySelector('[role="status"]').textContent = error.message; }
+});

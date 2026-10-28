@@ -83,4 +83,64 @@
         }
     }
     root.WorkspaceStore = WorkspaceStore;
+    // In-memory, bounded history of complete AI transactions, never a disk backup.
+    class WorkspaceHistory {
+        constructor({ capture, restore, pause, resume, changed = () => {}, limit = 10 }) {
+            Object.assign(this, { capture, restore, pause, resume, changed, limit });
+            this.past = []; this.future = []; this.pending = null; this.busy = false;
+        }
+        key(snapshot) {
+            const { view, tab, details, inspector, basemap, labels, ...data } = snapshot.state;
+            return JSON.stringify([data, [...snapshot.assets].map(([key, value]) =>
+                [key, key === 'table:view' && !value?.rows?.length ? null
+                    : value instanceof Blob ? [value.size, value.type] : value])]);
+        }
+        assertCurrent(snapshot) {
+            if (this.key(this.capture()) !== this.key(snapshot)) {
+                throw new Error('Tài nguyên đã thay đổi, không thể ghi đè bằng thao tác AI cũ');
+            }
+        }
+        async stage(action) {
+            if (this.busy || this.pending) throw new Error('Hãy xác nhận hoặc bỏ bản nháp hiện tại');
+            this.busy = true; this.changed();
+            let before, paused = false;
+            try {
+                await this.pause(); paused = true;
+                before = this.capture();
+                await action();
+                const after = this.capture();
+                this.pending = { before, after };
+            } catch (error) {
+                if (before) await this.restore(before);
+                if (paused) this.resume();
+                throw error;
+            } finally { this.busy = false; this.changed(); }
+        }
+        confirm() {
+            if (this.busy || !this.pending) return;
+            this.assertCurrent(this.pending.after);
+            this.past.push(this.pending);
+            if (this.past.length > this.limit) this.past.shift();
+            this.future = []; this.pending = null;
+            this.resume(); this.changed();
+        }
+        async travel(direction) {
+            if (this.busy) return;
+            const discard = direction === 'discard';
+            if (!discard && this.pending) throw new Error('Hãy xác nhận hoặc bỏ bản nháp trước');
+            const from = direction === 'redo' ? this.future : this.past;
+            const to = direction === 'redo' ? this.past : this.future;
+            const item = discard ? this.pending : from.at(-1);
+            if (!item) return;
+            this.assertCurrent(direction === 'redo' ? item.before : item.after);
+            this.busy = true; this.changed();
+            try {
+                await this.restore(direction === 'redo' ? item.after : item.before);
+                if (discard) this.pending = null;
+                else { from.pop(); to.push(item); }
+                this.resume();
+            } finally { this.busy = false; this.changed(); }
+        }
+    }
+    root.WorkspaceHistory = WorkspaceHistory;
 })(globalThis);
