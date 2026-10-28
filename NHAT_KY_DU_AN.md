@@ -1,5 +1,12 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-28 Xác nhận passcode trong chat
+
+- Thêm nút Xác nhận và phím Enter cho passcode Thông minh, kiểm tra trực tiếp bằng hash ở service AI mà không gọi model hoặc gửi tài nguyên dự án
+- Passcode đúng thì xóa nội dung input và ẩn khung nhập, passcode sai vẫn giữ khung để nhập lại
+- Chỉ giữ passcode đã xác thực trong bộ nhớ của trang để gửi cùng các lượt Thông minh, không lưu vào localStorage, service vẫn kiểm tra mỗi lượt và hiện lại ô nhập nếu passcode không còn hợp lệ
+- Kiểm thử Enter không gửi hai lần, nút Xác nhận, thử lại sau lỗi, ẩn sau xác thực và từ chối passcode cũ sau khi quản trị thay đổi
+
 ## 2026-10-28 Effort và nút lịch sử trong chat
 
 - Thêm lựa chọn Effort gồm mặc định, thấp, trung bình và cao, tự lưu lựa chọn trên trình duyệt

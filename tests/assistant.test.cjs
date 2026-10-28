@@ -202,6 +202,7 @@ function fixture(status = { enabled: true }) {
     window.fetch = async (url, options) => {
         calls.push({ url, options });
         return { ok: true, blob: async () => new window.Blob(['DXF edited']), json: async () => ({ data: url.endsWith('/status') ? status
+            : url.endsWith('/authorize') ? { authorized: true }
             : url.endsWith('/apply') ? scope === 'map' ? { dxfs: [{ source_id: 'dxf-1', dxf: window.btoa('DXF edited') }], rows: null }
                 : { dxfs: [], rows: [{ id: 'A1', x1: '' }] } : scope === 'map' && !active
                     ? { ...proposal, token: null, edits: [], scores: [] } : proposal }) };
@@ -342,6 +343,8 @@ test('chat sends the chosen model mode without an arbitrary model or endpoint', 
         f.get('mode').value = 'smart';
         f.get('effort').value = 'high';
         f.get('passcode').value = 'temporary-smart-code';
+        f.get('passcode-label').dispatchEvent(new f.window.Event('submit', { cancelable: true }));
+        await tick();
         await f.submit();
         const request = f.calls.find(call => call.url.endsWith('/preview'));
         assert.equal(request.options.body.get('mode'), 'smart');
@@ -378,11 +381,54 @@ test('Smart asks for a passcode and never stores it in localStorage', async () =
         await f.submit();
         assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 0);
         f.get('passcode').value = 'temporary-pro-code';
+        const enter = new f.window.KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true });
+        f.get('passcode').dispatchEvent(enter);
+        f.get('passcode').dispatchEvent(new f.window.KeyboardEvent('keydown', { key: 'Enter', repeat: true, cancelable: true, bubbles: true }));
+        await tick();
+        assert.equal(enter.defaultPrevented, true);
+        assert.equal(f.calls.filter(call => call.url.endsWith('/authorize')).length, 1);
+        assert.equal(f.get('passcode-label').hidden, true);
+        assert.equal(f.get('passcode').value, '');
+        assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 0);
         await f.submit();
         const form = f.calls.find(call => call.url.endsWith('/preview')).options.body;
         assert.equal(form.get('mode'), 'smart');
         assert.equal(form.get('passcode'), 'temporary-pro-code');
         assert.equal(JSON.stringify(f.window.localStorage).includes('temporary-pro-code'), false);
+    } finally { f.close(); }
+});
+
+test('incorrect passcode stays visible and can be retried with the confirm button', async () => {
+    const f = fixture();
+    try {
+        await tick();
+        f.get('mode').value = 'smart';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        const originalFetch = f.window.fetch;
+        f.window.fetch = async () => ({ ok: false, json: async () => ({ error: {
+            code: 'ARGON_PASSCODE_REQUIRED', message: 'Passcode không đúng' } }) });
+        f.get('passcode').value = 'incorrect-passcode';
+        f.get('passcode-submit').click();
+        await tick();
+        assert.equal(f.get('passcode-label').hidden, false);
+        assert.match(f.get('notice').textContent, /không đúng/);
+        assert.equal(f.get('passcode-submit').disabled, false);
+        f.window.fetch = originalFetch;
+        f.get('passcode').value = 'correct-passcode';
+        f.get('passcode-submit').click();
+        await tick();
+        assert.equal(f.get('passcode-label').hidden, true);
+        f.get('mode').value = 'fast';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        f.get('mode').value = 'smart';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        assert.equal(f.get('passcode-label').hidden, true);
+        f.window.fetch = async () => ({ ok: false, json: async () => ({ error: {
+            code: 'ARGON_PASSCODE_REQUIRED', message: 'Passcode đã thay đổi' } }) });
+        await f.submit();
+        assert.equal(f.get('passcode-label').hidden, false);
+        assert.match(f.get('notice').textContent, /đã thay đổi/);
+        assert.equal(JSON.stringify(f.window.localStorage).includes('correct-passcode'), false);
     } finally { f.close(); }
 });
 

@@ -91,11 +91,16 @@ def uploaded(name, extension, limit):
 
 @assistant_api.post('/<action>')
 def execute(action):
-    if action not in ('preview', 'apply', 'export'):
+    if action not in ('preview', 'apply', 'export', 'authorize'):
         raise PredictionError('UNKNOWN_ACTION', 'Thao tác chưa được hỗ trợ', 404)
     if current_app.config.get('ASSISTANT_SERVICE_URL'):
         from ...services.assistant_gateway import forward
         return forward(action)
+    if action == 'authorize':
+        from ...services.ai_settings import model_config, authorize_pro
+        config = model_config(current_app.config, 'smart')
+        authorize_pro(config, request.form.get('passcode', ''))
+        return jsonify(data={'authorized': True})
     if set(request.files) - {'dxf', 'csv'}:
         raise PredictionError('INVALID_ATTACHMENT', 'Chỉ gửi DXF và CSV đã chọn', 400)
     options = request.form.to_dict()

@@ -9,7 +9,7 @@
         <div class="assistant-messages" role="log" aria-live="polite"></div>
         <label class="assistant-mode-label">Chế độ trả lời<select class="assistant-mode"><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select></label>
         <label class="assistant-effort-label">Effort<select class="assistant-effort" title="Mức độ suy nghĩ của model"><option value="auto">Mặc định</option><option value="low">Thấp</option><option value="medium">Trung bình</option><option value="high">Cao</option></select></label>
-        <label class="assistant-passcode-label" hidden>Passcode Thông minh<input class="assistant-passcode" type="password" maxlength="128" autocomplete="off" placeholder="Passcode do quản trị cấp"></label>
+        <form class="assistant-passcode-label" hidden><label for="assistant-passcode">Passcode Thông minh</label><input id="assistant-passcode" class="assistant-passcode" type="password" maxlength="128" autocomplete="off" placeholder="Passcode do quản trị cấp" required><button type="submit" class="assistant-passcode-submit">Xác nhận</button></form>
         <div class="assistant-preview" hidden></div>
         <div class="assistant-notice" role="status"></div>
         <form class="assistant-form"><label class="sr-only" for="assistant-question">Yêu cầu với trợ lý</label><textarea id="assistant-question" rows="2" maxlength="4000" placeholder="Đọc DXF, chỉnh layer hoặc đề xuất điểm cho ô đất" required></textarea><div class="assistant-actions"><div class="assistant-history-slot"></div><button type="submit">Gửi</button><button class="assistant-stop" type="button" hidden>Dừng chờ</button><button class="assistant-clear" type="button">Xóa hội thoại</button></div></form>
@@ -30,10 +30,39 @@
     let history = [], pending = null, controller = null, busy = false;
     let protectedModes = new Set(['smart']);
     let unavailableModes = new Map();
+    let verifiedPasscode = '', authorizing = false;
+    function updatePasscode() {
+        get('passcode-label').hidden = !!verifiedPasscode || !protectedModes.has(get('mode').value) || unavailableModes.has(get('mode').value);
+    }
     get('mode').addEventListener('change', () => {
-        get('passcode-label').hidden = !protectedModes.has(get('mode').value) || unavailableModes.has(get('mode').value);
+        updatePasscode();
         get('passcode').value = '';
         notice.textContent = unavailableModes.get(get('mode').value) || '';
+    });
+    get('passcode-label').addEventListener('submit', async event => {
+        event.preventDefault();
+        if (authorizing) return;
+        const value = get('passcode').value;
+        if (!value) { get('passcode').focus(); return; }
+        authorizing = true;
+        get('passcode-submit').disabled = true;
+        const form = new FormData();
+        form.append('mode', 'smart'); form.append('passcode', value);
+        try {
+            const result = await request('authorize', form);
+            if (!result.authorized) throw new Error('Chưa xác thực được passcode');
+            verifiedPasscode = value;
+            get('passcode').value = '';
+            updatePasscode();
+            notice.textContent = 'Đã xác thực Thông minh';
+            if (get('mode').value === 'smart') questionInput.focus();
+        } catch (error) { notice.textContent = error.message; }
+        finally { authorizing = false; get('passcode-submit').disabled = false; }
+    });
+    get('passcode').addEventListener('keydown', event => {
+        if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229) return;
+        event.preventDefault();
+        if (!event.repeat && !authorizing) get('passcode-label').requestSubmit();
     });
     try { history = JSON.parse(localStorage.getItem(historyKey) || '[]').filter(item => item && ['user', 'assistant'].includes(item.role) && typeof item.content === 'string').slice(-20); } catch { history = []; }
     function element(tag, text, className) {
@@ -91,7 +120,12 @@
     async function request(action, form, signal) {
         const result = await fetch('/api/v1/assistant/' + action, { method: 'POST', body: form, signal });
         const payload = await result.json();
-        if (!result.ok) throw new Error(payload.error?.message || 'Không thể xử lý yêu cầu');
+        if (!result.ok) {
+            if (payload.error?.code === 'ARGON_PASSCODE_REQUIRED') {
+                verifiedPasscode = ''; updatePasscode();
+            }
+            throw new Error(payload.error?.message || 'Không thể xử lý yêu cầu');
+        }
         return payload.data;
     }
     function clearPreview() { pending = null; preview.hidden = true; preview.replaceChildren(); }
@@ -151,8 +185,8 @@
         const form = formData(files);
         if (unavailableModes.has(get('mode').value)) { notice.textContent = unavailableModes.get(get('mode').value); return; }
         if (protectedModes.has(get('mode').value)) {
-            if (!get('passcode').value) { notice.textContent = 'Nhập passcode Thông minh do quản trị cấp'; get('passcode').focus(); return; }
-            form.append('passcode', get('passcode').value);
+            if (!verifiedPasscode) { notice.textContent = 'Nhập passcode rồi bấm Xác nhận hoặc Enter'; updatePasscode(); get('passcode').focus(); return; }
+            form.append('passcode', verifiedPasscode);
         }
         form.append('message', question); form.append('history', JSON.stringify(history.slice(-6)));
         form.append('mode', get('mode').value);
@@ -218,7 +252,7 @@
         if (Array.isArray(payload.data?.modes)) {
             protectedModes = new Set(payload.data.modes.filter(mode => mode.requires_passcode).map(mode => mode.id));
             unavailableModes = new Map(payload.data.modes.filter(mode => mode.availability === 'cookie_required').map(mode => [mode.id, mode.message || 'Thông minh chưa có cookie hợp lệ, hãy cập nhật trong quản trị']));
-            get('passcode-label').hidden = !protectedModes.has(get('mode').value) || unavailableModes.has(get('mode').value);
+            updatePasscode();
             if (unavailableModes.has(get('mode').value)) notice.textContent = unavailableModes.get(get('mode').value);
         }
     }).catch(() => { notice.textContent = 'Chưa kết nối được máy chủ'; });

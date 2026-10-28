@@ -59,6 +59,22 @@ class AssistantTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200, response.json)
                 self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
 
+    def test_passcode_confirmation_checks_service_hash_without_model_or_files(self):
+        from backend.map_predict.services.ai_settings import set_passcode
+        self.app.config['AI_SETTINGS_FILE'] = str(Path(self.folder.name) / 'settings.json')
+        set_passcode(self.app.config, 'temporary-test-passcode')
+        with patch.object(assistant, 'call_model') as model:
+            rejected = self.client.post('/api/v1/assistant/authorize', data={'passcode': 'incorrect', 'mode': 'fast'})
+            self.assertEqual(rejected.status_code, 403)
+            accepted = self.client.post('/api/v1/assistant/authorize', data={'passcode': 'temporary-test-passcode'})
+            self.assertEqual(accepted.status_code, 200)
+            self.assertEqual(accepted.json['data'], {'authorized': True})
+            self.assertNotIn('temporary-test-passcode', accepted.get_data(as_text=True))
+            model.assert_not_called()
+            set_passcode(self.app.config, 'updated-test-passcode')
+            expired = self.client.post('/api/v1/assistant/authorize', data={'passcode': 'temporary-test-passcode'})
+            self.assertEqual(expired.status_code, 403)
+
     def test_model_request_sends_effort_without_changing_model_or_default(self):
         remote = Mock()
         remote.__enter__ = Mock(return_value=remote)
