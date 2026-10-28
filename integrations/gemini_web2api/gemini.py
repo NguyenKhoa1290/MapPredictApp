@@ -151,7 +151,9 @@ def _build_payload(prompt: str, model_id: int, think_mode: int, file_refs: list 
     inner[61] = []
     inner[68] = 1
     inner[79] = model_id
-    if str(model_id) in (CONFIG.get('model_headers') or {}):
+    # Flash (category 1) previously had no route headers and did not send this
+    # legacy Argon route flag. Adding its verified header must not enable it.
+    if model_id != 1 and str(model_id) in (CONFIG.get('model_headers') or {}):
         inner[80] = 1
     if extra_fields:
         for k, v in extra_fields.items():

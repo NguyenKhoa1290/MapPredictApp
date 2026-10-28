@@ -237,6 +237,10 @@ class ArgonRoutingTests(unittest.TestCase):
         value = json.loads(header['x-goog-ext-525001261-jspb'])
         self.assertEqual(value[14:16], [1, 4])
         self.assertNotIn('Authorization', header)
+        from urllib.parse import parse_qs
+        CONFIG['model_headers'] = {'1': {'x-goog-ext-525001261-jspb': '[1]'}}
+        body = json.loads(json.loads(parse_qs(gemini._build_payload('test', 1, 4))['f.req'][0])[1])
+        self.assertIsNone(body[80])
 
     def test_generation_reads_applied_level_from_upstream_not_from_the_request(self):
         from gemini_web2api import gemini
