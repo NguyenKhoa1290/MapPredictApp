@@ -573,3 +573,14 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Kiểm tra ghi và xác thực tại volume runtime bằng file thử riêng, không thay đổi passcode thật
 - Kiểm thử frontend và service quản trị đã đạt
 - Theo xác nhận người dùng, nút cũ hoạt động khi nhập đủ ký tự, đổi cursor wait thành not-allowed cho nút quản trị bị vô hiệu hóa
+
+## 2026-10-28 Sửa truy xuất tiêu chí từ Qdrant
+
+- Đối chiếu chatbot Chainlit, cấu hình hybrid và metadata trong Tailieuthamkhao/Thuchanh
+- Tái hiện x1 và x6 trả rỗng ở truy xuất từ khóa, câu hỏi số thứ tự xếp đoạn không đúng tiêu chí lên trước
+- Xác minh point 59929946-642c-45bb-a3a0-5b7a4e8394cd chứa đủ bốn phân nhóm x1 cùng phần x2, x3, metadata nguồn của chunk không đại diện mọi nội dung
+- Nhận diện x1 đến x9, số thứ tự tiếng Việt và tên tiêu chí, chọn theo tiêu đề nội dung thực rồi giữ nguyên ID nguồn
+- Giữ tiêu đề thang điểm, phân biệt định lượng, định tính và tham khảo, không tự sửa số liệu hoặc chọn điểm từ ô gộp
+- Không bật embedding cho chatbot, không ghi, chia lại chunk hoặc tái tạo Qdrant
+- Kiểm tra trên collection đang chạy cho cả x1 đến x9 đều lấy đúng tiêu chí, x1 giữ đủ bốn phân nhóm
+- 155 kiểm thử Python đã đạt

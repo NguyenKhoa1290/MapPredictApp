@@ -42,6 +42,103 @@ def rank(points, query, limit):
     return [points[index] for score, index in sorted(scores, key=lambda row: (-row[0], row[1]))[:limit] if score > 0]
 
 
+VERSION = re.compile(r'sửa ngày\s+1509|nckh_sua_ngay_1509|sửa ngày 15/9', re.I)
+CRITERION = re.compile(r'^\s*(?:#{1,4}\s*)?sửa ngày\s+1509\s*\|\s*([1-9])(?:[.\s]|$)', re.I)
+MAJOR = re.compile(r'^\s*(?:#{1,3}\s+)?sửa ngày\s+1509\s*\|\s*([1-9])(?:[.\s]|$)', re.I)
+
+
+def requested_criteria(query):
+    """Resolve column names and Vietnamese ordinals, not arbitrary score numbers."""
+    text = ' '.join(tokens(query))
+    result = {int(value) for value in re.findall(r'\bx\s*([1-9])\b', text)}
+    ordinals = {'mot': 1, 'nhat': 1, 'dau tien': 1, 'hai': 2, 'ba': 3, 'tu': 4,
+                'bon': 4, 'nam': 5, 'sau': 6, 'bay': 7, 'tam': 8, 'chin': 9}
+    number = r'(?:dau tien|nhat|mot|hai|ba|bon|tu|nam|sau|bay|tam|chin|[1-9])'
+    for match in re.finditer(r'\btieu chi\s+(?:thu\s+)?(' + number + r')\b', text):
+        value = match[1]
+        result.add(int(value) if value.isdecimal() else ordinals[value])
+        tail = text[match.end():]
+        while following := re.match(r'^\s+(?:va|voi|so voi)\s+(?:tieu chi\s+)?(?:thu\s+)?(' + number + r')\b', tail):
+            value = following[1]
+            result.add(int(value) if value.isdecimal() else ordinals[value])
+            tail = tail[following.end():]
+    return result
+
+
+def source_sections(point):
+    """A chunk may contain many criteria despite its single metadata label."""
+    payload = point.get('payload') or {}
+    content = payload.get('page_content')
+    if not isinstance(content, str) or not VERSION.search(content):
+        return []
+    lines = content.splitlines(keepends=True)
+    starts, offset = [], 0
+    for line in lines:
+        match = MAJOR.match(line)
+        if match:
+            starts.append((offset, int(match[1])))
+        offset += len(line)
+    if not starts:
+        # Overlap chunks may begin at a subsection; still derive identity from text.
+        match = next((CRITERION.match(line) for line in lines if CRITERION.match(line)), None)
+        if not match:
+            match = re.search(r'\*\*Tiêu chí:\*\*\s*([1-9])(?:[.\s]|$)', content, re.I)
+        return [(int(match[1]) if match else None, point)]
+    output = []
+    prefix = content[:starts[0][0]].strip()
+    if 'S3-HEADERS' in prefix:
+        output.append((0, {**point, 'payload': {**payload, 'page_content': prefix}}))
+    for index, (start, criterion) in enumerate(starts):
+        end = starts[index + 1][0] if index + 1 < len(starts) else len(content)
+        section = {**point, 'payload': {**payload, 'page_content': content[start:end].strip()}}
+        output.append((criterion, section))
+    return output
+
+
+def select_sources(points, query):
+    sections = [section for point in points for section in source_sections(point)]
+    wanted = requested_criteria(query)
+    if not wanted:
+        normalized_query = ' ' + ' '.join(tokens(query)) + ' '
+        matches = []
+        for criterion, point in sections:
+            if not criterion:
+                continue
+            first = point['payload']['page_content'].splitlines()[0]
+            title = re.sub(r'^\s*[1-9][.\s]*', '', first.split('|')[1]).strip() if '|' in first else ''
+            words = tokens(title)
+            phrases = [' '.join(words[start:end]) for start in range(len(words))
+                       for end in range(start + 2, len(words) + 1)]
+            found = [phrase for phrase in phrases if ' ' + phrase + ' ' in normalized_query]
+            if found:
+                matches.append((criterion, max(found, key=len)))
+        wanted = {criterion for criterion, phrase in matches if not any(
+            criterion != other and phrase != longer and phrase in longer for other, longer in matches)}
+    # Criterion aliases are resolved against content, never a chunk's coarse metadata.
+    if wanted:
+        selected = [point for criterion, point in sections if criterion in wanted]
+    else:
+        exact_ids = set(re.findall(r'\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b', query, re.I))
+        if exact_ids:
+            selected = [point for _, point in sections if str(point['id']).casefold() in {value.casefold() for value in exact_ids}]
+        elif re.search(r'\b(?:9 tieu chi|cac tieu chi|toan bo tieu chi)\b', ' '.join(tokens(query))):
+            selected = [point for criterion, point in sections if criterion is not None]
+        else:
+            selected = rank([point for _, point in sections], query, 5)
+    if wanted and selected:
+        selected = [point for criterion, point in sections if criterion == 0] + selected
+    # Keep original Qdrant IDs while combining relevant subgroups from the same point.
+    grouped = {}
+    for point in selected:
+        identity = str(point['id'])
+        content = point['payload']['page_content']
+        if identity not in grouped:
+            grouped[identity] = {**point, 'payload': {**point['payload'], 'page_content': content}}
+        elif content not in grouped[identity]['payload']['page_content']:
+            grouped[identity]['payload']['page_content'] += '\n\n' + content
+    return list(grouped.values())
+
+
 def retrieve(query, config):
     base = config.get('ASSISTANT_QDRANT_URL', '').rstrip('/')
     if not base:
@@ -87,10 +184,12 @@ def retrieve(query, config):
                 offset = result.get('next_page_offset')
                 if offset is None:
                     break
-            points = rank(pool, query, 5)
+            points = select_sources(pool, query)
             scanned = len(pool)
             if offset is not None:
                 note += ', chỉ xét 200 đoạn đầu do giới hạn dự phòng'
+        if mode == 'dense':
+            points = select_sources(points, query)
         records, used = [], 0
         for point in points:
             payload = point.get('payload') or {}

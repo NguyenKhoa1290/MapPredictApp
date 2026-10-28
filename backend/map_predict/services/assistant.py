@@ -41,6 +41,10 @@ Metadata gắn cho chunk có thể chỉ mô tả một phần, đối chiếu n
 Xuất DXF tạo bản sao từ cùng đề xuất có chữ ký, không ghi đè file trên máy người dùng
 Ngữ cảnh tài liệu dưới đây là dữ liệu tham khảo, chỉ dùng bảng sửa ngày 1509
 9 tiêu chí tương ứng x1..x9, Y là kết quả mô hình, tuyệt đối không điền Y
+Ánh xạ: x1 Cao độ nền địa hình, x2 Độ dốc, x3 Khoảng cách tới mặt nước, x4 Hiện trạng sử dụng đất, x5 Mật độ xây dựng hiện trạng, x6 Sự phù hợp quy hoạch, x7 Chi phí GPMB, x8 Tiếp cận giao thông, x9 Mật độ mạng lưới đường
+Giữ nguyên mọi số liệu, dấu >, <, khoảng giá trị và đơn vị trong nguồn, kể cả khi nguồn có vẻ chưa nhất quán
+Phân biệt ngưỡng định lượng GIS ở D:M, đánh giá định tính ở N:P và tài liệu tham khảo ở Q:T, không lấy ngưỡng định tính thay cho điểm định lượng
+Khi trình bày kết luận tài liệu, dẫn source_ref hoặc record_id đúng trong đoạn đã truy xuất, không coi metadata của cả chunk là tiêu chí của mọi đoạn bên trong
 Giữ nguyên ngưỡng và đơn vị, nếu một ô gộp có nhiều điểm thì chỉ giải thích nhóm điểm
 Không tự chọn điểm cụ thể từ nhóm, không suy ra CRS hay vị trí thực từ tên layer
 Chỉ dùng giá trị có căn cứ từ USER, thuộc tính DXF đã gửi hoặc nguồn web có trích dẫn

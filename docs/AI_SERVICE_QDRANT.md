@@ -27,6 +27,10 @@ Trang `/portal/admin/ai` xác thực mật khẩu tại service AI, tách khỏi
 Chatbot chỉ có Nhanh và Thông minh, Thông minh dùng 4 Argon với pool tài khoản cùng passcode do quản trị thiết lập
 Thiếu cookie hoặc cookie hết hạn phải báo lỗi, không chuyển Thông minh sang Nhanh
 Theo quyết định người dùng, chatbot chỉ tìm từ khóa trong Qdrant và không gọi embedding
+Truy vấn x1 đến x9, số thứ tự tiếng Việt và tên tiêu chí được ánh xạ theo nội dung thực của đoạn
+Chunk được tách theo tiêu đề tiêu chí trước khi chọn nguồn, không dùng nhãn metadata của cả chunk để lọc mọi nội dung bên trong
+Giữ phần tiêu đề thang điểm đi kèm, gộp các phân nhóm thuộc cùng point và giữ nguyên Qdrant ID cùng source_ref
+Lọc đúng phiên bản sửa ngày 1509 trước khi xếp hạng, không để bản cũ chiếm kết quả
 Dense retrieval mô tả bên dưới chỉ dành cho công cụ quản trị đã đăng nhập
 Ollama chạy trong service ai-embedding, model được yêu cầu giải phóng sau mỗi lượt
 Cookie Google được kiểm tra định kỳ trong gemini-session, có thể nhập lại qua quản trị
