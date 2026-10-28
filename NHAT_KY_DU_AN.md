@@ -572,3 +572,4 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Thêm thông báo thành công khi đặt passcode hoặc khóa quyền Thông minh
 - Kiểm tra ghi và xác thực tại volume runtime bằng file thử riêng, không thay đổi passcode thật
 - Kiểm thử frontend và service quản trị đã đạt
+- Theo xác nhận người dùng, nút cũ hoạt động khi nhập đủ ký tự, đổi cursor wait thành not-allowed cho nút quản trị bị vô hiệu hóa
