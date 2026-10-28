@@ -40,14 +40,20 @@ it('sets a separate Pro passcode only through the authenticated service', async 
   render(<AiAdmin />);
   fireEvent.click(await screen.findByRole('tab', { name: 'Tài khoản Thông minh' }));
   await screen.findByRole('heading', { name: 'Quyền sử dụng Thông minh' });
-  fireEvent.change(screen.getByLabelText('Passcode Thông minh mới'), { target: { value: 'new-pro-passcode' } });
-  fetch.mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data: { configured: true } }) });
+  fireEvent.change(screen.getByLabelText('Passcode Thông minh mới'), { target: { value: 'short' } });
   fireEvent.click(screen.getByRole('button', { name: 'Đặt passcode Thông minh' }));
+  expect(screen.getByRole('alert').textContent).toBe('Passcode cần từ 8 đến 128 ký tự');
+  expect(fetch).toHaveBeenCalledTimes(1);
+  // Password managers can fill the DOM value without triggering a React change event.
+  (screen.getByLabelText('Passcode Thông minh mới') as HTMLInputElement).value = 'new-pro-passcode';
+  fetch.mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data: { configured: true } }) });
+  fireEvent.submit(screen.getByLabelText('Passcode Thông minh mới').closest('form')!);
   await screen.findByText('Đã đặt passcode, người dùng phải nhập khi gọi Thông minh');
   expect(fetch).toHaveBeenLastCalledWith('/api/v1/ai-admin/tools/pro-passcode', expect.objectContaining({
     body: JSON.stringify({ passcode: 'new-pro-passcode' }), headers: expect.objectContaining({ 'X-Admin-CSRF': 'admin-csrf' }),
   }));
   expect((screen.getByLabelText('Passcode Thông minh mới') as HTMLInputElement).value).toBe('');
+  expect(screen.getByRole('alert').textContent).toBe('Đã đặt passcode Thông minh');
 });
 
 it('navigates tabs by keyboard, preserves drafts and saves only the active configuration group', async () => {

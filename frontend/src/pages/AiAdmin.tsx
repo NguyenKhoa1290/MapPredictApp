@@ -104,6 +104,7 @@ export function AiAdmin() {
     }
     if (name === 'pro-passcode') {
       setState(previous => previous ? { ...previous, pro_access: data } : null); setProPasscode('');
+      setNotice(data.configured ? 'Đã đặt passcode Thông minh' : 'Đã khóa quyền gọi Thông minh');
     }
   }
   async function saveSettings(part: keyof Settings) {
@@ -160,10 +161,18 @@ export function AiAdmin() {
       <div role="tabpanel" id="admin-panel-accounts" aria-labelledby="admin-tab-accounts" hidden={tab !== 'accounts'}>
       <section className="admin-card"><h2>Quyền sử dụng Thông minh</h2>
         <p>{state.pro_access?.configured ? 'Đã đặt passcode, người dùng phải nhập khi gọi Thông minh' : 'Chưa đặt passcode, Thông minh đang khóa với người dùng'}</p>
-        <label>Passcode Thông minh mới<input type="password" minLength={8} maxLength={128} autoComplete="new-password" value={proPasscode} disabled={busy} onChange={event => setProPasscode(event.target.value)} /></label>
+        <form noValidate onSubmit={event => {
+          event.preventDefault();
+          const passcode = new FormData(event.currentTarget).get('passcode');
+          if (typeof passcode !== 'string' || passcode.length < 8 || passcode.length > 128) { setNotice('Passcode cần từ 8 đến 128 ký tự'); return; }
+          action(() => tool('pro-passcode', { passcode }));
+        }}>
+        <label>Passcode Thông minh mới<input name="passcode" type="password" required minLength={8} maxLength={128} aria-describedby="passcode-help" autoComplete="new-password" value={proPasscode} disabled={busy} onChange={event => setProPasscode(event.target.value)} /></label>
+        <p id="passcode-help" className="admin-help">Passcode cần từ 8 đến 128 ký tự, nhấn Enter hoặc nút bên dưới để lưu</p>
         <p className="admin-help">Passcode riêng để cấp quyền gọi Thông minh, không phải mật khẩu đăng nhập quản trị và không lưu trên trình duyệt</p>
-        <div className="admin-actions"><button className="button primary" disabled={busy || proPasscode.length < 8} onClick={() => action(() => tool('pro-passcode', { passcode: proPasscode }))}>Đặt passcode Thông minh</button>
-          <button className="button" disabled={busy || !state.pro_access?.configured} onClick={() => action(() => tool('pro-passcode', { disable: true }))}>Khóa quyền gọi Thông minh</button></div>
+        <div className="admin-actions"><button type="submit" className="button primary" disabled={busy}>Đặt passcode Thông minh</button>
+          <button type="button" className="button" disabled={busy || !state.pro_access?.configured} onClick={() => action(() => tool('pro-passcode', { disable: true }))}>Khóa quyền gọi Thông minh</button></div>
+        </form>
       </section>
       <section className="admin-card"><h2>Tài khoản và quota Thông minh</h2><p>Chuyển lần lượt qua tài khoản còn quota, thiếu cookie thì báo lỗi và không chuyển sang Nhanh</p>
         <div className="admin-actions"><button className="button" disabled={busy} onClick={() => action(() => tool('accounts-scan'))}>Kiểm tra tài khoản và quota</button>

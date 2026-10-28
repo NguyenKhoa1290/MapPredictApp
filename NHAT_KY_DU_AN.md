@@ -564,3 +564,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Giữ iframe đánh giá đã mở để không mất dữ liệu khi quay lại công cụ
 - Đường dẫn trực tiếp dự phòng dẫn về /portal/projects
 - Kiểm thử giao diện, chatbot và build đã đạt
+
+## 2026-10-28 Sửa thao tác đặt passcode quản trị
+
+- Bỏ việc âm thầm khóa nút khi passcode ngắn, thay bằng thông báo cần 8 đến 128 ký tự
+- Chuyển thành biểu mẫu hỗ trợ Enter, đọc giá trị thực trong ô nhập để hỗ trợ tự điền
+- Thêm thông báo thành công khi đặt passcode hoặc khóa quyền Thông minh
+- Kiểm tra ghi và xác thực tại volume runtime bằng file thử riêng, không thay đổi passcode thật
+- Kiểm thử frontend và service quản trị đã đạt
