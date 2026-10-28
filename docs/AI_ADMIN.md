@@ -1,6 +1,10 @@
 # Quản trị AI
 
-Trang quản trị tại `/portal/admin/ai`, có liên kết ở footer
+Trang quản trị tại https://admin.danhgiaquyhoach.top
+Trang chính không hiển thị nút hoặc liên kết quản trị
+Tên miền chính trả 404 cho trang và API quản trị, chỉ subdomain admin phục vụ các đường dẫn này
+Tên miền admin mở trực tiếp `/portal/admin/ai`, header dẫn về portal trên tên miền chính
+Khi chạy local vẫn dùng `/portal/admin/ai`, cookie đăng nhập được giữ riêng theo hostname
 Web chỉ chuyển tiếp yêu cầu, service ai-assistant xác thực mật khẩu và phiên quản trị
 
 ## Mật khẩu

@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class Config:
+    ADMIN_HOST = os.environ.get('MAP_PREDICT_ADMIN_HOST', 'admin.danhgiaquyhoach.top')
     MAX_CONTENT_LENGTH = int(os.environ.get("MAP_PREDICT_MAX_UPLOAD_BYTES", 600 * 1024 * 1024))
     PROXY_HOPS = int(os.environ.get("MAP_PREDICT_PROXY_HOPS", "0"))
     FRONTEND_DIST = ROOT / "frontend" / "dist"

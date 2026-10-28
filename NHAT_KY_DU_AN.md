@@ -473,3 +473,12 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Tách cache cookie theo đường dẫn và metadata file để không lẫn tài khoản có cùng thời gian sửa
 - Header Argon không được gửi nếu cookie hoặc XSRF thiếu, kể cả khi lỗi đọc cookie xảy ra sau bước kiểm tra quota
 - 135 kiểm thử Python, 41 kiểm thử frontend và 6 kiểm thử bong bóng trợ lý đã đạt
+## 2026-10-28 Tên miền quản trị
+
+- Thêm admin.danhgiaquyhoach.top vào tunnel hiện có và tạo CNAME được proxy qua Cloudflare
+- Giữ nguyên ingress của danhgiaquyhoach.top, không thêm container hoặc tunnel mới
+- Host admin chuyển từ đường dẫn gốc tới /portal/admin/ai, tên miền chính tiếp tục mở portal
+- Theo xác nhận cuối, trang chính không có nút hoặc liên kết quản trị, header trên trang quản trị dẫn về tên miền chính
+- Trang cùng API quản trị chỉ phục vụ trên host admin và localhost, tên miền chính trả 404
+- Đăng nhập tiếp tục được kiểm tra tại service AI, cookie được giữ riêng theo hostname
+- Bổ sung kiểm thử chuyển hướng theo hostname, giữ nguyên ingress và không ghi đè route xung đột

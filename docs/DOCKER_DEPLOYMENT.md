@@ -22,6 +22,11 @@ Ollama embedding chạy trong ai-embedding, có thể đổi URL trong quản tr
 Chatbot chỉ tìm từ khóa trong Qdrant, không gọi embedding theo lựa chọn của người dùng
 Xem [Quản trị AI](AI_ADMIN.md) để thiết lập mật khẩu, cookie và model
 
+Tên miền chính danhgiaquyhoach.top phục vụ portal, admin.danhgiaquyhoach.top mở trang quản trị AI
+Cả hai dùng cùng tunnel và gateway, không thêm container
+Thêm hostname vào tunnel hiện có bằng `python tools/configure_cloudflare.py --add-hostname admin.danhgiaquyhoach.top`
+Lệnh giữ các ingress và DNS hiện có, không thay route của ứng dụng khác
+
 ## Khởi động và cập nhật
 
 ```powershell

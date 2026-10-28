@@ -1,7 +1,8 @@
 """Application factory for the portal, public maps and request-scoped predictions."""
 from uuid import uuid4
+from urllib.parse import urlsplit
 
-from flask import Flask, g, jsonify, redirect, request
+from flask import Flask, abort, g, jsonify, redirect, request
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -23,6 +24,15 @@ def create_app(config=None, *, legacy_blueprint=None, legacy_error_handler=None)
     @application.before_request
     def request_identity():
         g.request_id = uuid4().hex
+        hostname = urlsplit(request.host_url).hostname
+        admin_path = (request.path.rstrip('/') == '/portal/admin/ai'
+                      or request.path == '/api/v1/ai-admin'
+                      or request.path.startswith('/api/v1/ai-admin/'))
+        if admin_path and hostname not in (application.config['ADMIN_HOST'], 'localhost', '127.0.0.1', '::1'):
+            abort(404)
+        if (hostname == application.config['ADMIN_HOST']
+                and request.path in ('/', '/portal', '/portal/')):
+            return redirect('/portal/admin/ai')
 
     @application.after_request
     def response_identity(response):

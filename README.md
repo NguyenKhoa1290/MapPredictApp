@@ -118,6 +118,7 @@ Các trường ghép hỗ trợ là **grid_id** (suy ra từ nhãn trong ô), **
 Ô không có nhãn, có nhiều nhãn, nhãn trên biên/thuộc nhiều ô hoặc mã bị trùng vẫn hiển thị nhưng không tự gán kết quả bằng `grid_id`. Inspector giữ `id_status`, `id_source`, `id_text_handle`, `handle` và mã đã đọc để kiểm tra. CSV có cùng mã nhưng Y khác nhau bị từ chối; Y không thuộc 0/1/2 được bỏ qua và báo số dòng lỗi. Các ô không khớp vẫn giữ đường bao, không tô nhầm; thông báo số ô khớp/tổng số sau khi tải. Không sửa DXF gốc. CSV kết quả chỉ áp dụng cho request đang xử lý sau khi layer hợp lệ, không ghi vào file kết quả chung trên máy chủ.
 # Quản trị AI
 
-Truy cập `/portal/admin/ai` hoặc liên kết Quản trị AI ở footer
+Truy cập https://admin.danhgiaquyhoach.top, trang chính không hiển thị nút quản trị
+Khi chạy local dùng `/portal/admin/ai`
 Xem [hướng dẫn quản trị AI](docs/AI_ADMIN.md) để đặt mật khẩu, chọn model và quản lý phiên Gemini
 

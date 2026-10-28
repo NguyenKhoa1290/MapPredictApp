@@ -29,6 +29,7 @@
 !tools/audit_reference_dxf.py
 !tools/auto_deploy.py
 !tools/docker_stack.py
+!tools/configure_cloudflare.py
 !tools/install_linux.py
 !frontend/
 !frontend/package.json
