@@ -18,9 +18,10 @@ function fixture() {
     window.URL.createObjectURL = () => 'blob:test'; window.URL.revokeObjectURL = () => {};
     window.fetch = async (url, options) => {
         calls.push({ url, options });
-        return { ok: true, json: async () => ({ data: url.endsWith('/status') ? { enabled: true }
+        return { ok: true, blob: async () => new window.Blob(['DXF edited']), json: async () => ({ data: url.endsWith('/status') ? { enabled: true }
             : url.endsWith('/apply') ? { dxf: window.btoa('DXF edited'), rows: null } : proposal }) };
     };
+    window.HTMLAnchorElement.prototype.click = function () {};
     window.eval(script);
     const get = name => window.document.querySelector('.assistant-' + name);
     const submit = async () => {
@@ -70,5 +71,18 @@ test('a changed attachment invalidates preview and prevents any apply request', 
         assert.equal(f.calls.filter(c => c.url.endsWith('/apply')).length, 0);
         assert.match(f.get('notice').textContent, /đã thay đổi/);
         assert.equal(f.commits.length, 0);
+    } finally { f.close(); }
+});
+
+test('export creates a download from preview without modifying the workspace', async () => {
+    const f = fixture();
+    try {
+        await f.submit();
+        [...f.get('preview').querySelectorAll('button')].find(button => button.textContent.includes('Xuất DXF')).click();
+        await tick();
+        assert.equal(f.calls.filter(call => call.url.endsWith('/export')).length, 1);
+        assert.equal(f.commits.length, 0);
+        assert.equal(f.get('exports').querySelector('a').download, 'test_edited.dxf');
+        assert.equal(f.get('exports').hidden, false);
     } finally { f.close(); }
 });

@@ -307,6 +307,8 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
 
 ## 7. Nhật ký cập nhật note
 
+- 2026-10-28: tiếp tục CV-27 theo yêu cầu Qdrant, tách service AI riêng, prompt có thể chỉnh từ config, bổ sung xuất DXF từ preview và nguồn RAG có ID/ô tham chiếu. Giữ collection cũ và tạo snapshot, chi tiết docs/AI_SERVICE_QDRANT.md
+
 - 2026-10-27: bổ sung triển khai tự động dùng chung Windows/Linux bằng Python, Linux dùng systemd timer và dịch vụ khởi động stack. Không tăng container thường trực, không đổi mã khi chuyển VPS. Cần cấp máy Linux, dữ liệu riêng và token tunnel trong lần cài đầu
 
 - 2026-10-27: thêm tự triển khai sau CI bằng Windows Task Scheduler mỗi năm phút, không thêm container, chỉ cập nhật commit main khớp nhánh tín hiệu deploy-ready và workspace sạch. Đã cài tác vụ trên máy hiện tại, chi tiết vận hành trong docs/GITHUB_ACTIONS.md

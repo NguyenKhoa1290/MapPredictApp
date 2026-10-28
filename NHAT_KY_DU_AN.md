@@ -1,5 +1,16 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-28 Service AI riêng, Qdrant và xuất DXF
+
+- Đã đọc dự án Thuchanh, xác định CSDL-Datdai có 5 point, vector 1024 chiều và model qwen3-embedding:0.6b
+- Khởi động Qdrant có sẵn, giữ nguyên collection, tạo snapshot riêng khoảng 2 MiB vì container cũ chưa có volume
+- Tách gateway web và tiến trình AI theo slot blue/green, xác thực nội bộ và không mở cổng AI ra host
+- Prompt chuyển thành file cấu hình, có quyền đề xuất sửa DXF và phân biệt quy tắc Qdrant với bằng chứng hiện trạng
+- Truy xuất dense thật, fallback từ khóa có nhãn rõ ràng khi embedding không sẵn sàng, không thay model hoặc reindex
+- Thêm xuất DXF binary từ bản xem trước và giữ liên kết xuất sau khi áp dụng, file gốc và workspace chỉ đổi theo thao tác được chọn
+- 114 kiểm thử Python đã đạt trên Windows và Linux trước các kiểm thử bổ sung về kiểu số và căn cứ Qdrant
+- Đã chạy thật xuyên qua gateway web và AI riêng, xuất DXF attachment hợp lệ 15380 byte, áp dụng đúng x4 = 9 và giữ ID point Qdrant cho L9
+
 ## 2026-10-27 Trợ lý GIS cho dự án thứ tư
 
 - Người dùng chốt dùng server Gemini trong tài liệu tham khảo và xem trước rồi áp dụng

@@ -10,7 +10,7 @@ Chatbot nằm trong cửa sổ nổi Trợ lý GIS của công cụ Đánh giá 
 - Ngữ cảnh chấm điểm từ `Tailieuthamkhao/Thuchanh/data/Tieuchi.md`, bản triển khai tại `config/assistant/rubric.md`
 - Tài liệu ghi nguồn bảng sửa ngày 1509, phạm vi A1:T14, giữ record_id, ô nguồn và ngưỡng gốc
 
-Không tích hợp Chainlit, LangChain hoặc Qdrant trong bản này, toàn bộ tài liệu tiêu chí được gửi cùng ngữ cảnh đã chọn
+Không tích hợp Chainlit hoặc LangChain trong bản này, từ ngày 2026-10-28 có truy xuất Qdrant và service AI riêng, xem [hướng dẫn service AI](AI_SERVICE_QDRANT.md)
 Server tham khảo chuyển giao diện web Gemini thành API tương thích OpenAI, không phải API chính thức của Google
 Chỉ sao chép mã Python cần chạy và giấy phép, không sao chép cookie, tài khoản, nhật ký hoặc cấu hình riêng từ tài liệu tham khảo
 
@@ -60,7 +60,7 @@ Gemini là service riêng trong Compose, không mở cổng host, dùng khóa n�
 `MAP_PREDICT_ASSISTANT_ENABLED=1` bật assistant, đặt 0 trong `.env` để tắt API
 `MAP_PREDICT_ASSISTANT_MODEL` chọn tên model mà adapter đang hỗ trợ
 Khởi động bằng `python tools/docker_stack.py start`, triển khai dùng script hiện có trên cả Windows và Linux
-Ứng dụng chạy thường xuyên với bốn container khi bật Gemini, slot dự phòng vẫn chỉ bật trong lúc cập nhật
+Ứng dụng chạy thường xuyên với năm container khi bật AI và Gemini, cùng container Qdrant tham khảo hiện có, slot dự phòng vẫn chỉ bật trong lúc cập nhật
 
 Trường hợp Gemini hết hạn mức, mất mạng hoặc trả sai JSON, giao diện báo lỗi và giữ nguyên dữ liệu
 Không tự chuyển sang tài khoản hoặc cookie khác

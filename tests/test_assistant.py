@@ -67,12 +67,31 @@ class AssistantTests(unittest.TestCase):
         self.assertEqual(rows[1]['x4'], '4')
         self.assertTrue(all('Y' not in row for row in rows))
 
+    def test_exact_numeric_serializations_are_supported_without_interpreting_ranges(self):
+        preview = self.plan(edits=[{'handle': self.handle, 'operation': 'color', 'value': '1'}],
+            scores=[{'row_index': '0', 'column': 'x4', 'value': '9', 'rule': 'L9',
+                     'evidence': 'USER', 'quote': 'đất nông nghiệp xen kẹt'}])
+        self.assertEqual(preview['edits'][0]['value'], 1)
+        self.assertEqual(preview['scores'][0]['value'], 9)
+        for value in ('1-3', True, float('nan')):
+            with self.assertRaises(ValueError):
+                assistant.exact_integer(value)
+
     def test_merged_point_groups_are_not_filled(self):
         preview = self.plan(scores=[{'row_index': 0, 'column': 'x1', 'value': 1,
                                     'rule': 'D3:F3', 'evidence': 'USER', 'quote': 'đất nông nghiệp xen kẹt'}])
         self.assertFalse(preview['scores'])
         self.assertIsNone(preview['token'])
         self.assertTrue(preview['rejected'])
+
+    def test_qdrant_rule_itself_is_not_an_observation_of_the_land_parcel(self):
+        record = {'id': 'point-1', 'file': 'Tieuchi.md', 'source_refs': ['sửa ngày 1509!L9'],
+                  'content': '### sửa ngày 1509 | 4. Hiện trạng sử dụng đất\n| 9 | `L9` | Đất nông nghiệp xen kẹt |'}
+        with patch.object(assistant, 'retrieve', return_value={'mode': 'dense', 'records': [record]}):
+            preview = self.plan(scores=[{'row_index': 0, 'column': 'x4', 'value': 9, 'rule': 'L9',
+                'evidence': 'QDRANT:point-1', 'quote': 'Đất nông nghiệp xen kẹt'}])
+        self.assertIsNone(preview['token'])
+        self.assertFalse(preview['scores'])
 
     def test_fabricated_evidence_and_unknown_rows_are_rejected(self):
         for index, quote in ((-1, 'đất nông nghiệp xen kẹt'), (0, 'thông tin tự bịa trong câu trả lời')):
@@ -91,6 +110,17 @@ class AssistantTests(unittest.TestCase):
         preview = self.plan(edits=[{'handle': self.handle, 'operation': 'text', 'value': 'A2'}])
         self.assertEqual(self.post('apply', token=preview['token'], csv=self.csv + b'A3,,,,\n').status_code, 409)
         self.assertEqual(self.post('apply', token=preview['token'] + 'tampered').status_code, 409)
+
+    def test_export_returns_downloadable_dxf_without_applying_to_original(self):
+        preview = self.plan(edits=[{'handle': self.handle, 'operation': 'color', 'value': 2}])
+        response = self.post('export', token=preview['token'])
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('attachment', response.headers['Content-Disposition'])
+        self.assertIn('original_edited.dxf', response.headers['Content-Disposition'])
+        changed = ezdxf.read(io.StringIO(response.data.decode()))
+        self.assertEqual(changed.entitydb[self.handle].dxf.color, 2)
+        unchanged = ezdxf.read(io.StringIO(self.dxf.decode()))
+        self.assertEqual(unchanged.entitydb[self.handle].dxf.color, 7)
 
     def test_cross_origin_is_rejected_without_contacting_model(self):
         with patch.object(assistant, 'call_model') as model:

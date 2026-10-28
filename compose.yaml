@@ -6,7 +6,7 @@ x-worker: &worker
     target: runtime
   restart: unless-stopped
   init: true
-  environment:
+  environment: &web_environment
     MAP_PREDICT_PROXY_HOPS: '1'
     MAP_PREDICT_MAX_UPLOAD_BYTES: '${MAP_PREDICT_MAX_UPLOAD_BYTES:-67108864}'
     MAP_PREDICT_MODEL_DIR: /app/models
@@ -55,6 +55,39 @@ x-worker: &worker
       max-size: 10m
       max-file: '3'
 
+x-ai: &ai_worker
+  build:
+    context: .
+    target: ai
+  restart: unless-stopped
+  init: true
+  environment:
+    MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.6-flash}'
+    MAP_PREDICT_ASSISTANT_URL: http://gemini:8081/v1
+    MAP_PREDICT_ASSISTANT_SECRET_FILE: /run/secrets/assistant_key
+    AI_QDRANT_URL: '${AI_QDRANT_URL:-}'
+    AI_QDRANT_COLLECTION: '${AI_QDRANT_COLLECTION:-CSDL-Datdai}'
+    AI_QDRANT_API_KEY: '${AI_QDRANT_API_KEY:-}'
+    AI_QDRANT_VECTOR_NAME: '${AI_QDRANT_VECTOR_NAME:-}'
+    AI_EMBEDDING_URL: '${AI_EMBEDDING_URL:-}'
+    AI_EMBEDDING_MODEL: '${AI_EMBEDDING_MODEL:-qwen3-embedding:0.6b}'
+  secrets: [assistant_key]
+  volumes:
+    - ./config:/app/config:ro
+  extra_hosts: ['host.docker.internal:host-gateway']
+  read_only: true
+  tmpfs: ['/tmp:rw,nosuid,noexec,size=536870912']
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  mem_limit: 768m
+  cpus: 2
+  stop_grace_period: 180s
+  logging:
+    driver: json-file
+    options:
+      max-size: 5m
+      max-file: '2'
+
 services:
   gemini:
     image: map-predict-gemini:local
@@ -78,9 +111,21 @@ services:
   app-blue:
     <<: *worker
     image: map-predict-app:blue
+    environment:
+      <<: *web_environment
+      MAP_PREDICT_AI_SERVICE_URL: http://ai-blue:8001
   app-green:
     <<: *worker
     image: map-predict-app:green
+    environment:
+      <<: *web_environment
+      MAP_PREDICT_AI_SERVICE_URL: http://ai-green:8001
+  ai-blue:
+    <<: *ai_worker
+    image: map-predict-ai:blue
+  ai-green:
+    <<: *ai_worker
+    image: map-predict-ai:green
   app:
     image: nginx@sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951
     restart: unless-stopped

@@ -112,7 +112,8 @@ def home():
         return redirect('/portal/assessment')
     asset_version = max((ROOT / "wwwroot" / filename).stat().st_mtime_ns
                         for filename in ("app.css", "app.js", "basemaps.js", "color_adjustments.js", "layer_manager.js",
-                                         "workspace_store.js", "workspace.js", "pdf_export.js", "join_preview.js"))
+                                         "workspace_store.js", "workspace.js", "pdf_export.js", "join_preview.js",
+                                         "assistant.js", "assistant.css"))
     response = current_app.make_response(render_template(
         "index.html", asset_version=asset_version, crs_options=source_crs_options()))
     response.headers["Cache-Control"] = "no-store"

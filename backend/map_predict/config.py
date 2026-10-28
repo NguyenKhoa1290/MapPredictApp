@@ -22,3 +22,12 @@ class Config:
     ASSISTANT_MODEL = os.environ.get('MAP_PREDICT_ASSISTANT_MODEL', 'gemini-3.6-flash')
     ASSISTANT_SECRET_FILE = os.environ.get('MAP_PREDICT_ASSISTANT_SECRET_FILE')
     ASSISTANT_RUBRIC = ROOT / 'config' / 'assistant' / 'rubric.md'
+    ASSISTANT_PROMPT = ROOT / 'config' / 'assistant' / 'system_prompt.txt'
+    ASSISTANT_SERVICE_URL = os.environ.get('MAP_PREDICT_AI_SERVICE_URL', '')
+    ASSISTANT_ROLE = 'web'
+    ASSISTANT_QDRANT_URL = os.environ.get('AI_QDRANT_URL', '')
+    ASSISTANT_QDRANT_COLLECTION = os.environ.get('AI_QDRANT_COLLECTION', 'CSDL-Datdai')
+    ASSISTANT_QDRANT_KEY = os.environ.get('AI_QDRANT_API_KEY', '')
+    ASSISTANT_VECTOR_NAME = os.environ.get('AI_QDRANT_VECTOR_NAME', '')
+    ASSISTANT_EMBEDDING_URL = os.environ.get('AI_EMBEDDING_URL', '')
+    ASSISTANT_EMBEDDING_MODEL = os.environ.get('AI_EMBEDDING_MODEL', 'qwen3-embedding:0.6b')

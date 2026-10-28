@@ -87,8 +87,14 @@ jobs:
         run: |
           docker build --tag map-predict-ci .
           docker build --target gemini --tag map-predict-gemini-ci .
+          docker build --target ai --tag map-predict-ai-ci .
       - name: Validate Compose without local credentials
         run: docker compose config --quiet
+      - name: Prepare private AI network and temporary key
+        run: |
+          python3 -c "from pathlib import Path; import os,secrets; p=Path(os.environ['RUNNER_TEMP'],'assistant-ci-key'); p.write_text(secrets.token_hex(32)); p.chmod(0o644)"
+          docker network create map-predict-ci-network
+          docker run -d --name map-predict-ai-ci --network map-predict-ci-network --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" -e MAP_PREDICT_ASSISTANT_SECRET_FILE=/run/secrets/assistant_key map-predict-ai-ci
       - name: Start image without host credentials
         run: >-
           docker run -d --name map-predict-ci
@@ -96,6 +102,11 @@ jobs:
           -v "${{ github.workspace }}/models:/app/models:ro"
           -v "${{ github.workspace }}/tests:/app/tests:ro"
           -v "${{ github.workspace }}/layer_du_doan.gpkg:/app/layer_du_doan.gpkg:ro"
+          -v "${{ runner.temp }}/assistant-ci-key:/run/secrets/assistant_key:ro"
+          --network map-predict-ci-network
+          -e MAP_PREDICT_ASSISTANT_ENABLED=1
+          -e MAP_PREDICT_ASSISTANT_SECRET_FILE=/run/secrets/assistant_key
+          -e MAP_PREDICT_AI_SERVICE_URL=http://map-predict-ai-ci:8001
           -p 127.0.0.1:8766:8000 map-predict-ci
       - name: Verify readiness and mounted model
         run: |
@@ -106,10 +117,13 @@ jobs:
           curl --fail --silent http://127.0.0.1:8766/portal/ > /dev/null
           docker exec map-predict-ci python -c "import json, urllib.request; assert json.load(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/predictions/model'))['data']['ready']"
       - name: Test production dependency set
-        run: docker exec map-predict-ci python -B -W ignore::ResourceWarning -m unittest discover -s tests -p "test_*.py"
+        run: docker exec -e MAP_PREDICT_AI_SERVICE_URL= -e MAP_PREDICT_ASSISTANT_ENABLED=0 map-predict-ci python -B -W ignore::ResourceWarning -m unittest discover -s tests -p "test_*.py"
+      - name: Verify live gateway reaches authenticated AI service
+        run: |
+          curl --fail --silent http://127.0.0.1:8766/api/v1/assistant/status > /dev/null
+          docker exec map-predict-ai-ci python -c "from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8001/health').status==200"
       - name: Verify private Gemini adapter without account cookies
         run: |
-          python3 -c "from pathlib import Path; import os,secrets; p=Path(os.environ['RUNNER_TEMP'],'assistant-ci-key'); p.write_text(secrets.token_hex(32)); p.chmod(0o644)"
           docker run -d --name map-predict-gemini-ci --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" map-predict-gemini-ci
           for attempt in $(seq 1 15); do
             if [ "$(docker inspect --format '{{.State.Health.Status}}' map-predict-gemini-ci)" = healthy ]; then break; fi
@@ -121,7 +135,9 @@ jobs:
         run: docker logs map-predict-ci
       - name: Stop CI container
         if: always()
-        run: docker rm -f map-predict-ci map-predict-gemini-ci
+        run: |
+          docker rm -f map-predict-ci map-predict-gemini-ci map-predict-ai-ci
+          docker network rm map-predict-ci-network
   delivery:
     name: Deliver verified application
     needs: [verify, docker]

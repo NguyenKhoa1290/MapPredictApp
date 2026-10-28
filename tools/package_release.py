@@ -10,7 +10,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = (
-    "app.py", "gis.py", "cad_diagnostics.py", "cad_to_geojson.py", "dwg_to_dxf.py",
+    "app.py", "ai_app.py", "gis.py", "cad_diagnostics.py", "cad_to_geojson.py", "dwg_to_dxf.py",
     "prediction_grid.py", "result_join.py", "predict_pkl.py", "requirements.txt", "run_python.bat",
     "README.md", "NHAT_KY_DU_AN.md", "NOTE_CONG_VIEC.md", "models/README.md",
     "models/rf_model_rating_pipeline.pkl", "tools/audit_reference_excel.py", "tools/audit_reference_dxf.py",

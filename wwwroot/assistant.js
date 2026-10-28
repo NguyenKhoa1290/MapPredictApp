@@ -18,6 +18,8 @@
           <p>Chỉ phần tóm tắt đã chọn được gửi đến Gemini, lịch sử lưu trên trình duyệt này</p>
         </details>
         <div class="assistant-preview" hidden></div>
+        <div class="assistant-knowledge" hidden></div>
+        <div class="assistant-exports" hidden aria-label="File đã sửa"></div>
         <div class="assistant-notice" role="status"></div>
         <form class="assistant-form"><label class="sr-only" for="assistant-question">Yêu cầu với trợ lý</label><textarea id="assistant-question" rows="2" maxlength="4000" placeholder="Đọc DXF, chỉnh layer hoặc đề xuất điểm cho ô đất" required></textarea><div><button type="submit">Gửi</button><button class="assistant-stop" type="button" hidden>Dừng chờ</button><button class="assistant-clear" type="button">Xóa hội thoại</button></div></form>
       </section>`;
@@ -116,12 +118,18 @@
         if (result.create_table) preview.append(element('p', 'Tạo bảng cho ' + result.row_count + ' ô có mã xác định'));
         const list = document.createElement('ul');
         for (const action of result.edits) list.append(element('li', `${action.handle} · ${action.operation}: ${JSON.stringify(action.before)} → ${JSON.stringify(action.value)}${action.reason ? '\n' + action.reason : ''}`));
-        for (const score of result.scores) list.append(element('li', `Dòng ${score.row_index + 1} · ${score.column}: ${score.before || 'Trống'} → ${score.value}\nÔ nguồn ${score.rule} · ${score.evidence}\n${score.quote}\n${score.reason}`));
+        for (const score of result.scores) list.append(element('li', `Dòng ${score.row_index + 1} · ${score.column}: ${score.before || 'Trống'} → ${score.value}\nÔ nguồn ${score.rule} · ${score.evidence}${score.qdrant_id ? '\nQdrant ' + score.qdrant_id : ''}\n${score.quote}\n${score.reason}`));
         preview.append(list);
         const apply = element('button', 'Áp dụng' + (count ? ' ' + count + ' thay đổi' : ' tạo bảng'));
         apply.type = 'button'; apply.addEventListener('click', () => applyPreview(apply));
         const cancel = element('button', 'Bỏ đề xuất'); cancel.type = 'button'; cancel.addEventListener('click', clearPreview);
         preview.append(apply, cancel);
+        if (result.edits.length && files.dxf) {
+            const exportButton = element('button', 'Xuất DXF từ bản xem trước');
+            exportButton.type = 'button';
+            exportButton.addEventListener('click', () => exportPreview(exportButton));
+            preview.append(exportButton);
+        }
     }
     get('form').addEventListener('submit', async event => {
         event.preventDefault();
@@ -140,6 +148,7 @@
             const result = await request('preview', form, controller.signal);
             const item = message('assistant', result.answer, true, result.sources);
             showSources(item, result.sources);
+            showKnowledge(result.knowledge);
             if (!sameFiles(files)) { notice.textContent = 'Dữ liệu đã thay đổi trong khi phân tích, hãy gửi lại để tạo đề xuất mới'; return; }
             showPreview(result, files);
             notice.textContent = result.scope + (result.rejected.length ? '\nĐã giữ lại ' + result.rejected.length + ' đề xuất chưa đủ điều kiện, không áp dụng' : '');
@@ -152,7 +161,43 @@
     function download(file, name) {
         const url = URL.createObjectURL(file); urls.push(url);
         const link = element('a', name); link.href = url; link.download = file.name;
-        notice.append(document.createTextNode(' '), link);
+        get('exports').hidden = false;
+        get('exports').append(link);
+    }
+    function clearExports() {
+        urls.forEach(url => URL.revokeObjectURL(url)); urls = [];
+        get('exports').replaceChildren(); get('exports').hidden = true;
+    }
+    function showKnowledge(knowledge) {
+        const area = get('knowledge'); area.replaceChildren(); area.hidden = !knowledge;
+        if (!knowledge) return;
+        const mode = knowledge.mode === 'dense' ? 'Truy xuất vector Qdrant' : knowledge.mode === 'keyword_fallback'
+            ? 'Truy xuất từ khóa Qdrant' : 'Tài liệu tiêu chí local';
+        const details = document.createElement('details');
+        details.append(element('summary', mode));
+        if (knowledge.message) details.append(element('p', knowledge.message));
+        for (const record of knowledge.records || []) details.append(element('p', `${record.file} · ${record.id}\n${record.source_refs.join(', ')}`));
+        area.append(details);
+    }
+    async function exportPreview(button) {
+        if (!pending || busy) return;
+        if (!sameFiles(pending.files)) { clearPreview(); notice.textContent = 'File đã thay đổi, cần xem trước lại'; return; }
+        const plan = pending, form = formData(plan.files); form.append('token', plan.token);
+        setBusy(true); button.disabled = true;
+        try {
+            const response = await fetch('/api/v1/assistant/export', { method: 'POST', body: form });
+            if (!response.ok) {
+                const payload = await response.json();
+                throw new Error(payload.error?.message || 'Không thể xuất DXF');
+            }
+            const blob = await response.blob();
+            if (!sameFiles(plan.files)) throw new Error('File đã thay đổi trong lúc xuất, hãy xem trước lại');
+            const file = new File([blob], plan.files.dxf.name.replace(/\.dxf$/i, '_edited.dxf'), { type: 'application/dxf' });
+            clearExports(); download(file, 'Xuất DXF đã sửa');
+            notice.textContent = 'Đã tạo DXF sửa từ bản xem trước, workspace và file gốc giữ nguyên';
+            get('exports').querySelector('a').click();
+        } catch (error) { notice.textContent = error.message; }
+        finally { setBusy(false); button.disabled = false; }
     }
     async function applyPreview(button) {
         if (!pending || busy) return;
@@ -166,9 +211,9 @@
             await window.assistantWorkspace.commit({ sourceId: plan.files.sourceId, original: plan.files.dxf, dxf, rows: result.rows });
             clearPreview(); get('upload').value = ''; refreshSources();
             if (dxf) source.value = window.assistantWorkspace.sources().find(entry => entry.file === dxf)?.id || '';
-            urls.forEach(url => URL.revokeObjectURL(url)); urls = [];
+            clearExports();
             notice.textContent = 'Đã áp dụng vào workspace, file gốc trên máy giữ nguyên';
-            if (dxf) download(dxf, 'Tải DXF đã sửa');
+            if (dxf) download(dxf, 'Xuất DXF đã sửa');
             if (result.rows) download(new File([await resultsCsvFile(result.rows).arrayBuffer()], 'TieuChi.csv', { type: 'text/csv;charset=utf-8' }), 'Tải bảng tiêu chí');
         } catch (error) { notice.textContent = error.message; button.disabled = false; }
         finally { setBusy(false); }

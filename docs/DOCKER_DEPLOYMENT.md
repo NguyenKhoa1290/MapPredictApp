@@ -5,12 +5,13 @@
 
 ## Cấu trúc
 
-Docker Compose project `map-predict` định nghĩa năm service, khi bật chatbot chạy bốn container
+Docker Compose project `map-predict` định nghĩa bảy service, khi bật chatbot chạy năm container trong project và dùng Qdrant tham khảo bên ngoài
 
 - `app` là Nginx giữ cổng host cố định và chuyển tiếp tới slot đang hoạt động
 - `app-blue` và `app-green` chạy Python bằng Gunicorn, chỉ mở cổng trong mạng Docker
 - `cloudflared` dùng tunnel riêng, kết nối tới `http://app:8000`, không đi vòng qua cổng host
 - `gemini` là adapter chatbot trong mạng Docker riêng, không mở cổng host, xem [hướng dẫn trợ lý](CV26_27_CHATBOT.md)
+- `ai-blue` và `ai-green` xử lý RAG/DXF riêng, chỉ giữ slot tương ứng với backend web, xem [service AI và Qdrant](AI_SERVICE_QDRANT.md)
 
 Chỉ một slot Python chạy thường xuyên với một Gunicorn worker và hai thread
 Frontend được build thành file tĩnh trong image, không chạy thêm Node server

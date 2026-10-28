@@ -8,6 +8,7 @@
 !requirements.txt
 !requirements-production.txt
 !app.py
+!ai_app.py
 !gis.py
 !cad_diagnostics.py
 !cad_to_geojson.py

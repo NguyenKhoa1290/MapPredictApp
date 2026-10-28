@@ -1,5 +1,7 @@
 """Anonymous, bounded assistant API, all uploads remain request-scoped."""
 from collections import defaultdict, deque
+import base64
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -7,7 +9,7 @@ import threading
 import time
 from urllib.parse import urlsplit
 
-from flask import Blueprint, current_app, jsonify, request, g
+from flask import Blueprint, current_app, jsonify, request, g, send_file
 
 from ...services import assistant
 from ...services.prediction import PredictionError
@@ -36,6 +38,8 @@ def limits():
         return
     if not current_app.config['ASSISTANT_ENABLED']:
         raise PredictionError('ASSISTANT_DISABLED', 'Chatbot chưa được bật trên máy chủ', 503)
+    if current_app.config.get('ASSISTANT_ROLE') == 'worker':
+        return
     origin = request.headers.get('Origin')
     if request.headers.get('Sec-Fetch-Site') == 'cross-site' or (origin and urlsplit(origin).netloc != request.host):
         raise PredictionError('ORIGIN_NOT_ALLOWED', 'Gửi yêu cầu từ cùng website', 403)
@@ -55,8 +59,14 @@ def limits():
 
 @assistant_api.get('/status')
 def status():
+    if current_app.config['ASSISTANT_ENABLED'] and current_app.config.get('ASSISTANT_SERVICE_URL'):
+        from ...services.assistant_gateway import forward
+        return forward('status')
     return jsonify(data={'enabled': current_app.config['ASSISTANT_ENABLED'],
-                         'model': current_app.config['ASSISTANT_MODEL'], 'apply': 'preview_required'})
+                         'model': current_app.config['ASSISTANT_MODEL'], 'apply': 'preview_required',
+                         'service': current_app.config.get('ASSISTANT_ROLE', 'web'),
+                         'collection': current_app.config.get('ASSISTANT_QDRANT_COLLECTION')
+                         if current_app.config.get('ASSISTANT_QDRANT_URL') else None})
 
 
 def uploaded(name, extension, limit):
@@ -73,8 +83,11 @@ def uploaded(name, extension, limit):
 
 @assistant_api.post('/<action>')
 def execute(action):
-    if action not in ('preview', 'apply'):
+    if action not in ('preview', 'apply', 'export'):
         raise PredictionError('UNKNOWN_ACTION', 'Thao tác chưa được hỗ trợ', 404)
+    if current_app.config.get('ASSISTANT_SERVICE_URL'):
+        from ...services.assistant_gateway import forward
+        return forward(action)
     if set(request.files) - {'dxf', 'csv'}:
         raise PredictionError('INVALID_ATTACHMENT', 'Chỉ gửi DXF và CSV đã chọn', 400)
     dxf = uploaded('dxf', '.dxf', assistant.MAX_FILE)
@@ -108,6 +121,12 @@ def execute(action):
                 if isinstance(error, PredictionError):
                     raise
                 raise PredictionError('INVALID_DRAWING', 'DXF hoặc đề xuất không hợp lệ, dữ liệu chưa thay đổi') from error
+        if action == 'export':
+            if not result['dxf']:
+                raise PredictionError('NO_DXF_CHANGES', 'Bản xem trước chưa có thay đổi DXF để xuất', 400)
+            name = Path(request.files['dxf'].filename).stem + '_edited.dxf'
+            return send_file(io.BytesIO(base64.b64decode(result['dxf'])), mimetype='application/dxf',
+                             as_attachment=True, download_name=name, max_age=0)
         return jsonify(data=result)
     finally:
         BUSY.release()

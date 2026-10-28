@@ -71,7 +71,7 @@ class PortableDeploymentTests(unittest.TestCase):
         reload_index = events.index(('exec', '-T', 'app', 'nginx', '-s', 'reload'))
         stop_index = events.index(('stop', 'app-blue'))
         self.assertIn(('exec', '-T', 'app', 'ps', '-o', 'args'), events[reload_index + 1:stop_index])
-        self.assertEqual(events[-1], ('rm', '-f', 'app-blue'))
+        self.assertIn(('rm', '-f', 'app-blue'), events)
 
     def test_timeout_keeps_previous_container_after_switch(self):
         with patch.object(docker_stack, 'run', return_value='a' * 40), \
@@ -89,6 +89,25 @@ class PortableDeploymentTests(unittest.TestCase):
         self.assertEqual(calls.call_args_list[0].args[-1], 'app-blue')
         self.assertEqual(calls.call_args_list[1].args[-2:], ('app', 'cloudflared'))
         self.assertEqual(self.config.read_text(), 'app-blue 1000')
+
+    def test_unhealthy_ai_candidate_never_switches_live_web(self):
+        (self.root / '.env').write_text('MAP_PREDICT_ASSISTANT_ENABLED=1\n')
+        initial = self.state.read_text()
+
+        def compose(*args, **kwargs):
+            if args[0] == 'up' and args[-1] == 'ai-green':
+                raise RuntimeError('AI candidate unhealthy')
+            return ''
+
+        with patch.object(docker_stack, 'run', return_value='a' * 40), \
+                patch.object(docker_stack, 'compose', side_effect=compose) as calls:
+            with self.assertRaisesRegex(RuntimeError, 'AI candidate unhealthy'):
+                docker_stack.deploy()
+        self.assertEqual(self.state.read_text(), initial)
+        self.assertEqual(self.config.read_text(), 'app-blue 1000')
+        self.assertFalse(any(call.args[0] == 'up' and call.args[-1] == 'app-green'
+                             for call in calls.call_args_list))
+        self.assertFalse(any('reload' in call.args for call in calls.call_args_list))
 
     def test_linux_timer_is_short_lived_and_boot_starts_stack(self):
         units = install_linux.units(PurePosixPath('/srv/map app'), '/usr/bin/python3', 'deploy')

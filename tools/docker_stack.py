@@ -20,6 +20,10 @@ with urlopen('http://127.0.0.1:8000/api/v1/predictions/model', timeout=10) as r:
     assert json.load(r)['data']['ready']
 with urlopen('http://127.0.0.1:8000/portal/', timeout=10) as r:
     assert r.status == 200
+import os
+if os.environ.get('MAP_PREDICT_ASSISTANT_ENABLED') == '1':
+    with urlopen('http://127.0.0.1:8000/api/v1/assistant/status', timeout=10) as r:
+        assert json.load(r)['data']['service'] == 'worker'
 print('Candidate model and frontend are ready')
 """
 
@@ -103,15 +107,30 @@ def initialize() -> None:
         key.chmod(0o644)
 
 
-def start_assistant() -> None:
+def setting(name, default=''):
     settings = (ROOT / '.env').read_text(encoding='utf-8-sig').splitlines()
-    enabled = '1'
+    value = default
     for line in settings:
-        if line.startswith('MAP_PREDICT_ASSISTANT_ENABLED='):
-            enabled = line.split('=', 1)[1].strip()
-    enabled = os.environ.get('MAP_PREDICT_ASSISTANT_ENABLED', enabled)
-    if enabled == '1':
+        if line.startswith(name + '='):
+            value = line.split('=', 1)[1].strip().strip('\"\'')
+    return os.environ.get(name, value)
+
+
+def assistant_enabled():
+    return setting('MAP_PREDICT_ASSISTANT_ENABLED', '1') == '1'
+
+
+def start_assistant() -> None:
+    if assistant_enabled():
         compose('up', '-d', '--build', '--no-deps', '--wait', '--wait-timeout', '90', 'gemini')
+        container = setting('AI_QDRANT_CONTAINER')
+        if container:
+            if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', container):
+                raise RuntimeError('Invalid configured Qdrant container name')
+            run('docker', 'start', container)
+            networks = json.loads(run('docker', 'inspect', container, '--format', '{{json .NetworkSettings.Networks}}'))
+            if 'map-predict_default' not in networks:
+                run('docker', 'network', 'connect', '--alias', 'knowledge-qdrant', 'map-predict_default', container)
 
 
 def wait_for_drain() -> None:
@@ -130,6 +149,9 @@ def start() -> None:
     initialize()
     start_assistant()
     slot = f"app-{read_state()['active']}"
+    if assistant_enabled():
+        ai = f"ai-{read_state()['active']}"
+        compose('up', '-d', '--build', '--no-deps', '--wait', '--wait-timeout', '180', ai)
     compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', slot)
     compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'app', 'cloudflared')
     print(f'Started {slot}, gateway and tunnel only')
@@ -147,7 +169,11 @@ def deploy(pull: bool = False) -> None:
     next_slot = 'green' if state['active'] == 'blue' else 'blue'
     candidate, previous = f'app-{next_slot}', f"app-{state['active']}"
     wait_for_drain()
-    compose('build', candidate)
+    if assistant_enabled():
+        compose('build', f'ai-{next_slot}', candidate)
+        compose('up', '-d', '--no-deps', '--force-recreate', '--wait', '--wait-timeout', '180', f'ai-{next_slot}')
+    else:
+        compose('build', candidate)
     compose('up', '-d', '--no-deps', '--force-recreate', '--wait', '--wait-timeout', '180', candidate)
     compose('exec', '-T', candidate, 'python', '-', input=PROBE)
     path = ROOT / 'deploy/local/nginx/active.conf'
@@ -165,6 +191,10 @@ def deploy(pull: bool = False) -> None:
     wait_for_drain()
     compose('stop', previous)
     compose('rm', '-f', previous)
+    previous_ai = f"ai-{state['active']}"
+    if assistant_enabled() or compose('ps', '-a', '-q', previous_ai):
+        compose('stop', previous_ai)
+        compose('rm', '-f', previous_ai)
     print(f'Deployment complete, active slot: {next_slot}, previous slot removed')
 
 

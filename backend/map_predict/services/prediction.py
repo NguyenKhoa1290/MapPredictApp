@@ -6,7 +6,13 @@ import math
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from predict_pkl import FEATURES, predict_rows
+FEATURES = [f'x{i}' for i in range(1, 10)]
+
+
+def predict_rows(*args, **kwargs):
+    # The standalone AI service does not need to import the random-forest stack.
+    from predict_pkl import predict_rows as implementation
+    return implementation(*args, **kwargs)
 
 
 class PredictionError(ValueError):
