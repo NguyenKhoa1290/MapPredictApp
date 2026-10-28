@@ -7,6 +7,7 @@
       <section id="assistant-window" class="assistant-window" role="dialog" aria-label="Trợ lý GIS" hidden>
         <header class="assistant-header"><div><strong>Trợ lý GIS</strong><small>DXF và tiêu chí đánh giá</small></div><button type="button" class="assistant-close" aria-label="Thu nhỏ trợ lý">×</button></header>
         <div class="assistant-messages" role="log" aria-live="polite"></div>
+        <label class="assistant-mode-label">Chế độ trả lời<select class="assistant-mode"><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select></label>
         <details class="assistant-context"><summary>Dữ liệu gửi cho trợ lý</summary>
           <label>DXF đang dùng<select class="assistant-source"><option value="">Chưa chọn DXF</option></select></label>
           <label>Hoặc chọn một DXF<input class="assistant-upload" type="file" accept=".dxf"></label>
@@ -140,6 +141,7 @@
         if (get('table').checked && !files.csv) { notice.textContent = 'Nạp CSV đầu vào trước khi gửi bảng cho trợ lý'; return; }
         const form = formData(files);
         form.append('message', question); form.append('history', JSON.stringify(history.slice(-6)));
+        form.append('mode', get('mode').value);
         form.append('start', get('start').value); form.append('layer', get('layer').value);
         form.append('web', String(get('web').checked)); form.append('crs', window.assistantWorkspace.crs() || '');
         clearPreview(); message('user', question); textarea.value = '';

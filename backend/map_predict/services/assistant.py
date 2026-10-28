@@ -159,7 +159,10 @@ def call_model(messages, config):
                        'temperature': 0.1, 'stream': False}, ensure_ascii=False).encode()
     headers = {'Content-Type': 'application/json'}
     path = config.get('ASSISTANT_SECRET_FILE')
-    if path:
+    if config.get('ASSISTANT_PROVIDER') == 'compatible':
+        if config.get('ASSISTANT_API_KEY'):
+            headers['Authorization'] = 'Bearer ' + config['ASSISTANT_API_KEY']
+    elif path:
         headers['Authorization'] = 'Bearer ' + Path(path).read_text().strip()
     try:
         with build_opener(ProxyHandler({})).open(Request(base + '/chat/completions', data=body,
@@ -209,6 +212,8 @@ def valid_edit(document, edit, visible):
 
 
 def preview(path, dxf, csv, options, config):
+    from .ai_settings import model_config
+    config = model_config(config, options.get('mode', 'fast'))
     document, rows = load(path, dxf, csv)
     summary = describe(document, options.get('layer', '')) if document else {'entities': [], 'entity_count': 0}
     message = options['message']

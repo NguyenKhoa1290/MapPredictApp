@@ -57,11 +57,13 @@ def retrieve(query, config):
         mode, points, note, scanned = 'dense', [], '', None
         embedding_url = config.get('ASSISTANT_EMBEDDING_URL', '').rstrip('/')
         try:
+            if config.get('ASSISTANT_RETRIEVAL_MODE') == 'keyword':
+                raise ValueError('Embedding is reserved for administration')
             if not embedding_url:
                 raise ValueError('Embedding service is not configured')
             vector = json_request(embedding_url + '/api/embed', {
                 'model': config['ASSISTANT_EMBEDDING_MODEL'], 'input': query,
-                'keep_alive': '5m'}, timeout=45)['embeddings'][0]
+                'keep_alive': config.get('ASSISTANT_EMBEDDING_KEEP_ALIVE', '0s')}, timeout=90)['embeddings'][0]
             if len(vector) != dimensions or any(not isinstance(v, (float, int)) or not math.isfinite(v) for v in vector):
                 raise ValueError('Embedding dimensions do not match the collection')
             body = {'query': vector, 'limit': 5, 'with_payload': True, 'with_vector': False}
@@ -72,6 +74,9 @@ def retrieve(query, config):
             # Explicit fallback, never replace the user's embedding model or reindex.
             mode = 'keyword_fallback'
             note = 'Embedding chưa sẵn sàng, đang xếp hạng từ khóa trên nội dung Qdrant'
+            if config.get('ASSISTANT_RETRIEVAL_MODE') == 'keyword':
+                mode = 'keyword'
+                note = 'Tìm tài liệu theo từ khóa, chatbot không sử dụng embedding'
             pool, offset = [], None
             for _ in range(4):
                 body = {'limit': 50, 'with_payload': True, 'with_vector': False}

@@ -33,13 +33,13 @@ class PortableDeploymentTests(unittest.TestCase):
         self.assertEqual(self.state.read_text(), initial)
         self.assertEqual(self.config.read_text(), 'app-blue 1000')
         self.assertEqual(calls.call_count, 1)
-        self.assertEqual(calls.call_args.args, ('build', 'web', 'ai', 'gemini'))
+        self.assertEqual(calls.call_args.args, ('build', 'web-portal', 'ai-assistant', 'gemini-session'))
 
     def test_failed_health_check_does_not_record_success(self):
         initial = self.state.read_text()
 
         def compose(*args, **kwargs):
-            if args[0] == 'up' and args[-2:] == ('ai', 'web'):
+            if args[0] == 'up' and args[-2:] == ('ai-assistant', 'web-portal'):
                 raise RuntimeError('Service unhealthy')
             return ''
 
@@ -57,7 +57,7 @@ class PortableDeploymentTests(unittest.TestCase):
             events.append(args)
             if args[-1] == 'reload':
                 self.assertEqual(self.state.read_text(), initial)
-                self.assertEqual(self.config.read_text(), 'web 1000')
+                self.assertEqual(self.config.read_text(), 'web-portal 1000')
             return ''
 
         with patch.object(docker_stack, 'run', return_value='a' * 40), \
@@ -67,7 +67,7 @@ class PortableDeploymentTests(unittest.TestCase):
         self.assertEqual(state['mode'], 'single')
         self.assertEqual(state['revision'], 'a' * 40)
         self.assertNotIn('active', state)
-        self.assertTrue(any(call[:4] == ('exec', '-T', 'web', 'python') for call in events))
+        self.assertTrue(any(call[:4] == ('exec', '-T', 'web-portal', 'python') for call in events))
         self.assertFalse(any(call[0] in ('rm', 'stop', 'down') for call in events))
 
     def test_start_uses_one_compose_project_with_dependencies(self):
@@ -75,8 +75,8 @@ class PortableDeploymentTests(unittest.TestCase):
             docker_stack.start()
         self.assertEqual(calls.call_args_list[0].args,
                          ('up', '-d', '--build', '--wait', '--wait-timeout', '180'))
-        self.assertEqual(self.config.read_text(), 'web 1000')
-        self.assertEqual(calls.call_args_list[-1].args, ('exec', '-T', 'app', 'nginx', '-s', 'reload'))
+        self.assertEqual(self.config.read_text(), 'web-portal 1000')
+        self.assertEqual(calls.call_args_list[-1].args, ('exec', '-T', 'web-gateway', 'nginx', '-s', 'reload'))
 
     def test_linux_timer_is_short_lived_and_boot_starts_stack(self):
         units = install_linux.units(PurePosixPath('/srv/map app'), '/usr/bin/python3', 'deploy')

@@ -12,10 +12,10 @@ x-worker: &worker
     MAP_PREDICT_MODEL_DIR: /app/models
     MAP_PREDICT_PROJECT_SOURCE_FOLDER: /app/project-data
     MAP_PREDICT_ASSISTANT_ENABLED: '${MAP_PREDICT_ASSISTANT_ENABLED:-1}'
-    MAP_PREDICT_ASSISTANT_URL: http://gemini:8081/v1
+    MAP_PREDICT_ASSISTANT_URL: http://gemini-session:8081/v1
     MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.6-flash}'
     MAP_PREDICT_ASSISTANT_SECRET_FILE: /run/secrets/assistant_key
-    MAP_PREDICT_AI_SERVICE_URL: http://ai:8001
+    MAP_PREDICT_AI_SERVICE_URL: http://ai-assistant:8001
   secrets: [assistant_key]
   volumes:
     - type: bind
@@ -64,17 +64,20 @@ x-ai: &ai_worker
   init: true
   environment:
     MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.6-flash}'
-    MAP_PREDICT_ASSISTANT_URL: http://gemini:8081/v1
+    MAP_PREDICT_ASSISTANT_URL: http://gemini-session:8081/v1
     MAP_PREDICT_ASSISTANT_SECRET_FILE: /run/secrets/assistant_key
     AI_QDRANT_URL: '${AI_QDRANT_URL:-http://qdrant:6333}'
     AI_QDRANT_COLLECTION: '${AI_QDRANT_COLLECTION:-CSDL-Datdai}'
     AI_QDRANT_API_KEY: '${AI_QDRANT_API_KEY:-}'
     AI_QDRANT_VECTOR_NAME: '${AI_QDRANT_VECTOR_NAME:-}'
-    AI_EMBEDDING_URL: '${AI_EMBEDDING_URL:-}'
+    AI_SETTINGS_FILE: /var/lib/map-predict-ai/settings.json
+    AI_ADMIN_PASSWORD_FILE: /run/secrets/ai_admin_password
+    AI_EMBEDDING_URL: '${AI_EMBEDDING_URL:-http://ai-embedding:11434}'
     AI_EMBEDDING_MODEL: '${AI_EMBEDDING_MODEL:-qwen3-embedding:0.6b}'
-  secrets: [assistant_key]
+  secrets: [assistant_key, ai_admin_password]
   volumes:
     - ./config:/app/config:ro
+    - ai_settings:/var/lib/map-predict-ai
   extra_hosts: ['host.docker.internal:host-gateway']
   read_only: true
   tmpfs: ['/tmp:rw,nosuid,noexec,size=536870912']
@@ -90,7 +93,7 @@ x-ai: &ai_worker
       max-file: '2'
 
 services:
-  gemini:
+  gemini-session:
     image: map-predict-gemini:local
     build:
       context: .
@@ -98,6 +101,9 @@ services:
     restart: unless-stopped
     init: true
     secrets: [assistant_key]
+    environment:
+      GEMINI_STATE_DIR: /var/lib/gemini-session
+    volumes: [gemini_session:/var/lib/gemini-session]
     read_only: true
     tmpfs: ['/tmp:rw,nosuid,noexec,size=33554432']
     cap_drop: [ALL]
@@ -109,20 +115,49 @@ services:
       options:
         max-size: 5m
         max-file: '2'
-  web:
+  web-portal:
     <<: *worker
     image: map-predict-web:local
     depends_on:
-      ai:
+      ai-assistant:
         condition: service_healthy
-  ai:
+  ai-assistant:
     <<: *ai_worker
     image: map-predict-ai:local
     depends_on:
       qdrant:
         condition: service_healthy
-      gemini:
+      gemini-session:
         condition: service_healthy
+  ai-embedding:
+    image: ollama/ollama@sha256:20d1bbfbabe1c97ba4b16301f08a20d8484bcf77047742a3cb71c613d8e12d0b
+    restart: unless-stopped
+    environment:
+      HOME: /tmp
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_MODELS: /models
+      OLLAMA_NUM_PARALLEL: '1'
+      OLLAMA_MAX_LOADED_MODELS: '1'
+      OLLAMA_KEEP_ALIVE: '0'
+      OLLAMA_CONTEXT_LENGTH: '2048'
+    volumes: [embedding_models:/models]
+    read_only: true
+    tmpfs: ['/tmp:rw,nosuid,size=268435456']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, ollama, list]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+    mem_limit: 1g
+    memswap_limit: 2g
+    cpus: 2
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '2'
   qdrant:
     image: qdrant/qdrant@sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10
     restart: unless-stopped
@@ -158,14 +193,17 @@ services:
       options:
         max-size: 5m
         max-file: '2'
-  app:
+  web-gateway:
+    networks:
+      default:
+        aliases: [app]
     image: nginx@sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951
     restart: unless-stopped
     user: '101:101'
     entrypoint: [nginx]
     command: [-g, 'daemon off;']
     depends_on:
-      web:
+      web-portal:
         condition: service_healthy
     ports:
       - "127.0.0.1:${APP_HOST_PORT:-8765}:8000"
@@ -189,12 +227,12 @@ services:
         max-size: 10m
         max-file: '3'
 
-  cloudflared:
+  cloudflare-tunnel:
     image: cloudflare/cloudflared@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
     restart: unless-stopped
     command: [tunnel, --no-autoupdate, --metrics, '0.0.0.0:2000', --protocol, http2, run, --token-file, /run/secrets/tunnel_token]
     depends_on:
-      app:
+      web-gateway:
         condition: service_healthy
     secrets: [tunnel_token]
     read_only: true
@@ -208,10 +246,15 @@ services:
         max-file: '3'
 
 secrets:
+  ai_admin_password:
+    file: ./.secrets/ai-admin-password.hash
   assistant_key:
     file: ./.secrets/assistant-key
   tunnel_token:
     file: ./.secrets/cloudflared-token
 
 volumes:
+  ai_settings:
+  gemini_session:
+  embedding_models:
   qdrant_data:

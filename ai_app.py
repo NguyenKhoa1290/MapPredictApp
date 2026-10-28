@@ -39,6 +39,8 @@ def create_ai_app(config=None):
 
     from backend.map_predict.api.v1.assistant import assistant_api
     application.register_blueprint(assistant_api)
+    from backend.map_predict.api.v1.ai_admin import admin_api
+    application.register_blueprint(admin_api)
     return application
 
 

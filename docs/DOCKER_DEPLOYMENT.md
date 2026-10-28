@@ -1,4 +1,4 @@
-﻿# Docker local cho MapPredictApp
+# Docker local cho MapPredictApp
 
 Từ ngày 2026-10-28 dùng một bản chạy cho mỗi service để thử nghiệm local
 Không dùng blue/green, không giữ slot dự phòng và không tự tạo snapshot
@@ -6,18 +6,21 @@ Khi cập nhật có thể gián đoạn ngắn, chưa yêu cầu cơ chế prod
 
 ## Cụm Docker
 
-Cùng Compose project `map-predict` gồm sáu service
+Cùng Compose project `map-predict` gồm bảy service
 
-- `web` là backend Flask và frontend tĩnh
-- `ai` xử lý chat, RAG và chỉnh DXF
-- `gemini` là adapter model trong mạng riêng
+- `web-portal` là backend Flask và frontend tĩnh
+- `ai-assistant` xử lý chat, quản trị và chỉnh DXF
+- `gemini-session` là adapter model và duy trì phiên Google
+- `ai-embedding` là Ollama dành cho công cụ quản trị
 - `qdrant` giữ dữ liệu trong volume `map-predict_qdrant_data`
-- `app` là Nginx, giữ cổng local 127.0.0.1:8765
-- `cloudflared` giữ kết nối tên miền hiện có
+- `web-gateway` là Nginx, giữ cổng local 127.0.0.1:8765
+- `cloudflare-tunnel` giữ kết nối tên miền hiện có
 
 Qdrant dùng đúng image 1.19.1 đã có trên máy, cổng quản trị chỉ bind 127.0.0.1:6333
 AI truy cập Qdrant tại http://qdrant:6333, không khởi động container ngoài project
-Ollama embedding trên máy vẫn là dịch vụ host đã cài sẵn, cấu hình URL trong .env
+Ollama embedding chạy trong ai-embedding, có thể đổi URL trong quản trị để dùng máy khác
+Chatbot chỉ tìm từ khóa trong Qdrant, không gọi embedding theo lựa chọn của người dùng
+Xem [Quản trị AI](AI_ADMIN.md) để thiết lập mật khẩu, cookie và model
 
 ## Khởi động và cập nhật
 

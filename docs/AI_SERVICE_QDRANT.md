@@ -1,5 +1,15 @@
 # Service AI và Qdrant
 
+## Cấu hình quản trị hiện tại
+
+Trang `/portal/admin/ai` xác thực mật khẩu tại service AI, tách khỏi khóa nội bộ
+Chatbot có hai chế độ Nhanh và Thông minh, cấu hình Gemini Web hoặc API tương thích riêng
+Theo quyết định người dùng, chatbot chỉ tìm từ khóa trong Qdrant và không gọi embedding
+Dense retrieval mô tả bên dưới chỉ dành cho công cụ quản trị đã đăng nhập
+Ollama chạy trong service ai-embedding, model được yêu cầu giải phóng sau mỗi lượt
+Cookie Google được kiểm tra định kỳ trong gemini-session, có thể nhập lại qua quản trị
+Xem [Quản trị AI](AI_ADMIN.md) cho cấu hình và giới hạn thực tế
+
 Ngày 2026-10-28 đã kết nối collection `CSDL-Datdai` trong container Qdrant có sẵn
 Collection có 5 point, vector dense không đặt tên, 1024 chiều, cùng sparse vector `langchain-sparse`
 Dự án tham khảo dùng `qwen3-embedding:0.6b`, đã kiểm tra model đang có trên máy và trả vector 1024 chiều
@@ -8,9 +18,9 @@ Dự án tham khảo dùng `qwen3-embedding:0.6b`, đã kiểm tra model đang c
 
 - Frontend tiếp tục gọi `/api/v1/assistant`, không giữ khóa hoặc địa chỉ nội bộ
 - Backend web kiểm tra origin, hạn mức và chuyển request qua gateway mỏng
-- `ai` là một tiến trình Gunicorn riêng, xử lý RAG, prompt, Gemini, DXF và bản xem trước
+- `ai-assistant` là một tiến trình Gunicorn riêng, xử lý RAG, prompt, Gemini, DXF và bản xem trước
 - Chỉ một bản web và một bản AI, không có slot dự phòng
-- Gemini và Qdrant là service trong cùng Compose, Ollama dùng model host đã cài
+- Gemini, Qdrant và Ollama là service trong cùng Compose
 - Web và AI trao đổi bằng khóa nội bộ, các cổng AI không xuất ra host
 - Khi triển khai, build rồi cập nhật trực tiếp web/AI và reload Nginx, chấp nhận gián đoạn ngắn trong thử nghiệm local
 
@@ -58,7 +68,7 @@ Các giá trị kết nối nằm trong `.env`, không được đưa lên Git
 ```dotenv
 AI_QDRANT_URL=http://qdrant:6333
 AI_QDRANT_COLLECTION=CSDL-Datdai
-AI_EMBEDDING_URL=http://host.docker.internal:11434
+AI_EMBEDDING_URL=http://ai-embedding:11434
 AI_EMBEDDING_MODEL=qwen3-embedding:0.6b
 ```
 

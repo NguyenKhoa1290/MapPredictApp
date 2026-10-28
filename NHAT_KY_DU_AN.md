@@ -440,3 +440,18 @@ Mục đích: lưu mốc bàn giao để tiếp tục làm việc khi người d
 ### Bước tiếp theo
 
 Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đối chiếu phạm vi giữ lại/thay thế, luồng dữ liệu, định dạng lưu trữ và phương án chuyển đổi; chưa xóa mã nguồn, mô hình, dữ liệu hoặc bản lưu hiện có.
+
+## 2026-10-28 Quản trị AI, chế độ model và service embedding
+
+- Thêm trang /portal/admin/ai trong giao diện chung, mật khẩu băm được lưu ngoài Git
+- Service AI kiểm tra khóa nội bộ, phiên quản trị, CSRF, thời hạn và giới hạn đăng nhập
+- Thêm hai chế độ Nhanh và Thông minh, mỗi chế độ có nguồn Gemini Web hoặc API tương thích riêng
+- Khóa API lưu trong volume riêng, không trả lại trình duyệt hoặc gửi khóa nội bộ sang nhà cung cấp ngoài
+- Theo xác nhận người dùng, embedding chỉ dùng trong quản trị, chatbot tìm từ khóa trong Qdrant
+- Thêm ai-embedding chạy Ollama với một yêu cầu đồng thời, yêu cầu giải phóng model sau công cụ quản trị
+- Chuyển cơ chế khóa file của google_session.py trong server tham khảo sang Windows và Linux
+- Gemini kiểm tra phiên mỗi 20 phút, thử xoay cookie sau 12 giờ và lưu cookie mới trong volume riêng
+- Nhập thử hồ sơ server tham khảo, Google yêu cầu đăng nhập lại nên quản trị báo cần nhập cookie mới
+- Đặt tên service web-portal, ai-assistant, gemini-session, ai-embedding, qdrant, web-gateway, cloudflare-tunnel
+- Giữ nguyên dữ liệu Qdrant, không tạo snapshot và không khôi phục blue/green
+- Kiểm tra hiện tại 125 test Python, 40 test frontend và 5 test bong bóng trợ lý đều đạt

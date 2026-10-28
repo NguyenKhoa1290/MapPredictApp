@@ -327,3 +327,9 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
 - 2026-10-26: hoàn thành CV-02; có biên bản và định nghĩa đọc từng sheet, phát hiện 20 dòng Bắc Kạn thiếu dữ liệu và lỗi phạm vi tổng kết TP.HCM. Giữ nguyên workbook và ứng dụng hiện tại; tiếp theo CV-03.
 - 2026-10-26: hoàn thành CV-01 theo 6 câu trả lời của người dùng; sửa footer thành header, Giới thiệu mặc định, 3 ý Tầm nhìn, Excel chỉ cho ba dự án, lưu CSV kết quả do người dùng nạp và cho phép kiến trúc backend–frontend. Chưa đổi mã ứng dụng.
 - 2026-10-26: đọc yêu cầu, xác định tài liệu/dữ liệu tham khảo, kiểm tra cấu trúc Excel chỉ đọc; lập 27 đầu việc trong 8 giai đoạn. Chưa thay mã chức năng, chưa sửa DXF/Excel, chưa chạy mã tham khảo hoặc tích hợp chatbot.
+
+## Quản trị AI ngày 2026-10-28
+
+Đã làm trang quản trị xác thực phía service, hai chế độ model, embedding riêng cho quản trị và duy trì phiên Gemini
+Cần người dùng nhập cookie Google mới tại /portal/admin/ai vì hồ sơ tham khảo đang yêu cầu đăng nhập lại
+Không đổi embedding của collection, không tạo snapshot

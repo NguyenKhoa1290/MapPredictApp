@@ -124,12 +124,13 @@ jobs:
           docker exec map-predict-ai-ci python -c "from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8001/health').status==200"
       - name: Verify private Gemini adapter without account cookies
         run: |
-          docker run -d --name map-predict-gemini-ci --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" map-predict-gemini-ci
+          docker run -d --name map-predict-gemini-ci --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" -v "${{ github.workspace }}/tests:/app/tests:ro" map-predict-gemini-ci
           for attempt in $(seq 1 15); do
             if [ "$(docker inspect --format '{{.State.Health.Status}}' map-predict-gemini-ci)" = healthy ]; then break; fi
             sleep 2
           done
           test "$(docker inspect --format '{{.State.Health.Status}}' map-predict-gemini-ci)" = healthy
+          docker exec map-predict-gemini-ci python -B -m unittest discover -s tests -p 'test_gemini_session.py'
       - name: Container diagnostics
         if: failure()
         run: docker logs map-predict-ci

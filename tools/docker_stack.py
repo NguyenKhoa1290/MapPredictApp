@@ -83,7 +83,7 @@ def configuration() -> str:
         if re.fullmatch(r'MAP_PREDICT_MAX_UPLOAD_BYTES=\d+', line):
             upload = line.split('=', 1)[1]
     return (ROOT / 'deploy/site.template.conf').read_text(encoding='utf-8').replace(
-        '__BACKEND__', 'web').replace('__UPLOAD_BYTES__', upload)
+        '__BACKEND__', 'web-portal').replace('__UPLOAD_BYTES__', upload)
 
 
 def initialize() -> None:
@@ -108,11 +108,16 @@ def initialize() -> None:
         # to read the mounted file while the private host directory stays closed.
         (ROOT / '.secrets').chmod(0o700)
         key.chmod(0o644)
+    admin_password = ROOT / '.secrets/ai-admin-password.hash'
+    if not admin_password.exists():
+        admin_password.write_text('', encoding='utf-8')
+    if os.name != 'nt':
+        admin_password.chmod(0o644)
 
 
 def reload_gateway() -> None:
-    compose('exec', '-T', 'app', 'nginx', '-t')
-    compose('exec', '-T', 'app', 'nginx', '-s', 'reload')
+    compose('exec', '-T', 'web-gateway', 'nginx', '-t')
+    compose('exec', '-T', 'web-gateway', 'nginx', '-s', 'reload')
 
 
 def start() -> None:
@@ -131,12 +136,12 @@ def deploy(pull: bool = False) -> None:
     if not re.fullmatch('[0-9a-f]{40}', revision):
         raise RuntimeError('Cannot identify deployed revision')
     # Build before restarting, keep a single container per service.
-    compose('build', 'web', 'ai', 'gemini')
-    compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'qdrant', 'gemini')
-    compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', 'ai', 'web')
-    compose('exec', '-T', 'web', 'python', '-', input=PROBE)
+    compose('build', 'web-portal', 'ai-assistant', 'gemini-session')
+    compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'qdrant', 'gemini-session', 'ai-embedding')
+    compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', 'ai-assistant', 'web-portal')
+    compose('exec', '-T', 'web-portal', 'python', '-', input=PROBE)
     (ROOT / 'deploy/local/nginx/active.conf').write_text(configuration(), encoding='utf-8')
-    compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'app', 'cloudflared')
+    compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'web-gateway', 'cloudflare-tunnel')
     reload_gateway()
     write_state({'mode': 'single', 'revision': revision,
                  'updated': datetime.now(timezone.utc).isoformat()})

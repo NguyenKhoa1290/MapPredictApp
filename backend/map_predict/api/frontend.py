@@ -20,7 +20,7 @@ def frontend_asset(filename):
 @frontend.get("/portal/")
 @frontend.get("/portal/<path:route>")
 def frontend_page(route=""):
-    valid_routes = {"", "projects", "assessment", "assessment/csv", "projects/hcm", "projects/bac-kan", "projects/phu-quoc"}
+    valid_routes = {"", "projects", "assessment", "assessment/csv", "admin/ai", "projects/hcm", "projects/bac-kan", "projects/phu-quoc"}
     if route.rstrip("/") not in valid_routes:
         abort(404)
     directory = Path(current_app.config["FRONTEND_DIST"])

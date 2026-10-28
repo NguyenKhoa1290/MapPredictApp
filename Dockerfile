@@ -15,9 +15,11 @@ RUN pip install --prefix=/install --no-compile --no-cache-dir -r requirements-pr
 FROM python:3.11-slim-bookworm AS gemini
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HOME=/tmp
 WORKDIR /app
+RUN pip install --no-cache-dir httpx==0.28.1
 COPY integrations/gemini_web2api/ ./gemini_web2api/
 COPY integrations/run_gemini.py ./run_gemini.py
 COPY integrations/GEMINI_LICENSE ./GEMINI_LICENSE
+RUN mkdir -p /var/lib/gemini-session && chown 10001:10001 /var/lib/gemini-session
 USER 10001:10001
 EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --start-interval=2s \
@@ -48,7 +50,7 @@ COPY templates/ ./templates/
 COPY wwwroot/ ./wwwroot/
 COPY tools/audit_reference_excel.py tools/audit_reference_dxf.py tools/auto_deploy.py tools/docker_stack.py tools/install_linux.py ./tools/
 COPY --from=frontend /build/frontend/dist/ ./frontend/dist/
-RUN mkdir -p /app/models /app/project-data
+RUN mkdir -p /app/models /app/project-data /var/lib/map-predict-ai && chown 10001:10001 /var/lib/map-predict-ai
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=3s --retries=4 \

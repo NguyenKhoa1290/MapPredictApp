@@ -62,6 +62,18 @@ test('apply occurs only after the explicit button and carries the signed token',
     } finally { f.close(); }
 });
 
+test('chat sends the chosen model mode without an arbitrary model or endpoint', async () => {
+    const f = fixture();
+    try {
+        f.get('mode').value = 'smart';
+        await f.submit();
+        const request = f.calls.find(call => call.url.endsWith('/preview'));
+        assert.equal(request.options.body.get('mode'), 'smart');
+        assert.equal(request.options.body.get('model'), null);
+        assert.equal(request.options.body.get('url'), null);
+    } finally { f.close(); }
+});
+
 test('a changed attachment invalidates preview and prevents any apply request', async () => {
     const f = fixture();
     try {

@@ -32,7 +32,7 @@ export function Layout() {
     };
   }, []);
   useEffect(() => {
-    document.title = `${pathname.includes('/projects') ? 'Dự án' : pathname.startsWith('/assessment') ? 'Đánh giá quỹ đất' : 'Giới thiệu'} | Quỹ đất`;
+    document.title = `${pathname.startsWith('/admin') ? 'Quản trị AI' : pathname.includes('/projects') ? 'Dự án' : pathname.startsWith('/assessment') ? 'Đánh giá quỹ đất' : 'Giới thiệu'} | Quỹ đất`;
     if (initial.current) { initial.current = false; return; }
     window.scrollTo({ top: 0, behavior: 'instant' });
     main.current?.focus({ preventScroll: true });
@@ -54,6 +54,6 @@ export function Layout() {
           {!isAssessment ? <Outlet /> : null}
         </>}
     </main>
-    <footer className="site-footer"><div className="container footer-content"><Link className="footer-brand" to="/">Quỹ đất<span>NGHIÊN CỨU & ỨNG DỤNG</span></Link><Link className="text-link" to="/"><span aria-hidden="true">←</span> Về trang giới thiệu</Link></div></footer>
+    <footer className="site-footer"><div className="container footer-content"><Link className="footer-brand" to="/">Quỹ đất<span>NGHIÊN CỨU & ỨNG DỤNG</span></Link><Link className="text-link" to="/admin/ai">Quản trị AI</Link><Link className="text-link" to="/"><span aria-hidden="true">←</span> Về trang giới thiệu</Link></div></footer>
   </>;
 }
