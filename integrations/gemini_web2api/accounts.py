@@ -88,6 +88,9 @@ class AccountStore:
             label = label or previous.get('label') or f'Tài khoản {len(registry["accounts"]) + 1}'
             # Old tokens/model identity must not be transferred to a newly pasted session.
             profile = {'label': label, 'auth_user': auth_user, 'cookie_file': str(profile_path.with_name('cookie.txt'))}
+            # Identity was checked above, or the cookie digest is unchanged.
+            if previous.get('email'):
+                profile['email'] = previous['email']
             atomic_text(profile_path.with_name('cookie.txt'), header_cookie(pairs))
             write_json(profile_path, profile)
             if not update_id:

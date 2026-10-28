@@ -536,3 +536,14 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Thêm điều hướng bàn phím và thanh tab cuộn ngang trên màn hình nhỏ
 - Giữ xác thực, CSRF, kiểm tra service và kết quả kiểm tra hiện tại
 - 42 kiểm thử frontend đã đạt
+
+## 2026-10-28 Gia hạn phiên và cập nhật cookie theo Gmail
+
+- Đối chiếu server_terminal.py, google_session.py và refresh_auth.py trong server tham khảo
+- Dùng chu kỳ kiểm tra 30 giây, xoay cookie 12 giờ và giãn lần tự sửa lỗi 300 giây
+- Tab Phiên Gemini bỏ phần nhập cookie trùng, có nút gia hạn toàn bộ phiên và thời gian từng tài khoản
+- Mỗi tài khoản có Gmail và nút Cập nhật cookie riêng, bỏ bộ chọn tài khoản cùng ô nhập chỉ số
+- Cập nhật cookie giữ định tuyến đã lưu và danh tính đã kiểm chứng, xác minh lại sau khi nhập
+- Chỉ trả Gmail và thời gian qua API quản trị đã xác thực, không đưa cookie, XSRF hay header định tuyến ra giao diện
+- Chặn kết quả đọc file cookie cũ điền sang tài khoản khác, trạng thái định kỳ không ghi đè cấu hình đang nhập
+- 151 kiểm thử Python, 43 kiểm thử frontend và build TypeScript đã đạt

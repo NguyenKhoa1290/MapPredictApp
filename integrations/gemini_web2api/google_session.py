@@ -13,6 +13,13 @@ import httpx
 
 SESSION_ROTATE_INTERVAL = 12 * 60 * 60
 SESSION_REPAIR_COOLDOWN = 300
+SESSION_POLL_INTERVAL = 30
+
+
+def maintenance_policy():
+    return {'poll_interval_seconds': SESSION_POLL_INTERVAL,
+            'rotate_interval_seconds': SESSION_ROTATE_INTERVAL,
+            'repair_cooldown_seconds': SESSION_REPAIR_COOLDOWN}
 
 
 class UsageAuthError(ValueError):

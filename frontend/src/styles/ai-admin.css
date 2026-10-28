@@ -25,3 +25,4 @@
 .ai-admin button:disabled { opacity: .6; cursor: wait; }
 @media (max-width: 760px) { .admin-models { grid-template-columns: 1fr; gap: 0; } .admin-card { padding: 20px; } .admin-heading { align-items: flex-start; } }
 .admin-account { border-top: 1px solid #cbdcd2; margin-top: 20px; padding-top: 20px; }
+.admin-cookie-editor { margin-top: 24px; padding: 20px; border: 1px solid #b7cbc0; border-radius: 10px; background: #fff; }

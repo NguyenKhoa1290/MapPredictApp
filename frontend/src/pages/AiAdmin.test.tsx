@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { AiAdmin } from './AiAdmin';
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -78,4 +78,40 @@ it('navigates tabs by keyboard, preserves drafts and saves only the active confi
   expect(body.embedding.model).toBe('saved-embedding');
   fireEvent.click(screen.getByRole('tab', { name: 'Embedding' }));
   expect((screen.getByLabelText('Model embedding') as HTMLInputElement).value).toBe('draft-embedding');
+});
+
+it('updates cookies on the chosen Gmail account and renews sessions without duplicate cookie fields', async () => {
+  const model = { label: 'Nhanh', model: 'test-fast', provider: 'gemini', url: '' };
+  const pool = { accounts: [{ id: 'account-a', label: 'One', email: 'one@example.test', status: 'ready' },
+    { id: 'account-b', label: 'Two', email: 'two@example.test', status: 'needs_login' }],
+    maintenance: { poll_interval_seconds: 30, rotate_interval_seconds: 43200, repair_cooldown_seconds: 300 } };
+  const data = { csrf: 'admin-csrf', settings: { models: { fast: model, smart: { ...model, label: 'Thông minh' } },
+    embedding: { url: 'http://ai-embedding:11434', model: 'embedding' } }, gemini: { state: 'ready' }, account_pool: pool, services: ['gemini-session'] };
+  const fetch = vi.fn().mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data }) });
+  vi.stubGlobal('fetch', fetch);
+  render(<AiAdmin />);
+  fireEvent.click(await screen.findByRole('tab', { name: 'Tài khoản Thông minh' }));
+  expect(screen.getByText('Gmail one@example.test')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Cập nhật cookie one@example.test' }));
+  let finishReading!: (value: string) => void;
+  const reading = new Promise<string>(resolve => { finishReading = resolve; });
+  fireEvent.change(screen.getByLabelText('File cookie tài khoản Thông minh'), { target: { files: [{ size: 10, text: () => reading }] } });
+  fireEvent.click(screen.getByRole('button', { name: 'Cập nhật cookie two@example.test' }));
+  finishReading('old-account-cookie');
+  await waitFor(() => expect((screen.getByLabelText('Nội dung cookie tài khoản Thông minh') as HTMLTextAreaElement).value).toBe(''));
+  fireEvent.change(screen.getByLabelText('Nội dung cookie tài khoản Thông minh'), { target: { value: 'second-account-cookie' } });
+  fetch.mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data: pool }) });
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu cookie tài khoản' }));
+  await waitFor(() => expect(screen.queryByLabelText('Nội dung cookie tài khoản Thông minh')).toBeNull());
+  expect(JSON.parse(fetch.mock.calls.at(-1)![1].body)).toEqual({ cookie: 'second-account-cookie', label: 'Two', account_id: 'account-b' });
+  fireEvent.click(screen.getByRole('tab', { name: 'Phiên Gemini' }));
+  const panel = within(screen.getByRole('tabpanel'));
+  expect(panel.queryByRole('textbox')).toBeNull();
+  expect(panel.getByText(/Kiểm tra phiên và quota mỗi 30 giây/)).toBeTruthy();
+  expect(panel.getByText(/Tự xoay cookie sau 12 giờ/)).toBeTruthy();
+  fetch.mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data: pool }) });
+  fireEvent.click(panel.getByRole('button', { name: 'Gia hạn phiên' }));
+  await waitFor(() => expect(fetch).toHaveBeenLastCalledWith('/api/v1/ai-admin/tools/accounts-refresh', expect.objectContaining({
+    body: '{}', headers: expect.objectContaining({ 'X-Admin-CSRF': 'admin-csrf' }),
+  })));
 });

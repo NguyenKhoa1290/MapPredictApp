@@ -12,6 +12,7 @@ from gemini_web2api.account_pool import AccountPool, ARGON
 from gemini_web2api.quota_guard import QuotaRejected
 from gemini_web2api.gemini import generate
 from gemini_web2api.tools import messages_to_prompt
+from gemini_web2api.google_session import SESSION_POLL_INTERVAL
 
 token = Path('/run/secrets/assistant_key').read_text().strip()
 CONFIG.update(host='0.0.0.0', port=8081, api_keys=[token], cookie_file=None,
@@ -35,7 +36,7 @@ class ManagedGeminiHandler(GeminiHandler):
         if self.command == 'GET' and self.path == '/_internal/argon-availability':
             self.send_json(pool.availability())
             return
-        if self.command != 'POST' or self.path not in ('/_internal/session/import', '/_internal/session/refresh', '/_internal/accounts/import', '/_internal/accounts/scan'):
+        if self.command != 'POST' or self.path not in ('/_internal/session/import', '/_internal/session/refresh', '/_internal/accounts/import', '/_internal/accounts/scan', '/_internal/accounts/refresh'):
             self.send_json({'error': 'Not found'}, 404)
             return
         try:
@@ -47,6 +48,8 @@ class ManagedGeminiHandler(GeminiHandler):
                 result = pool.import_cookie(body['cookie'], body.get('label', ''), body.get('account') or None, body.get('account_id') or None)
             elif self.path == '/_internal/accounts/scan':
                 result = pool.scan()
+            elif self.path == '/_internal/accounts/refresh':
+                result = pool.refresh()
             else:
                 result = manager.import_cookie(body['cookie'], body.get('account') or None) if self.path.endswith('/import') else manager.refresh(rotate=True)
             self.send_json(result)
@@ -93,9 +96,9 @@ if __name__ == '__main__':
     def maintain_accounts():
         while True:
             try:
-                pool.scan()
+                pool.scan(discover=False)
             except Exception:
                 pass
-            time.sleep(1200)
+            time.sleep(SESSION_POLL_INTERVAL)
     threading.Thread(target=maintain_accounts, name='argon-account-maintenance', daemon=True).start()
     ThreadedServer(('0.0.0.0', 8081), ManagedGeminiHandler).serve_forever()

@@ -5,7 +5,7 @@ import threading
 import time
 
 from .config import CONFIG
-from .google_session import GoogleSession, UsageAuthError, cookie_pairs, header_cookie, write_json, atomic_text
+from .google_session import GoogleSession, UsageAuthError, cookie_pairs, header_cookie, write_json, atomic_text, SESSION_POLL_INTERVAL, maintenance_policy
 
 
 class SessionManager:
@@ -18,7 +18,7 @@ class SessionManager:
         self.session = GoogleSession(self.path)
         self.stop = threading.Event()
         self.details = {'state': 'not_configured', 'checked_at': None, 'rotated_at': None,
-                        'refresh_interval_hours': 12}
+                        'maintenance': maintenance_policy()}
         if self.path.exists():
             self.activate()
             self.details['state'] = 'pending'
@@ -79,5 +79,5 @@ class SessionManager:
             while not self.stop.is_set():
                 if self.path.exists():
                     self.refresh()
-                self.stop.wait(1200)
+                self.stop.wait(SESSION_POLL_INTERVAL)
         threading.Thread(target=maintain, name='gemini-session-maintenance', daemon=True).start()

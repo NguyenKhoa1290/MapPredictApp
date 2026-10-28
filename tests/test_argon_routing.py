@@ -55,6 +55,54 @@ class ArgonRoutingTests(unittest.TestCase):
         self.assertEqual(seen, [(72, 'private-cookie-1')])
         self.assertEqual(CONFIG.get('cookie_file'), original)
 
+    def test_admin_snapshot_returns_verified_email_and_server_schedule_without_secrets(self):
+        path = self.pool.store.path('a' * 32)
+        settings = json.loads(path.read_text())
+        settings.update(email='verified@example.test', session_checked_at=100, session_rotated_at=90)
+        path.write_text(json.dumps(settings))
+        reply = self.pool.snapshot()
+        self.assertEqual(reply['accounts'][0]['email'], 'verified@example.test')
+        self.assertEqual(reply['accounts'][0]['rotated_at'], 90)
+        self.assertEqual(reply['maintenance'], {'poll_interval_seconds': 30, 'rotate_interval_seconds': 43200, 'repair_cooldown_seconds': 300})
+        self.assertNotIn('verified-test-xsrf', json.dumps(reply))
+        self.assertNotIn('private-cookie', json.dumps(reply))
+        self.assertNotIn('model_headers', json.dumps(reply))
+
+    def test_manual_refresh_rotates_each_profile_and_keeps_revoked_login_visible(self):
+        from gemini_web2api.google_session import UsageAuthError
+        with patch('gemini_web2api.account_pool.GoogleSession') as sessions, \
+                patch.object(self.pool.store, 'scan_one', return_value={'status': 'ready', 'usage': {}, 'model_available': True}) as scan:
+            sessions.return_value.refresh.side_effect = [None, UsageAuthError('private-cookie-secret')]
+            reply = self.pool.refresh()
+        self.assertEqual(sessions.call_count, 2)
+        self.assertTrue(all(call.kwargs == {'rotate': True} for call in sessions.return_value.refresh.call_args_list))
+        self.assertEqual(scan.call_count, 1)
+        self.assertCountEqual([row['status'] for row in reply['accounts']], ['ready', 'needs_login'])
+        self.assertNotIn('private-cookie-secret', json.dumps(reply))
+
+    def test_background_scan_respects_cached_model_discovery(self):
+        with patch.object(self.pool.store, 'scan_one', return_value={'status': 'ready', 'usage': {}}) as scan:
+            self.pool.scan(discover=False)
+        self.assertEqual(scan.call_count, 2)
+        self.assertTrue(all(call.kwargs == {'discover': False} for call in scan.call_args_list))
+
+    def test_cookie_update_targets_one_account_preserves_verified_email_and_account_index(self):
+        for index, entry in enumerate(self.pool.store.registry()['accounts']):
+            path = self.pool.store.path(entry['id'])
+            cookie = path.with_name('cookie.txt')
+            cookie.write_text(f'SID=sid; SAPISID=sapi; __Secure-1PSID=old-{index}')
+            settings = json.loads(path.read_text())
+            settings.update(cookie_file=str(cookie), email=f'user{index}@example.test', auth_user=str(index))
+            path.write_text(json.dumps(settings))
+        with patch('gemini_web2api.google_session.GoogleSession.page', return_value={'oPEP7c': 'user0@example.test'}), \
+                patch.object(self.pool.store, 'scan_one', return_value={'status': 'ready', 'usage': {}}):
+            reply = self.pool.import_cookie('SID=new; SAPISID=new; __Secure-1PSID=new', 'One', account_id='a' * 32)
+        settings = json.loads(self.pool.store.path('a' * 32).read_text())
+        self.assertEqual(settings['auth_user'], '0')
+        self.assertEqual(reply['accounts'][0]['email'], 'user0@example.test')
+        self.assertNotIn('xsrf_token', settings)
+        self.assertIn('old-1', self.pool.store.path('b' * 32).with_name('cookie.txt').read_text())
+
     def test_all_exhausted_or_unverified_never_generate_anonymous_answer(self):
         from gemini_web2api.quota_guard import QuotaRejected
         for error, expected in ((QuotaRejected('limit'), 'quota_exhausted'),

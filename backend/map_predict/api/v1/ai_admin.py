@@ -134,7 +134,7 @@ def gemini_request(action='', body=None, accounts=False):
     key = Path(current_app.config['ASSISTANT_SECRET_FILE']).read_text().strip()
     payload = json.dumps(body).encode() if body is not None else None
     with build_opener(ProxyHandler({})).open(Request(base + ('/_internal/accounts' if accounts else '/_internal/session') + action,
-            data=payload, headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'}), timeout=60) as response:
+            data=payload, headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'}), timeout=150 if accounts and body is not None else 60) as response:
         return json.loads(response.read(65536))
 
 
@@ -163,7 +163,7 @@ def settings():
 
 @admin_api.post('/tools/<action>')
 def tools(action):
-    if action not in ('model-test', 'embedding-test', 'retrieval-test', 'session-import', 'session-refresh', 'accounts-import', 'accounts-scan', 'pro-passcode'):
+    if action not in ('model-test', 'embedding-test', 'retrieval-test', 'session-import', 'session-refresh', 'accounts-import', 'accounts-scan', 'accounts-refresh', 'pro-passcode'):
         raise PredictionError('UNKNOWN_ACTION', 'Thao tác không hợp lệ', 404)
     body = request.get_json(silent=True) or {}
     if not isinstance(body, dict):
@@ -177,7 +177,7 @@ def tools(action):
             except ValueError as error:
                 raise PredictionError('INVALID_PASSCODE', str(error), 400) from None
         elif action.startswith('accounts-'):
-            result = gemini_request('/import' if action == 'accounts-import' else '/scan', body, accounts=True)
+            result = gemini_request({'accounts-import': '/import', 'accounts-scan': '/scan', 'accounts-refresh': '/refresh'}[action], body, accounts=True)
         elif action.startswith('session-'):
             result = gemini_request('/import' if action == 'session-import' else '/refresh', body)
         elif action == 'model-test':

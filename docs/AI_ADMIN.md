@@ -11,7 +11,7 @@ Web chỉ chuyển tiếp yêu cầu, service ai-assistant xác thực mật kh�
 
 - Model cấu hình Nhanh và xem cấu hình Thông minh
 - Tài khoản Thông minh quản lý passcode, cookie tài khoản và quota
-- Phiên Gemini nhập cookie và quản lý gia hạn phiên chung
+- Phiên Gemini xem trạng thái và gia hạn các phiên đã lưu
 - Embedding cấu hình Ollama, kiểm tra vector và truy xuất tài liệu
 
 Đổi tab giữ nguyên nội dung đang nhập, lưu Model và Embedding độc lập
@@ -57,6 +57,9 @@ Service kiểm tra trước khi đọc DXF, truy xuất tài liệu hoặc gọi
 Kể cả khi quản trị gán Argon vào chế độ Nhanh hay Thông minh, service vẫn yêu cầu passcode
 
 Mục Tài khoản và quota Thông minh cho phép thêm tài khoản, cập nhật cookie theo tài khoản và kiểm tra quota
+Mỗi tài khoản hiển thị Gmail từ hồ sơ Google và có nút Cập nhật cookie riêng, không cần nhập chỉ số tài khoản
+Thêm tài khoản mở biểu mẫu riêng, cập nhật tài khoản có sẵn giữ lại chỉ số định tuyến đã lưu
+Cookie thay thế khác tài khoản Google đã xác minh bị từ chối, Gmail được giữ sau khi kiểm tra danh tính
 Giới hạn tám tài khoản, mỗi tài khoản giữ cookie, XSRF, header định tuyến và quota riêng
 Quota lấy từ RPC jSf9Qc và quyền Argon khám phá bằng RPC otAQ7b theo code server tham khảo
 Vòng định tuyến kiểm tra tài khoản theo thứ tự, bỏ qua tài khoản hết quota hoặc không xác minh được
@@ -74,11 +77,15 @@ Các trường hợp chuyển tài khoản và hết quota đã kiểm thử b�
 
 ## Phiên Gemini
 
-Service gemini-session chạy liên tục, kiểm tra phiên mỗi 20 phút và thử RotateCookies sau 12 giờ
+Service gemini-session chạy liên tục, kiểm tra phiên và quota mỗi 30 giây và thử RotateCookies sau 12 giờ
+Giãn lần tự sửa phiên lỗi ít nhất 300 giây, dùng các mốc trong google_session.py và server_terminal.py của server tham khảo
+Trang quản trị đọc các mốc thời gian từ service và cập nhật trạng thái theo cùng chu kỳ, không làm mất bản nháp cấu hình đang nhập
 Cơ chế dựa trên google_session.py của dự án tham khảo, khóa file đã hỗ trợ Windows và Linux
 Cookie mới và XSRF được lưu nguyên tử trong volume gemini_session, tồn tại qua việc thay container
-Có thể nhập cookie JSON hoặc header Cookie từ quản trị và bấm gia hạn ngay
-Chỉ số tài khoản là số trong /u/0, /u/1 nếu dùng tài khoản không mặc định
+Chỉ nhập cookie tại từng tài khoản trong tab Tài khoản Thông minh, tab Phiên Gemini không có ô nhập cookie trùng
+Nút Gia hạn phiên thực hiện RotateCookies trên các tài khoản đã lưu rồi kiểm tra lại, tương đương refresh_auth.py --all trong server tham khảo
+Gia hạn song song tối đa 4 tài khoản theo cơ chế tham khảo, mọi generation vẫn dùng khóa chung để không lẫn tài khoản
+API phiên đơn cũ giữ để tương thích, giao diện quản trị dùng pool tài khoản thống nhất
 
 Healthcheck của container chỉ xác nhận adapter HTTP đang chạy
 Trạng thái phiên Google hiển thị riêng trong quản trị, không đồng nghĩa container healthy là cookie còn hạn

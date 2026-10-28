@@ -70,6 +70,13 @@ class AiAdminTests(unittest.TestCase):
             self.assertEqual(self.client.post('/api/v1/ai-admin/login', json={'password': 'wrong'}, headers=self.headers).status_code, 401)
         self.assertEqual(self.client.post('/api/v1/ai-admin/login', json={'password': 'wrong'}, headers=self.headers).status_code, 429)
 
+    def test_authenticated_session_refresh_targets_account_pool(self):
+        self.login()
+        with patch('backend.map_predict.api.v1.ai_admin.gemini_request', return_value={'accounts': []}) as remote:
+            response = self.post('tools/accounts-refresh', {})
+        self.assertEqual(response.status_code, 200)
+        remote.assert_called_once_with('/refresh', {}, accounts=True)
+
     def test_settings_persist_and_keys_are_never_returned_or_sent_to_gemini(self):
         self.login()
         settings = ai_settings.defaults(self.app.config)
