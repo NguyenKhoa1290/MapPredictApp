@@ -2,6 +2,8 @@
 
 ## 2026-10-29 Kết luận kiểm chứng effort theo phản hồi Google
 
+- Kiểm tra cuối trên bản chạy đã khôi phục: Nhanh trả lời đúng trong khoảng 11,8 giây, requested_level=1, applied_level=1 và applied_model_category=1, API từ chối Nhanh/Cao ngay trước khi gọi model
+
 - Argon đã trả applied_level=1, 4 và 2 tương ứng Low, Medium và High trong ba lượt gọi thật, cùng trả lời đúng bài tính 137 nhân 149
 - Flash route legacy trả applied_level=1 ngay cả khi yêu cầu 4 hoặc 2, thử route Flash có định danh tài khoản bị timeout nên bỏ thử nghiệm đó và khôi phục đường Nhanh ổn định
 - Giao diện và API chỉ cho Nhanh chọn Mặc định hoặc Thấp, Thông minh giữ cả ba mức và không tự chuyển model, provider compatible vẫn chuyển reasoning_effort theo cấu hình
