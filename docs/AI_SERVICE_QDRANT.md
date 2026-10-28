@@ -3,7 +3,7 @@
 ## Cấu hình quản trị hiện tại
 
 Trang `/portal/admin/ai` xác thực mật khẩu tại service AI, tách khỏi khóa nội bộ
-Chatbot có hai chế độ Nhanh và Thông minh, cấu hình Gemini Web hoặc API tương thích riêng
+Chatbot có Nhanh, Thông minh và Pro 4 Argon, Pro dùng pool tài khoản và passcode riêng do quản trị thiết lập
 Theo quyết định người dùng, chatbot chỉ tìm từ khóa trong Qdrant và không gọi embedding
 Dense retrieval mô tả bên dưới chỉ dành cho công cụ quản trị đã đăng nhập
 Ollama chạy trong service ai-embedding, model được yêu cầu giải phóng sau mỗi lượt

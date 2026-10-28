@@ -2,15 +2,23 @@
 from pathlib import Path
 import json
 import os
+import threading
+import time
+import uuid
 from gemini_web2api.config import CONFIG
 from gemini_web2api.server import GeminiHandler, ThreadedServer
 from gemini_web2api.session_manager import SessionManager
+from gemini_web2api.account_pool import AccountPool, ARGON
+from gemini_web2api.quota_guard import QuotaRejected
+from gemini_web2api.gemini import generate
+from gemini_web2api.tools import messages_to_prompt
 
 token = Path('/run/secrets/assistant_key').read_text().strip()
 CONFIG.update(host='0.0.0.0', port=8081, api_keys=[token], cookie_file=None,
               auth_user=None, xsrf_token=None, log_requests=False,
               retry_attempts=1, request_timeout_sec=80, temporary_chats=True)
 manager = SessionManager(os.environ.get('GEMINI_STATE_DIR', '/tmp/gemini-session'))
+pool = AccountPool(manager.folder, manager.lock)
 
 
 class ManagedGeminiHandler(GeminiHandler):
@@ -21,7 +29,10 @@ class ManagedGeminiHandler(GeminiHandler):
         if self.command == 'GET' and self.path == '/_internal/session':
             self.send_json(manager.status())
             return
-        if self.command != 'POST' or self.path not in ('/_internal/session/import', '/_internal/session/refresh'):
+        if self.command == 'GET' and self.path == '/_internal/accounts':
+            self.send_json(pool.snapshot())
+            return
+        if self.command != 'POST' or self.path not in ('/_internal/session/import', '/_internal/session/refresh', '/_internal/accounts/import', '/_internal/accounts/scan'):
             self.send_json({'error': 'Not found'}, 404)
             return
         try:
@@ -29,7 +40,12 @@ class ManagedGeminiHandler(GeminiHandler):
             if not 0 < length <= 65536:
                 raise ValueError()
             body = json.loads(self.rfile.read(length))
-            result = manager.import_cookie(body['cookie'], body.get('account') or None) if self.path.endswith('/import') else manager.refresh(rotate=True)
+            if self.path == '/_internal/accounts/import':
+                result = pool.import_cookie(body['cookie'], body.get('label', ''), body.get('account') or None, body.get('account_id') or None)
+            elif self.path == '/_internal/accounts/scan':
+                result = pool.scan()
+            else:
+                result = manager.import_cookie(body['cookie'], body.get('account') or None) if self.path.endswith('/import') else manager.refresh(rotate=True)
             self.send_json(result)
         except (ValueError, KeyError, TypeError):
             self.send_json({'error': 'Cookie không hợp lệ'}, 400)
@@ -44,9 +60,39 @@ class ManagedGeminiHandler(GeminiHandler):
         if self.path.startswith('/_internal/'):
             self.session_request()
         else:
-            super().do_POST()
+            # The supplied adapter uses process-global Google routing fields.
+            # Serialize every generation with session activation and maintenance.
+            with manager.lock:
+                super().do_POST()
+
+    def _handle_chat(self, body):
+        request = self._parse_body(body)
+        if not isinstance(request, dict) or request.get('model') != ARGON:
+            return super()._handle_chat(body)
+        if request.get('stream') or request.get('tools'):
+            self.send_json({'error': {'code': 'unsupported_argon_request', 'message': 'Pro chỉ nhận chat không streaming'}}, 400)
+            return
+        prompt, images = messages_to_prompt(request.get('messages', []))
+        if not prompt.strip() or images:
+            self.send_json({'error': {'message': 'Pro nhận nội dung văn bản đã tóm tắt'}}, 400)
+            return
+        try:
+            text = pool.run(lambda mode, think: generate(prompt, mode, think))
+            self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
+                            'created': int(time.time()), 'model': ARGON,
+                            'choices': [{'index': 0, 'message': {'role': 'assistant', 'content': text}, 'finish_reason': 'stop'}]})
+        except QuotaRejected as error:
+            self.send_json(error.response(), error.status)
 
 
 if __name__ == '__main__':
     manager.start()
+    def maintain_accounts():
+        while True:
+            try:
+                pool.scan()
+            except Exception:
+                pass
+            time.sleep(1200)
+    threading.Thread(target=maintain_accounts, name='argon-account-maintenance', daemon=True).start()
     ThreadedServer(('0.0.0.0', 8081), ManagedGeminiHandler).serve_forever()

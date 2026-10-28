@@ -18,3 +18,4 @@
 .admin-card pre { overflow: auto; max-height: 480px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }
 .ai-admin button:disabled { opacity: .6; cursor: wait; }
 @media (max-width: 760px) { .admin-models { grid-template-columns: 1fr; gap: 0; } .admin-card { padding: 20px; } .admin-heading { align-items: flex-start; } }
+.admin-account { border-top: 1px solid #cbdcd2; margin-top: 20px; padding-top: 20px; }

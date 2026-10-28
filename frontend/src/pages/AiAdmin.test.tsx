@@ -29,3 +29,20 @@ it('shows authenticated settings, then logs out through the service with CSRF', 
   await screen.findByRole('heading', { name: 'Đăng nhập quản trị' });
   await waitFor(() => expect(fetch).toHaveBeenLastCalledWith('/api/v1/ai-admin/logout', expect.objectContaining({ headers: expect.objectContaining({ 'X-Admin-CSRF': 'session-csrf' }) })));
 });
+
+it('sets a separate Pro passcode only through the authenticated service', async () => {
+  const model = { label: 'Nhanh', model: 'test-fast', provider: 'gemini', url: '', has_api_key: false };
+  const data = { csrf: 'admin-csrf', settings: { models: { fast: model, smart: { ...model, label: 'Thông minh' }, pro: { ...model, label: 'Pro · 4 Argon', model: 'gemini-4-argon' } }, embedding: { url: 'http://ai-embedding:11434', model: 'test-embedding' } }, gemini: { state: 'ready' }, services: ['ai-assistant'], pro_access: { configured: false }, account_pool: { accounts: [] } };
+  const fetch = vi.fn().mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data }) });
+  vi.stubGlobal('fetch', fetch);
+  render(<AiAdmin />);
+  await screen.findByRole('heading', { name: 'Quyền sử dụng Pro 4 Argon' });
+  fireEvent.change(screen.getByLabelText('Passcode Pro mới'), { target: { value: 'new-pro-passcode' } });
+  fetch.mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data: { configured: true } }) });
+  fireEvent.click(screen.getByRole('button', { name: 'Đặt passcode Pro' }));
+  await screen.findByText('Đã đặt passcode, người dùng phải nhập khi gọi Pro');
+  expect(fetch).toHaveBeenLastCalledWith('/api/v1/ai-admin/tools/pro-passcode', expect.objectContaining({
+    body: JSON.stringify({ passcode: 'new-pro-passcode' }), headers: expect.objectContaining({ 'X-Admin-CSRF': 'admin-csrf' }),
+  }));
+  expect((screen.getByLabelText('Passcode Pro mới') as HTMLInputElement).value).toBe('');
+});

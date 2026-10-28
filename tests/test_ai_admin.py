@@ -133,3 +133,39 @@ class AiAdminTests(unittest.TestCase):
             assistant.call_model([], ai_settings.model_config(self.app.config, 'smart'))
         self.assertEqual(captured[0].get_header('Authorization'), 'Bearer external-private-key')
         self.assertNotIn('private-test-service-key', repr(captured[0].headers))
+
+    def test_argon_requires_service_side_passcode_before_reading_files_or_using_llm(self):
+        from backend.map_predict.services.prediction import PredictionError
+        config = self.app.config
+        with patch.object(assistant, 'load') as load, patch.object(assistant, 'call_model') as model:
+            with self.assertRaises(PredictionError) as error:
+                assistant.preview(Path('/unused'), b'', b'', {'mode': 'pro', 'message': 'test'}, config)
+            self.assertEqual(error.exception.code, 'ARGON_DISABLED')
+            ai_settings.set_passcode(config, 'separate-pro-passcode')
+            for value in ('', 'wrong-passcode'):
+                with self.assertRaises(PredictionError) as error:
+                    assistant.preview(Path('/unused'), b'', b'', {'mode': 'pro', 'passcode': value}, config)
+                self.assertEqual(error.exception.code, 'ARGON_PASSCODE_REQUIRED')
+            load.assert_not_called()
+            model.assert_not_called()
+        ai_settings.authorize_pro(ai_settings.model_config(config, 'pro'), 'separate-pro-passcode')
+        ai_settings.set_passcode(config, 'rotated-pro-passcode')
+        with self.assertRaises(PredictionError):
+            ai_settings.authorize_pro(ai_settings.model_config(config, 'pro'), 'separate-pro-passcode')
+        settings = ai_settings.defaults(config)
+        settings['models']['fast']['model'] = 'gemini-4-argon'
+        ai_settings.save(config, settings)
+        with self.assertRaises(PredictionError):
+            ai_settings.authorize_pro(ai_settings.model_config(config, 'fast'), '')
+
+    def test_only_admin_can_set_pro_passcode_and_pro_cannot_be_downgraded(self):
+        self.assertEqual(self.client.post('/api/v1/ai-admin/tools/pro-passcode', json={'passcode': 'new-passcode'}, headers=self.headers).status_code, 401)
+        self.login()
+        response = self.post('tools/pro-passcode', {'passcode': 'new-pro-passcode'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['data']['configured'])
+        self.assertNotIn('new-pro-passcode', response.text)
+        settings = ai_settings.defaults(self.app.config)
+        settings['models']['pro']['model'] = 'gemini-3.6-flash'
+        self.assertEqual(self.post('settings', settings).status_code, 400)
+        self.assertFalse(self.post('tools/pro-passcode', {'disable': True}).json['data']['configured'])

@@ -131,6 +131,7 @@ jobs:
           done
           test "$(docker inspect --format '{{.State.Health.Status}}' map-predict-gemini-ci)" = healthy
           docker exec map-predict-gemini-ci python -B -m unittest discover -s tests -p 'test_gemini_session.py'
+          docker exec map-predict-gemini-ci python -B -m unittest discover -s tests -p 'test_argon_routing.py'
       - name: Container diagnostics
         if: failure()
         run: docker logs map-predict-ci

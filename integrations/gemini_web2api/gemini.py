@@ -18,7 +18,7 @@ except ImportError:
 from .config import CONFIG
 
 _ssl_ctx = None
-_cookie_cache = {"str": "", "sapisid": None, "mtime": 0}
+_cookie_cache = {"str": "", "sapisid": None, "identity": None}
 _httpx_client = None
 
 
@@ -51,8 +51,9 @@ def load_cookie() -> tuple:
     if not cookie_file or not os.path.exists(cookie_file):
         return "", None
     try:
-        mtime = os.path.getmtime(cookie_file)
-        if mtime == _cookie_cache["mtime"] and _cookie_cache["str"]:
+        stat = os.stat(cookie_file)
+        identity = (os.path.abspath(cookie_file), stat.st_mtime_ns, stat.st_size)
+        if identity == _cookie_cache["identity"] and _cookie_cache["str"]:
             return _cookie_cache["str"], _cookie_cache["sapisid"]
         with open(cookie_file, "r") as f:
             content = f.read().strip()
@@ -64,11 +65,11 @@ def load_cookie() -> tuple:
             cookie_str = content
             pairs = dict(p.split("=", 1) for p in cookie_str.split("; ") if "=" in p)
             sapisid = pairs.get("SAPISID", "")
-        _cookie_cache.update({"str": cookie_str, "sapisid": sapisid or None, "mtime": mtime})
+        _cookie_cache.update({"str": cookie_str, "sapisid": sapisid or None, "identity": identity})
         return cookie_str, sapisid if sapisid else None
     except Exception as e:
         log(f"Cookie load error: {e}")
-        return _cookie_cache["str"], _cookie_cache["sapisid"]
+        return "", None
 
 
 def make_sapisidhash(sapisid: str) -> str:
@@ -85,7 +86,7 @@ def _account_prefix() -> str:
     return f"/u/{auth_user}"
 
 
-def _build_headers() -> dict:
+def _build_headers(model_id=None) -> dict:
     account_prefix = _account_prefix()
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -101,6 +102,15 @@ def _build_headers() -> dict:
         headers["Cookie"] = cookie_str
     if sapisid:
         headers["Authorization"] = make_sapisidhash(sapisid)
+    route = dict((CONFIG.get('model_headers') or {}).get(str(model_id), {}))
+    if route and (not cookie_str or not sapisid or not CONFIG.get('xsrf_token')):
+        raise RuntimeError('Verified session is required for the selected model route')
+    name = 'x-goog-ext-525001261-jspb'
+    if name in route:
+        value = json.loads(route[name])
+        value.extend([1, str(uuid.uuid4()).upper()])
+        route[name] = json.dumps(value)
+    headers.update(route)
     return headers
 
 
@@ -137,6 +147,8 @@ def _build_payload(prompt: str, model_id: int, think_mode: int, file_refs: list 
     inner[61] = []
     inner[68] = 1
     inner[79] = model_id
+    if str(model_id) in (CONFIG.get('model_headers') or {}):
+        inner[80] = 1
     if extra_fields:
         for k, v in extra_fields.items():
             inner[k] = v
@@ -206,7 +218,7 @@ def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None
     """Non-streaming generation with retry."""
     body = _build_payload(prompt, model_id, think_mode, file_refs, extra_fields).encode()
     url = _get_url()
-    headers = _build_headers()
+    headers = _build_headers(model_id)
     ctx = _get_ssl_ctx()
     proxy = CONFIG.get("proxy")
 
@@ -242,7 +254,7 @@ def generate_stream(prompt: str, model_id: int, think_mode: int, file_refs: list
 
     body = _build_payload(prompt, model_id, think_mode, file_refs, extra_fields)
     url = _get_url()
-    headers = _build_headers()
+    headers = _build_headers(model_id)
     client = _get_httpx_client()
 
     last_err = None

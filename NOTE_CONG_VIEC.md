@@ -333,3 +333,8 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
 Đã làm trang quản trị xác thực phía service, hai chế độ model, embedding riêng cho quản trị và duy trì phiên Gemini
 Cần người dùng nhập cookie Google mới tại /portal/admin/ai vì hồ sơ tham khảo đang yêu cầu đăng nhập lại
 Không đổi embedding của collection, không tạo snapshot
+## Pro 4 Argon ngày 2026-10-28
+
+Đã bổ sung passcode riêng, pool tài khoản và kiểm tra quota trước cùng sau generation, không hạ model
+Quản trị cần cập nhật cookie cho hai tài khoản đang cần đăng nhập lại và đặt passcode Pro tại /portal/admin/ai
+Chưa xác nhận câu trả lời Argon thật, đã xác nhận luồng chặn mã sai và không dùng model khác khi quota chưa xác minh

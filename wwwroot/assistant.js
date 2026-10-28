@@ -7,7 +7,8 @@
       <section id="assistant-window" class="assistant-window" role="dialog" aria-label="Trợ lý GIS" hidden>
         <header class="assistant-header"><div><strong>Trợ lý GIS</strong><small>DXF và tiêu chí đánh giá</small></div><button type="button" class="assistant-close" aria-label="Thu nhỏ trợ lý">×</button></header>
         <div class="assistant-messages" role="log" aria-live="polite"></div>
-        <label class="assistant-mode-label">Chế độ trả lời<select class="assistant-mode"><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select></label>
+        <label class="assistant-mode-label">Chế độ trả lời<select class="assistant-mode"><option value="fast">Nhanh</option><option value="smart">Thông minh</option><option value="pro">Pro · 4 Argon</option></select></label>
+        <label class="assistant-passcode-label" hidden>Passcode Pro<input class="assistant-passcode" type="password" maxlength="128" autocomplete="off" placeholder="Passcode do quản trị cấp"></label>
         <details class="assistant-context"><summary>Dữ liệu gửi cho trợ lý</summary>
           <label>DXF đang dùng<select class="assistant-source"><option value="">Chưa chọn DXF</option></select></label>
           <label>Hoặc chọn một DXF<input class="assistant-upload" type="file" accept=".dxf"></label>
@@ -30,6 +31,11 @@
     const messages = get('messages'), notice = get('notice'), preview = get('preview');
     const historyKey = 'mapPredict.assistant.history.v1';
     let history = [], pending = null, controller = null, urls = [], busy = false;
+    let protectedModes = new Set(['pro']);
+    get('mode').addEventListener('change', () => {
+        get('passcode-label').hidden = !protectedModes.has(get('mode').value);
+        get('passcode').value = '';
+    });
     try { history = JSON.parse(localStorage.getItem(historyKey) || '[]').filter(item => item && ['user', 'assistant'].includes(item.role) && typeof item.content === 'string').slice(-20); } catch { history = []; }
     function element(tag, text, className) {
         const node = document.createElement(tag);
@@ -140,6 +146,10 @@
         const files = snapshot();
         if (get('table').checked && !files.csv) { notice.textContent = 'Nạp CSV đầu vào trước khi gửi bảng cho trợ lý'; return; }
         const form = formData(files);
+        if (protectedModes.has(get('mode').value)) {
+            if (!get('passcode').value) { notice.textContent = 'Nhập passcode Pro do quản trị cấp'; get('passcode').focus(); return; }
+            form.append('passcode', get('passcode').value);
+        }
         form.append('message', question); form.append('history', JSON.stringify(history.slice(-6)));
         form.append('mode', get('mode').value);
         form.append('start', get('start').value); form.append('layer', get('layer').value);
@@ -229,5 +239,9 @@
     window.addEventListener('pagehide', () => urls.forEach(url => URL.revokeObjectURL(url)));
     fetch('/api/v1/assistant/status').then(response => response.json()).then(payload => {
         if (!payload.data?.enabled) notice.textContent = 'Chatbot chưa được bật trên máy chủ';
+        if (Array.isArray(payload.data?.modes)) {
+            protectedModes = new Set(payload.data.modes.filter(mode => mode.requires_passcode).map(mode => mode.id));
+            get('passcode-label').hidden = !protectedModes.has(get('mode').value);
+        }
     }).catch(() => { notice.textContent = 'Chưa kết nối được máy chủ'; });
 })();

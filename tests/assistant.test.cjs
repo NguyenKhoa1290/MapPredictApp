@@ -74,6 +74,23 @@ test('chat sends the chosen model mode without an arbitrary model or endpoint', 
     } finally { f.close(); }
 });
 
+test('Pro asks for a passcode and never stores it in localStorage', async () => {
+    const f = fixture();
+    try {
+        f.get('mode').value = 'pro';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        assert.equal(f.get('passcode-label').hidden, false);
+        await f.submit();
+        assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 0);
+        f.get('passcode').value = 'temporary-pro-code';
+        await f.submit();
+        const form = f.calls.find(call => call.url.endsWith('/preview')).options.body;
+        assert.equal(form.get('mode'), 'pro');
+        assert.equal(form.get('passcode'), 'temporary-pro-code');
+        assert.equal(JSON.stringify(f.window.localStorage).includes('temporary-pro-code'), false);
+    } finally { f.close(); }
+});
+
 test('a changed attachment invalidates preview and prevents any apply request', async () => {
     const f = fixture();
     try {

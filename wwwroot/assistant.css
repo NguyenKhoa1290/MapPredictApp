@@ -47,3 +47,6 @@
 @media(max-width:600px) { .assistant-root { right:10px; bottom:10px } .assistant-window { width:calc(100vw - 20px); height:calc(100dvh - 95px); bottom:57px } }
 .assistant-mode-label { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #dce6df; }
 .assistant-mode { flex: 1; min-width: 0; padding: 7px 10px; background: white; border: 1px solid #b8cec1; border-radius: 6px; }
+.assistant-passcode-label { padding: 8px 16px; }
+.assistant-passcode-label:not([hidden]) { display: flex; align-items: center; gap: 12px; }
+.assistant-passcode { flex: 1; min-width: 0; padding: 7px; border: 1px solid #b8cec1; border-radius: 6px; }

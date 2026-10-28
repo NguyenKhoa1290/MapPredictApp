@@ -62,10 +62,10 @@ def status():
     if current_app.config['ASSISTANT_ENABLED'] and current_app.config.get('ASSISTANT_SERVICE_URL'):
         from ...services.assistant_gateway import forward
         return forward('status')
-    from ...services.ai_settings import load
+    from ...services.ai_settings import load, is_argon
     modes = load(current_app.config)['models']
     return jsonify(data={'enabled': current_app.config['ASSISTANT_ENABLED'],
-                         'modes': [{'id': key, 'label': modes[key]['label']} for key in ('fast', 'smart')],
+                         'modes': [{'id': key, 'label': modes[key]['label'], 'requires_passcode': is_argon(modes[key]['model'])} for key in ('fast', 'smart', 'pro')],
                          'retrieval': 'keyword',
                          'model': current_app.config['ASSISTANT_MODEL'], 'apply': 'preview_required',
                          'service': current_app.config.get('ASSISTANT_ROLE', 'web'),

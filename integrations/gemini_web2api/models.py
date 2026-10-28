@@ -4,6 +4,10 @@
 #   1=FAST, 2=THINKING, 3=PRO, 4=AUTO, 5=FAST_DYNAMIC_THINKING, 6=FLASH_LITE
 
 MODELS = {
+    'gemini-4-argon': {
+        'mode': None, 'think': 4,
+        'desc': 'Pro Argon, requires a verified account route and quota',
+    },
     "gemini-3.7-flash": {
         "mode": 1, "think": 4,
         "desc": "Latest all-around model (Gemini 3.7 Flash)",
@@ -56,12 +60,12 @@ def resolve_model(model_name: str, default: str = "gemini-3.6-flash"):
             think_override = int(think_str)
         except ValueError:
             return None, None, None, f"Invalid think level: {think_str}", None
-    cfg = MODELS.get(model_name)
+    from .config import CONFIG
+    cfg = (CONFIG.get('extra_models') or {}).get(model_name) or MODELS.get(model_name)
     if not cfg:
-        from .gemini import log
-        log(f"Unknown model '{model_name}', falling back to '{default}'")
-        model_name = default
-        cfg = MODELS[default]
+        return None, None, None, 'Model chưa được xác minh hoặc không được hỗ trợ', None
+    if cfg.get('mode') is None:
+        return None, None, None, 'Model cần tài khoản và quota đã xác minh', None
     mode_id = cfg["mode"]
     think_mode = think_override if think_override is not None else cfg["think"]
     extra = cfg.get("extra")

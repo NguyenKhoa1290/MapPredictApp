@@ -129,11 +129,11 @@ def logout():
     return response
 
 
-def gemini_request(action='', body=None):
+def gemini_request(action='', body=None, accounts=False):
     base = current_app.config['ASSISTANT_URL'].removesuffix('/').removesuffix('/v1')
     key = Path(current_app.config['ASSISTANT_SECRET_FILE']).read_text().strip()
     payload = json.dumps(body).encode() if body is not None else None
-    with build_opener(ProxyHandler({})).open(Request(base + '/_internal/session' + action,
+    with build_opener(ProxyHandler({})).open(Request(base + ('/_internal/accounts' if accounts else '/_internal/session') + action,
             data=payload, headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'}), timeout=60) as response:
         return json.loads(response.read(65536))
 
@@ -144,8 +144,12 @@ def state():
         session = gemini_request()
     except Exception:
         session = {'state': 'unavailable'}
+    try:
+        accounts = gemini_request(accounts=True)
+    except Exception:
+        accounts = {'accounts': [], 'unavailable': True}
     return jsonify(data={'csrf': g.admin_session['csrf'], 'settings': ai_settings.public(ai_settings.load(current_app.config)),
-                         'gemini': session, 'chatbot_retrieval': 'keyword',
+                         'gemini': session, 'account_pool': accounts, 'pro_access': {'configured': ai_settings.has_passcode(current_app.config)}, 'chatbot_retrieval': 'keyword',
                          'services': ['web-portal', 'ai-assistant', 'gemini-session', 'ai-embedding', 'qdrant', 'web-gateway', 'cloudflare-tunnel']})
 
 
@@ -159,7 +163,7 @@ def settings():
 
 @admin_api.post('/tools/<action>')
 def tools(action):
-    if action not in ('model-test', 'embedding-test', 'retrieval-test', 'session-import', 'session-refresh'):
+    if action not in ('model-test', 'embedding-test', 'retrieval-test', 'session-import', 'session-refresh', 'accounts-import', 'accounts-scan', 'pro-passcode'):
         raise PredictionError('UNKNOWN_ACTION', 'Thao tác không hợp lệ', 404)
     body = request.get_json(silent=True) or {}
     if not isinstance(body, dict):
@@ -167,7 +171,14 @@ def tools(action):
     if not TOOL_LOCK.acquire(blocking=False):
         raise PredictionError('ADMIN_BUSY', 'Đang xử lý công cụ khác', 429)
     try:
-        if action.startswith('session-'):
+        if action == 'pro-passcode':
+            try:
+                result = ai_settings.set_passcode(current_app.config, body.get('passcode'), disable=body.get('disable') is True)
+            except ValueError as error:
+                raise PredictionError('INVALID_PASSCODE', str(error), 400) from None
+        elif action.startswith('accounts-'):
+            result = gemini_request('/import' if action == 'accounts-import' else '/scan', body, accounts=True)
+        elif action.startswith('session-'):
             result = gemini_request('/import' if action == 'session-import' else '/refresh', body)
         elif action == 'model-test':
             from ...services.assistant import call_model

@@ -459,3 +459,17 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Công cụ embedding trả vector 1024 chiều, dense retrieval trả 5 nguồn từ collection hiện có
 - Sau công cụ, ollama ps không còn model nạp và service embedding dùng khoảng 14 MiB RAM tại lần đo local này
 - Model được chép từ kho Ollama có sẵn, đối chiếu SHA-256 từng blob trước khi đưa vào volume riêng
+## 2026-10-28 Pro 4 Argon, passcode và định tuyến tài khoản
+
+- Đối chiếu accounts.py, gemini_usage.py, quota_guard.py và server/gemini_web2api.py trong dự án tham khảo
+- Xác định model gemini-4-argon và header riêng được khám phá từ tài khoản, không gán nhầm sang gemini-3.1-pro
+- Thêm pool tối đa tám tài khoản, thử tài khoản còn quota với cùng Argon và kiểm tra quota trước cùng sau generation
+- Model không hỗ trợ bị từ chối, không tự về model mặc định, Pro không có nhánh ẩn danh
+- Thêm passcode riêng do quản trị đặt, hash lưu trên service và kiểm tra trước khi đọc file hoặc gọi model
+- Quản trị có phần xem quota, thêm tài khoản và cập nhật cookie cho từng tài khoản Pro
+- Nhập hai hồ sơ nguồn vào pool, cả hai đang cần đăng nhập lại nên chưa xác minh được generation Argon thật
+- Kiểm tra HTTP thực tế mã sai trả 403, mã tạm hợp lệ với tài khoản chưa xác minh trả 503 QUOTA_UNVERIFIED và không trả câu trả lời model khác
+- Passcode thử nghiệm đã được vô hiệu hóa, người dùng tự đặt passcode Pro trong trang quản trị
+- Tách cache cookie theo đường dẫn và metadata file để không lẫn tài khoản có cùng thời gian sửa
+- Header Argon không được gửi nếu cookie hoặc XSRF thiếu, kể cả khi lỗi đọc cookie xảy ra sau bước kiểm tra quota
+- 135 kiểm thử Python, 41 kiểm thử frontend và 6 kiểm thử bong bóng trợ lý đã đạt

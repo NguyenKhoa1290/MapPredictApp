@@ -15,12 +15,13 @@ Cookie đăng nhập HttpOnly, SameSite Strict, có Secure khi truy cập HTTPS 
 Các thao tác thay đổi cần CSRF, đăng nhập giới hạn 5 lần mỗi phút
 Thay mật khẩu làm phiên cũ mất hiệu lực
 
-## Hai chế độ chatbot
+## Các chế độ chatbot
 
 - Nhanh mặc định dùng gemini-3.6-flash theo tên adapter được cung cấp
 - Thông minh mặc định dùng gemini-3.5-flash-thinking theo chế độ thinking của adapter
-- Có thể đổi từng chế độ sang API tương thích OpenAI, nhập URL gồm /v1, model và khóa riêng
-- Chỉ client gửi fast hoặc smart, không cho client chỉ định endpoint hoặc model tùy ý
+- Pro cố định dùng gemini-4-argon, mã định tuyến và header lấy từ tài khoản Google đã xác minh
+- Nhanh và Thông minh có thể đổi sang API tương thích OpenAI, nhập URL gồm /v1, model và khóa riêng
+- Client chỉ gửi fast, smart hoặc pro, không cho client chỉ định endpoint hoặc model tùy ý
 - Lưu cấu hình trước khi bấm kiểm tra, thay đổi có hiệu lực ở lượt chat tiếp theo
 - Tên và khả năng của model Gemini Web phụ thuộc server tham khảo và tài khoản, không phải cam kết model API chính thức
 
@@ -28,6 +29,31 @@ Cài đặt và khóa API lưu trong volume ai_settings
 API quản trị chỉ trả dấu hiệu đã có khóa, không trả khóa lại trình duyệt
 Để trống ô khóa giữ khóa cũ, chọn xóa khóa nếu muốn bỏ
 Khóa nội bộ của cụm không được gửi sang API bên ngoài
+
+## Passcode và tài khoản Pro 4 Argon
+
+Trong mục Quyền sử dụng Pro 4 Argon, quản trị đặt passcode riêng từ 8 đến 128 ký tự
+Đây là passcode cấp cho người dùng gọi Pro, không phải mật khẩu đăng nhập quản trị
+Chưa đặt passcode hoặc bấm Khóa quyền gọi Pro thì service từ chối gọi Pro
+Hash passcode lưu trong volume ai_settings, không trả hash hoặc passcode cho client
+Người dùng nhập passcode tại bong bóng chatbot khi chọn Pro, passcode không lưu trong localStorage và không gửi vào prompt model
+Service kiểm tra trước khi đọc DXF, truy xuất tài liệu hoặc gọi model
+Kể cả khi quản trị gán Argon vào chế độ Nhanh hay Thông minh, service vẫn yêu cầu passcode
+
+Mục Tài khoản và quota Pro cho phép thêm tài khoản, cập nhật cookie theo tài khoản và kiểm tra quota
+Giới hạn tám tài khoản, mỗi tài khoản giữ cookie, XSRF, header định tuyến và quota riêng
+Quota lấy từ RPC jSf9Qc và quyền Argon khám phá bằng RPC otAQ7b theo code server tham khảo
+Vòng định tuyến kiểm tra tài khoản theo thứ tự, bỏ qua tài khoản hết quota hoặc không xác minh được
+Chỉ gọi đúng Argon với header đã khám phá, không dùng Gemini 3.1 Pro hay Flash thay thế
+Kiểm tra quota trước và sau generation, giữ câu trả lời trong bộ nhớ đến khi kiểm tra sau đạt
+Nếu kiểm tra sau thất bại, bỏ câu trả lời rồi thử tài khoản kế tiếp với cùng model
+Hết quota ở mọi tài khoản trả lỗi 429, không xác minh được tài khoản/quota trả lỗi 503
+Adapter cũng từ chối tên model không hỗ trợ thay vì tự chuyển sang model mặc định
+Pro không có nhánh gọi ẩn danh, không có cấu hình hạ model khi lỗi
+
+Đã nhập hai hồ sơ từ server tham khảo vào pool trên máy, cả hai hiện yêu cầu đăng nhập lại
+Cần quản trị cập nhật cookie và đặt passcode trước khi cấp quyền sử dụng Pro
+Các trường hợp chuyển tài khoản và hết quota đã kiểm thử bằng dữ liệu giả lập, chưa xác nhận generation Argon thật vì cookie hiện không hợp lệ
 
 ## Phiên Gemini
 
