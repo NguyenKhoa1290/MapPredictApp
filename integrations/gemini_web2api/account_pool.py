@@ -34,6 +34,18 @@ class AccountPool:
              **self.rows.get(entry['id'], {'status': 'not_checked', 'usage': None})}
             for entry in entries]}
 
+    def availability(self):
+        for entry in self.store.registry()['accounts']:
+            if self.rows.get(entry['id'], {}).get('status') == 'needs_login':
+                continue
+            try:
+                settings = json.loads(self.store.path(entry['id']).read_text(encoding='utf-8'))
+                if settings.get('xsrf_token') and Path(settings.get('cookie_file', '')).is_file():
+                    return {'state': 'ready'}
+            except (OSError, ValueError):
+                continue
+        return {'state': 'cookie_required'}
+
     def scan(self):
         with self.lock:
             for entry in self.store.registry()['accounts']:
@@ -72,7 +84,7 @@ class AccountPool:
         try:
             entries = self.store.registry()['accounts']
             if not entries:
-                raise QuotaRejected('Chưa có tài khoản cho Pro 4 Argon', status=503, code='accounts_unavailable')
+                raise QuotaRejected('Thông minh cần cookie hợp lệ', status=503, code='cookie_required')
             exhausted = 0
             deadline = time.monotonic() + 120
             for entry in entries:
@@ -102,12 +114,14 @@ class AccountPool:
                 except QuotaRejected as error:
                     if error.code == 'quota_exhausted':
                         exhausted += 1
-                    self.rows[identifier] = {'status': 'exhausted' if error.code == 'quota_exhausted' else 'unavailable', 'usage': None}
+                    self.rows[identifier] = {'status': 'exhausted' if error.code == 'quota_exhausted' else 'needs_login' if error.code == 'cookie_required' else 'unavailable', 'usage': None}
                 except Exception:
                     self.rows[identifier] = {'status': 'needs_attention', 'usage': None}
             if exhausted == len(entries):
-                raise QuotaRejected('Tất cả tài khoản Pro 4 Argon đã hết quota, không hạ model', code='quota_exhausted')
-            raise QuotaRejected('Không có tài khoản Pro 4 Argon được xác minh còn quota, kiểm tra cookie và quota trong quản trị',
+                raise QuotaRejected('Thông minh đã hết quota trên mọi tài khoản, không chuyển sang Nhanh', code='quota_exhausted')
+            if all(self.rows.get(entry['id'], {}).get('status') == 'needs_login' for entry in entries):
+                raise QuotaRejected('Thông minh chưa có cookie hợp lệ hoặc cookie đã hết hạn', status=503, code='cookie_required')
+            raise QuotaRejected('Không có tài khoản Thông minh được xác minh còn quota, kiểm tra cookie và quota trong quản trị',
                                 status=503, code='quota_unverified')
         finally:
             self.lock.release()

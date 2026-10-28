@@ -1,6 +1,7 @@
 """Refuse generation at the account limit or when account limits cannot be verified."""
 import math
 import threading
+from .google_session import UsageAuthError
 
 
 class QuotaRejected(Exception):
@@ -37,6 +38,8 @@ class QuotaGuard:
                 if type(fraction) not in (int, float) or not math.isfinite(fraction) or fraction < 0:
                     raise ValueError('Missing account usage window')
                 windows.append((name, window, fraction))
+        except UsageAuthError:
+            raise QuotaRejected('Thông minh cần cookie đăng nhập hợp lệ', status=503, code='cookie_required') from None
         except Exception:
             rejection = QuotaRejected(
                 'Cannot verify Google account quota. Request blocked to prevent a model downgrade. Check the session cookie or retry later.',

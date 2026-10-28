@@ -5,7 +5,7 @@ const { JSDOM } = require('../frontend/node_modules/jsdom');
 const script = fs.readFileSync(require('node:path').join(__dirname, '../wwwroot/assistant.js'), 'utf8');
 const tick = () => new Promise(resolve => setTimeout(resolve, 5));
 
-function fixture() {
+function fixture(status = { enabled: true }) {
     const dom = new JSDOM('<!doctype html><body></body>', { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
     const window = dom.window;
     let sourceFile = new window.File(['DXF'], 'test.dxf');
@@ -18,7 +18,7 @@ function fixture() {
     window.URL.createObjectURL = () => 'blob:test'; window.URL.revokeObjectURL = () => {};
     window.fetch = async (url, options) => {
         calls.push({ url, options });
-        return { ok: true, blob: async () => new window.Blob(['DXF edited']), json: async () => ({ data: url.endsWith('/status') ? { enabled: true }
+        return { ok: true, blob: async () => new window.Blob(['DXF edited']), json: async () => ({ data: url.endsWith('/status') ? status
             : url.endsWith('/apply') ? { dxf: window.btoa('DXF edited'), rows: null } : proposal }) };
     };
     window.HTMLAnchorElement.prototype.click = function () {};
@@ -66,6 +66,7 @@ test('chat sends the chosen model mode without an arbitrary model or endpoint', 
     const f = fixture();
     try {
         f.get('mode').value = 'smart';
+        f.get('passcode').value = 'temporary-smart-code';
         await f.submit();
         const request = f.calls.find(call => call.url.endsWith('/preview'));
         assert.equal(request.options.body.get('mode'), 'smart');
@@ -74,10 +75,10 @@ test('chat sends the chosen model mode without an arbitrary model or endpoint', 
     } finally { f.close(); }
 });
 
-test('Pro asks for a passcode and never stores it in localStorage', async () => {
+test('Smart asks for a passcode and never stores it in localStorage', async () => {
     const f = fixture();
     try {
-        f.get('mode').value = 'pro';
+        f.get('mode').value = 'smart';
         f.get('mode').dispatchEvent(new f.window.Event('change'));
         assert.equal(f.get('passcode-label').hidden, false);
         await f.submit();
@@ -85,9 +86,26 @@ test('Pro asks for a passcode and never stores it in localStorage', async () => 
         f.get('passcode').value = 'temporary-pro-code';
         await f.submit();
         const form = f.calls.find(call => call.url.endsWith('/preview')).options.body;
-        assert.equal(form.get('mode'), 'pro');
+        assert.equal(form.get('mode'), 'smart');
         assert.equal(form.get('passcode'), 'temporary-pro-code');
         assert.equal(JSON.stringify(f.window.localStorage).includes('temporary-pro-code'), false);
+    } finally { f.close(); }
+});
+
+test('only Fast and Smart exist and missing cookies never route Smart to Fast', async () => {
+    const f = fixture({ enabled: true, modes: [
+        { id: 'fast', requires_passcode: false, availability: 'ready' },
+        { id: 'smart', requires_passcode: true, availability: 'cookie_required', message: 'Thông minh chưa có cookie hợp lệ' },
+    ] });
+    try {
+        await tick();
+        assert.deepEqual([...f.get('mode').options].map(option => option.value), ['fast', 'smart']);
+        f.get('mode').value = 'smart';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        await f.submit();
+        assert.match(f.get('notice').textContent, /chưa có cookie/);
+        assert.equal(f.get('mode').value, 'smart');
+        assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 0);
     } finally { f.close(); }
 });
 

@@ -8,6 +8,7 @@ import tempfile
 import threading
 from urllib.parse import urlsplit
 from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.request import Request, build_opener, ProxyHandler
 
 from .prediction import PredictionError
 
@@ -54,18 +55,43 @@ def authorize_pro(config, value):
         return
     path = passcode_file(config)
     if not has_passcode(config):
-        raise PredictionError('ARGON_DISABLED', 'Quản trị chưa đặt passcode cho Pro 4 Argon', 503)
+        raise PredictionError('ARGON_DISABLED', 'Quản trị chưa đặt passcode cho Thông minh', 503)
     if not isinstance(value, str) or not 1 <= len(value) <= 128 or not check_password_hash(path.read_text(), value):
-        raise PredictionError('ARGON_PASSCODE_REQUIRED', 'Nhập passcode Pro 4 Argon do quản trị cấp', 403)
+        raise PredictionError('ARGON_PASSCODE_REQUIRED', 'Nhập passcode Thông minh do quản trị cấp', 403)
+
+
+COOKIE_MESSAGE = 'Thông minh chưa có cookie hợp lệ hoặc cookie đã hết hạn, hãy cập nhật trong quản trị'
+
+
+def argon_availability(config):
+    try:
+        key = Path(config['ASSISTANT_SECRET_FILE']).read_text().strip()
+        base = config['ASSISTANT_URL'].rstrip('/').removesuffix('/v1')
+        request = Request(base + '/_internal/argon-availability', headers={'Authorization': 'Bearer ' + key})
+        with build_opener(ProxyHandler({})).open(request, timeout=5) as response:
+            result = json.loads(response.read(8192))
+        if result.get('state') in ('ready', 'cookie_required'):
+            return result['state']
+    except Exception:
+        pass
+    return 'unknown'
+
+
+def require_argon_cookie(config):
+    if not is_argon(config['ASSISTANT_MODEL']):
+        return
+    state = argon_availability(config)
+    if state == 'cookie_required':
+        raise PredictionError('COOKIE_REQUIRED', COOKIE_MESSAGE, 503)
+    if state != 'ready':
+        raise PredictionError('COOKIE_UNVERIFIED', 'Chưa xác minh được cookie cho Thông minh, không chuyển sang Nhanh', 503)
 
 
 def defaults(config):
     return {'models': {
         'fast': {'label': 'Nhanh', 'provider': 'gemini', 'model': config['ASSISTANT_MODEL'],
                  'url': '', 'api_key': ''},
-        'smart': {'label': 'Thông minh', 'provider': 'gemini', 'model': 'gemini-3.5-flash-thinking',
-                  'url': '', 'api_key': ''},
-        'pro': {'label': 'Pro · 4 Argon', 'provider': 'gemini', 'model': ARGON, 'url': '', 'api_key': ''}},
+        'smart': {'label': 'Thông minh', 'provider': 'gemini', 'model': ARGON, 'url': '', 'api_key': ''}},
         'embedding': {'url': config.get('ASSISTANT_EMBEDDING_URL') or 'http://ai-embedding:11434',
                       'model': config['ASSISTANT_EMBEDDING_MODEL']}}
 
@@ -76,7 +102,10 @@ def load(config):
     with LOCK:
         if path and Path(path).is_file():
             saved = json.loads(Path(path).read_text(encoding='utf-8'))
-            result['models'].update(saved.get('models', {}))
+            if 'fast' in saved.get('models', {}):
+                result['models']['fast'].update(saved['models']['fast'])
+            # Smart replaces the former separate Pro option, retaining its strict route.
+            # Never restore the legacy thinking/Flash model or a third client option.
             result['embedding'].update(saved.get('embedding', {}))
     return result
 
@@ -102,15 +131,15 @@ def save(config, incoming):
         result = load(config)
         if not isinstance(incoming, dict) or set(incoming) != {'models', 'embedding'}:
             raise ValueError('Thiếu cấu hình model hoặc embedding')
-        if not isinstance(incoming['models'], dict) or set(incoming['models']) not in ({'fast', 'smart'}, {'fast', 'smart', 'pro'}):
+        if not isinstance(incoming['models'], dict) or set(incoming['models']) != {'fast', 'smart'}:
             raise ValueError('Các chế độ model không hợp lệ')
-        for key, label in (('fast', 'Nhanh'), ('smart', 'Thông minh'), ('pro', 'Pro · 4 Argon')):
+        for key, label in (('fast', 'Nhanh'), ('smart', 'Thông minh')):
             row = incoming['models'].get(key, result['models'][key])
             if not isinstance(row, dict) or row.get('provider') not in ('gemini', 'compatible'):
                 raise ValueError('Nguồn model không hợp lệ')
             model = row.get('model', '')
-            if key == 'pro' and (model != ARGON or row['provider'] != 'gemini'):
-                raise ValueError('Pro cố định dùng gemini-4-argon và pool tài khoản Gemini')
+            if key == 'smart' and (model != ARGON or row['provider'] != 'gemini'):
+                raise ValueError('Thông minh cố định dùng gemini-4-argon và pool tài khoản Gemini')
             if is_argon(str(model)) and (model != ARGON or row['provider'] != 'gemini'):
                 raise ValueError('4 Argon chỉ dùng đúng route Gemini đã xác minh')
             if not isinstance(model, str) or not re.fullmatch(r'[a-zA-Z0-9_./:@+=-]{1,150}', model):
@@ -146,8 +175,8 @@ def save(config, incoming):
 
 
 def model_config(config, mode='fast'):
-    if mode not in ('fast', 'smart', 'pro'):
-        raise PredictionError('INVALID_MODEL_MODE', 'Chọn chế độ Nhanh, Thông minh hoặc Pro', 400)
+    if mode not in ('fast', 'smart'):
+        raise PredictionError('INVALID_MODEL_MODE', 'Chọn chế độ Nhanh hoặc Thông minh', 400)
     row = load(config)['models'][mode]
     result = dict(config)
     result.update(ASSISTANT_MODEL=row['model'], ASSISTANT_PROVIDER=row['provider'],

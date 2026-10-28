@@ -32,6 +32,9 @@ class ManagedGeminiHandler(GeminiHandler):
         if self.command == 'GET' and self.path == '/_internal/accounts':
             self.send_json(pool.snapshot())
             return
+        if self.command == 'GET' and self.path == '/_internal/argon-availability':
+            self.send_json(pool.availability())
+            return
         if self.command != 'POST' or self.path not in ('/_internal/session/import', '/_internal/session/refresh', '/_internal/accounts/import', '/_internal/accounts/scan'):
             self.send_json({'error': 'Not found'}, 404)
             return
@@ -70,11 +73,11 @@ class ManagedGeminiHandler(GeminiHandler):
         if not isinstance(request, dict) or request.get('model') != ARGON:
             return super()._handle_chat(body)
         if request.get('stream') or request.get('tools'):
-            self.send_json({'error': {'code': 'unsupported_argon_request', 'message': 'Pro chỉ nhận chat không streaming'}}, 400)
+            self.send_json({'error': {'code': 'unsupported_argon_request', 'message': 'Thông minh chỉ nhận chat không streaming'}}, 400)
             return
         prompt, images = messages_to_prompt(request.get('messages', []))
         if not prompt.strip() or images:
-            self.send_json({'error': {'message': 'Pro nhận nội dung văn bản đã tóm tắt'}}, 400)
+            self.send_json({'error': {'message': 'Thông minh nhận nội dung văn bản đã tóm tắt'}}, 400)
             return
         try:
             text = pool.run(lambda mode, think: generate(prompt, mode, think))

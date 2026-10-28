@@ -183,8 +183,11 @@ def call_model(messages, config):
                 code = json.loads(error.read(8192)).get('error', {}).get('code')
             except Exception:
                 code = None
+            if code == 'cookie_required':
+                from .ai_settings import COOKIE_MESSAGE
+                raise PredictionError('COOKIE_REQUIRED', COOKIE_MESSAGE, 503) from None
             if code in ('quota_exhausted', 'quota_unverified', 'accounts_unavailable', 'accounts_busy'):
-                message = 'Tất cả tài khoản Pro đã hết quota, không hạ model' if code == 'quota_exhausted' else 'Chưa có tài khoản Pro được xác minh còn quota, kiểm tra trong quản trị'
+                message = 'Thông minh đã hết quota, không chuyển sang Nhanh' if code == 'quota_exhausted' else 'Chưa có tài khoản Thông minh được xác minh còn quota, kiểm tra trong quản trị'
                 raise PredictionError(code.upper(), message, 429 if code in ('quota_exhausted', 'accounts_busy') else 503) from None
         raise PredictionError('ASSISTANT_UNAVAILABLE', 'Server model chưa trả được đề xuất hợp lệ, dữ liệu chưa thay đổi', 503) from None
     except Exception as error:
@@ -225,7 +228,8 @@ def valid_edit(document, edit, visible):
 def preview(path, dxf, csv, options, config):
     from .ai_settings import model_config
     config = model_config(config, options.get('mode', 'fast'))
-    from .ai_settings import authorize_pro
+    from .ai_settings import authorize_pro, require_argon_cookie
+    require_argon_cookie(config)
     authorize_pro(config, options.get('passcode', ''))
     document, rows = load(path, dxf, csv)
     summary = describe(document, options.get('layer', '')) if document else {'entities': [], 'entity_count': 0}

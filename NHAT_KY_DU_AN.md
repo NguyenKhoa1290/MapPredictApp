@@ -482,3 +482,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Trang cùng API quản trị chỉ phục vụ trên host admin và localhost, tên miền chính trả 404
 - Đăng nhập tiếp tục được kiểm tra tại service AI, cookie được giữ riêng theo hostname
 - Bổ sung kiểm thử chuyển hướng theo hostname, giữ nguyên ingress và không ghi đè route xung đột
+## 2026-10-28 Chốt hai chế độ Nhanh và Thông minh
+
+- Bỏ lựa chọn Pro riêng, gán Thông minh cố định vào gemini-4-argon
+- Chuẩn hóa cấu hình ba chế độ cũ thành hai chế độ khi đọc, không khôi phục model thinking ẩn danh cho Thông minh
+- Thiếu cookie hoặc cookie hết hạn được báo COOKIE_REQUIRED trước bước passcode, không chuyển sang Nhanh
+- Giữ pool tài khoản cùng model, kiểm tra quota trước và sau generation, giữ passcode Thông minh theo yêu cầu trước
+- Đổi tên các mục quản trị tương ứng, giữ nguyên cookie và hash passcode đã lưu
+- Kiểm thử 141 test Python, 41 test giao diện và 7 test bong bóng trợ lý đã đạt

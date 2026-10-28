@@ -73,18 +73,18 @@ class AiAdminTests(unittest.TestCase):
     def test_settings_persist_and_keys_are_never_returned_or_sent_to_gemini(self):
         self.login()
         settings = ai_settings.defaults(self.app.config)
-        settings['models']['smart'].update(provider='compatible', url='https://example.test/v1', api_key='external-private-key')
+        settings['models']['fast'].update(provider='compatible', url='https://example.test/v1', api_key='external-private-key')
         result = self.post('settings', settings)
         self.assertEqual(result.status_code, 200, result.json)
         self.assertNotIn('external-private-key', result.text)
-        reloaded = ai_settings.model_config(self.app.config, 'smart')
+        reloaded = ai_settings.model_config(self.app.config, 'fast')
         self.assertEqual(reloaded['ASSISTANT_API_KEY'], 'external-private-key')
         self.assertEqual(reloaded['ASSISTANT_URL'], 'https://example.test/v1')
-        self.assertEqual(ai_settings.model_config(self.app.config, 'fast')['ASSISTANT_PROVIDER'], 'gemini')
+        self.assertEqual(ai_settings.model_config(self.app.config, 'smart')['ASSISTANT_PROVIDER'], 'gemini')
         settings = result.json['data']
         self.assertEqual(self.post('settings', settings).status_code, 200)
-        self.assertEqual(ai_settings.load(self.app.config)['models']['smart']['api_key'], 'external-private-key')
-        settings['models']['smart']['url'] = 'file:///private'
+        self.assertEqual(ai_settings.load(self.app.config)['models']['fast']['api_key'], 'external-private-key')
+        settings['models']['fast']['url'] = 'file:///private'
         self.assertEqual(self.post('settings', settings).status_code, 400)
 
     def test_web_cannot_bypass_service_authentication_and_rejects_cross_origin(self):
@@ -118,7 +118,7 @@ class AiAdminTests(unittest.TestCase):
 
     def test_external_model_does_not_receive_internal_service_secret(self):
         settings = ai_settings.defaults(self.app.config)
-        settings['models']['smart'].update(provider='compatible', url='https://example.test/v1', api_key='external-private-key')
+        settings['models']['fast'].update(provider='compatible', url='https://example.test/v1', api_key='external-private-key')
         ai_settings.save(self.app.config, settings)
         captured = []
         class Remote:
@@ -130,28 +130,28 @@ class AiAdminTests(unittest.TestCase):
                 captured.append(request)
                 return Remote()
         with patch.object(assistant, 'build_opener', return_value=Opener()):
-            assistant.call_model([], ai_settings.model_config(self.app.config, 'smart'))
+            assistant.call_model([], ai_settings.model_config(self.app.config, 'fast'))
         self.assertEqual(captured[0].get_header('Authorization'), 'Bearer external-private-key')
         self.assertNotIn('private-test-service-key', repr(captured[0].headers))
 
     def test_argon_requires_service_side_passcode_before_reading_files_or_using_llm(self):
         from backend.map_predict.services.prediction import PredictionError
         config = self.app.config
-        with patch.object(assistant, 'load') as load, patch.object(assistant, 'call_model') as model:
+        with patch.object(ai_settings, 'require_argon_cookie'), patch.object(assistant, 'load') as load, patch.object(assistant, 'call_model') as model:
             with self.assertRaises(PredictionError) as error:
-                assistant.preview(Path('/unused'), b'', b'', {'mode': 'pro', 'message': 'test'}, config)
+                assistant.preview(Path('/unused'), b'', b'', {'mode': 'smart', 'message': 'test'}, config)
             self.assertEqual(error.exception.code, 'ARGON_DISABLED')
             ai_settings.set_passcode(config, 'separate-pro-passcode')
             for value in ('', 'wrong-passcode'):
                 with self.assertRaises(PredictionError) as error:
-                    assistant.preview(Path('/unused'), b'', b'', {'mode': 'pro', 'passcode': value}, config)
+                    assistant.preview(Path('/unused'), b'', b'', {'mode': 'smart', 'passcode': value}, config)
                 self.assertEqual(error.exception.code, 'ARGON_PASSCODE_REQUIRED')
             load.assert_not_called()
             model.assert_not_called()
-        ai_settings.authorize_pro(ai_settings.model_config(config, 'pro'), 'separate-pro-passcode')
+        ai_settings.authorize_pro(ai_settings.model_config(config, 'smart'), 'separate-pro-passcode')
         ai_settings.set_passcode(config, 'rotated-pro-passcode')
         with self.assertRaises(PredictionError):
-            ai_settings.authorize_pro(ai_settings.model_config(config, 'pro'), 'separate-pro-passcode')
+            ai_settings.authorize_pro(ai_settings.model_config(config, 'smart'), 'separate-pro-passcode')
         settings = ai_settings.defaults(config)
         settings['models']['fast']['model'] = 'gemini-4-argon'
         ai_settings.save(config, settings)
@@ -166,6 +166,29 @@ class AiAdminTests(unittest.TestCase):
         self.assertTrue(response.json['data']['configured'])
         self.assertNotIn('new-pro-passcode', response.text)
         settings = ai_settings.defaults(self.app.config)
-        settings['models']['pro']['model'] = 'gemini-3.6-flash'
+        settings['models']['smart']['model'] = 'gemini-3.6-flash'
         self.assertEqual(self.post('settings', settings).status_code, 400)
         self.assertFalse(self.post('tools/pro-passcode', {'disable': True}).json['data']['configured'])
+
+    def test_smart_missing_cookie_errors_before_passcode_files_retrieval_or_generation(self):
+        from backend.map_predict.services.prediction import PredictionError
+        with patch.object(ai_settings, 'argon_availability', return_value='cookie_required'), \
+                patch.object(assistant, 'load') as load, patch.object(assistant, 'call_model') as model:
+            with self.assertRaises(PredictionError) as error:
+                assistant.preview(Path('/unused'), b'', b'', {'mode': 'smart', 'message': 'test'}, self.app.config)
+            self.assertEqual(error.exception.code, 'COOKIE_REQUIRED')
+            self.assertIn('cookie', str(error.exception))
+            load.assert_not_called()
+            model.assert_not_called()
+
+    def test_legacy_three_modes_migrate_to_two_without_cheap_smart_route(self):
+        old = {'models': {'fast': {'label': 'Nhanh', 'provider': 'gemini', 'model': 'gemini-3.6-flash', 'api_key': '', 'url': ''},
+                           'smart': {'model': 'gemini-3.5-flash-thinking'}, 'pro': {'model': 'gemini-4-argon'}}}
+        Path(self.config['AI_SETTINGS_FILE']).write_text(json.dumps(old))
+        settings = ai_settings.load(self.app.config)
+        self.assertEqual(set(settings['models']), {'fast', 'smart'})
+        self.assertEqual(settings['models']['smart']['model'], 'gemini-4-argon')
+        with patch.object(ai_settings, 'argon_availability', return_value='cookie_required'):
+            response = self.client.get('/api/v1/assistant/status', headers=self.headers)
+        self.assertEqual([mode['id'] for mode in response.json['data']['modes']], ['fast', 'smart'])
+        self.assertEqual(response.json['data']['modes'][1]['availability'], 'cookie_required')
