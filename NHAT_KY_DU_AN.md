@@ -556,3 +556,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Trang giới thiệu, danh sách dự án và quản trị vẫn giữ bố cục chung
 - Chuyển trang vẫn giữ iframe đánh giá và dữ liệu đang làm việc
 - 43 kiểm thử frontend và build TypeScript đã đạt
+
+## 2026-10-28 Nút quay lại danh sách dự án
+
+- Thêm Quay lại dự án cạnh Bản đồ trong công cụ AI
+- Điều hướng về tab Dự án của portal qua thông điệp cùng origin và đúng iframe
+- Giữ iframe đánh giá đã mở để không mất dữ liệu khi quay lại công cụ
+- Đường dẫn trực tiếp dự phòng dẫn về /portal/projects
+- Kiểm thử giao diện, chatbot và build đã đạt

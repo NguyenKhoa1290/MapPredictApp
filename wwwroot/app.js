@@ -781,6 +781,16 @@ $("map-form").addEventListener("submit", async (event) => {
 
 initializeMap();
 
+$('back-to-projects').addEventListener('click', async event => {
+    if (event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    const destination = event.currentTarget.href;
+    await window.workspacePersistence?.flush();
+    if (window.parent !== window) {
+        window.parent.postMessage({ type: 'map-predict:navigate-projects' }, window.location.origin);
+    } else window.location.assign(destination);
+});
+
 // Project resources are the assistant's inputs, not separate chat attachments.
 window.assistantWorkspace = {
     sources() {

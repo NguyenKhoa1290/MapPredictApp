@@ -416,6 +416,11 @@ body.workspace-mode .tabs-glass {
     position: relative; z-index: 2; background: #fff;
 }
 .workspace-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 16px; border-bottom: 1px solid #e2e8e7; background: #fff; position: relative; z-index: 2; }
+.workspace-navigation { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding-left:16px; }
+body.workspace-mode .workspace-navigation .tabs-glass { padding:10px 0; }
+.workspace-back { padding:9px 12px; border:1px solid #cddbd1; border-radius:8px; color:#087b43; background:#fff; font-size:14px; text-decoration:none!important; white-space:nowrap; }
+.workspace-back:hover { background:#e8f5ec; }
+.workspace-back:focus-visible { outline:3px solid #79b994; outline-offset:2px; }
 .workspace-save { order: 3; flex-basis: 100%; display: none; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding: 4px 24px 8px; color: #52695c; font-size: 12px; }
 .workspace-save.has-error { display: flex; }
 #map-export-status:empty { display: none; }

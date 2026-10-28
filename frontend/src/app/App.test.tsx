@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, useNavigate } from 'react-router';
+import { MemoryRouter } from 'react-router';
 import { App } from './App';
 import contentFile from '../../../config/public_content.json';
 import catalogFile from '../../../config/projects.json';
@@ -40,9 +40,7 @@ function mockAPI({ legacy = true, fail = false } = {}) {
   return fetcher;
 }
 
-let navigateTo: ReturnType<typeof useNavigate>;
-function TestApp() { navigateTo = useNavigate(); return <App />; }
-function mount(path = '/') { return render(<MemoryRouter initialEntries={[path]}><TestApp /></MemoryRouter>); }
+function mount(path = '/') { return render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>); }
 
 describe('React portal shell', () => {
   it('loads the introduction through read-only APIs with three main destinations', async () => {
@@ -82,7 +80,15 @@ describe('React portal shell', () => {
     expect(screen.queryByRole('contentinfo')).toBeNull();
     expect(document.documentElement.style.getPropertyValue('--site-header-height')).toBe('0px');
     const frame = screen.getByTitle('Công cụ đánh giá quỹ đất');
-    act(() => { navigateTo('/projects'); });
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', { origin: 'https://invalid.example', source: (frame as HTMLIFrameElement).contentWindow,
+        data: { type: 'map-predict:navigate-projects' } }));
+    });
+    expect(screen.queryByRole('heading', { name: 'Khám phá các dự án' })).toBeNull();
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', { origin: window.location.origin, source: (frame as HTMLIFrameElement).contentWindow,
+        data: { type: 'map-predict:navigate-projects' } }));
+    });
     expect(await screen.findByRole('heading', { name: 'Khám phá các dự án' })).toBeTruthy();
     expect(screen.getByRole('banner')).toBeTruthy();
     expect(screen.getByRole('contentinfo')).toBeTruthy();
