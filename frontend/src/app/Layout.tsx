@@ -9,6 +9,7 @@ export function Layout() {
   const adminHost = window.location.hostname === 'admin.danhgiaquyhoach.top';
   const publicPath = (path: string) => adminHost ? 'https://danhgiaquyhoach.top/portal' + path : path;
   const isAssessment = pathname.replace(/\/$/, '') === '/assessment';
+  const hideChrome = /^\/projects\/[^/]+\/?$/.test(pathname) || /^\/assessment(?:\/|$)/.test(pathname);
   const [assessmentMounted, setAssessmentMounted] = useState(isAssessment);
   useEffect(() => { if (isAssessment) setAssessmentMounted(true); }, [isAssessment]);
   const main = useRef<HTMLElement>(null);
@@ -16,9 +17,13 @@ export function Layout() {
   const initial = useRef(true);
   useLayoutEffect(() => {
     const element = header.current;
-    if (!element) return;
     const style = document.documentElement.style;
     const previous = style.getPropertyValue('--site-header-height');
+    const restore = () => {
+      if (previous) style.setProperty('--site-header-height', previous);
+      else style.removeProperty('--site-header-height');
+    };
+    if (!element) { style.setProperty('--site-header-height', '0px'); return restore; }
     const measure = () => {
       const height = element.getBoundingClientRect().height;
       if (height > 0) style.setProperty('--site-header-height', `${height}px`);
@@ -29,10 +34,9 @@ export function Layout() {
     window.addEventListener('resize', measure);
     return () => {
       observer?.disconnect(); window.removeEventListener('resize', measure);
-      if (previous) style.setProperty('--site-header-height', previous);
-      else style.removeProperty('--site-header-height');
+      restore();
     };
-  }, []);
+  }, [hideChrome]);
   useEffect(() => {
     document.title = `${pathname.startsWith('/admin') ? 'Quản trị AI' : pathname.includes('/projects') ? 'Dự án' : pathname.startsWith('/assessment') ? 'Đánh giá quỹ đất' : 'Giới thiệu'} | Quỹ đất`;
     if (initial.current) { initial.current = false; return; }
@@ -41,13 +45,13 @@ export function Layout() {
   }, [pathname]);
   return <>
     <a className="skip-link" href="#main">Đến nội dung chính</a>
-    <header className="site-header" ref={header}>
+    {!hideChrome ? <header className="site-header" ref={header}>
       <Link className="brand" to={publicPath('/')} reloadDocument={adminHost} aria-label="Quỹ đất | Trang giới thiệu">
         <svg width="35" height="35" viewBox="0 0 36 36" aria-hidden="true"><path d="m18 2 15 8.5v15L18 34 3 25.5v-15Z" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="m3 10.5 15 9 15-9M18 19.5V34M10.5 6.25l15 9v14M3 18l15 9 15-9" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
         <span>{content?.brand || 'Quỹ đất'}<small>NGHIÊN CỨU & ỨNG DỤNG</small></span>
       </Link>
       <nav aria-label="Điều hướng chính"><NavLink to={publicPath('/')} reloadDocument={adminHost} end>Giới thiệu</NavLink><NavLink to={publicPath('/projects')} reloadDocument={adminHost}>Dự án</NavLink><NavLink to={publicPath('/assessment')} reloadDocument={adminHost}>Đánh giá quỹ đất <span aria-hidden="true">↗</span></NavLink></nav>
-    </header>
+    </header> : null}
     <main id="main" ref={main} tabIndex={-1}>
       {loading ? <div className="portal-state container" role="status">Đang tải nội dung…</div>
         : error ? <div className="portal-state container" role="alert"><h1>Chưa tải được nội dung</h1><p>{error}</p><button type="button" className="button primary" onClick={retry}>Thử lại</button></div>
@@ -56,6 +60,6 @@ export function Layout() {
           {!isAssessment ? <Outlet /> : null}
         </>}
     </main>
-    <footer className="site-footer"><div className="container footer-content"><Link className="footer-brand" to={publicPath('/')} reloadDocument={adminHost}>Quỹ đất<span>NGHIÊN CỨU & ỨNG DỤNG</span></Link><Link className="text-link" to={publicPath('/')} reloadDocument={adminHost}><span aria-hidden="true">←</span> Về trang giới thiệu</Link></div></footer>
+    {!hideChrome ? <footer className="site-footer"><div className="container footer-content"><Link className="footer-brand" to={publicPath('/')} reloadDocument={adminHost}>Quỹ đất<span>NGHIÊN CỨU & ỨNG DỤNG</span></Link><Link className="text-link" to={publicPath('/')} reloadDocument={adminHost}><span aria-hidden="true">←</span> Về trang giới thiệu</Link></div></footer> : null}
   </>;
 }

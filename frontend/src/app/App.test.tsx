@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useNavigate } from 'react-router';
 import { App } from './App';
 import contentFile from '../../../config/public_content.json';
 import catalogFile from '../../../config/projects.json';
@@ -40,7 +40,9 @@ function mockAPI({ legacy = true, fail = false } = {}) {
   return fetcher;
 }
 
-function mount(path = '/') { return render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>); }
+let navigateTo: ReturnType<typeof useNavigate>;
+function TestApp() { navigateTo = useNavigate(); return <App />; }
+function mount(path = '/') { return render(<MemoryRouter initialEntries={[path]}><TestApp /></MemoryRouter>); }
 
 describe('React portal shell', () => {
   it('loads the introduction through read-only APIs with three main destinations', async () => {
@@ -75,12 +77,15 @@ describe('React portal shell', () => {
     expect(screen.queryAllByRole('link', { name: /^Khám phá dự án:/ })).toHaveLength(0);
     await user.click(screen.getByRole('link', { name: /Đi đến công cụ đánh giá:/ }));
     expect(await screen.findByTitle('Công cụ đánh giá quỹ đất')).toBeTruthy();
-    expect(screen.getByRole('banner')).toBe(header);
+    expect(screen.queryByRole('banner')).toBeNull();
     expect(screen.getByTitle('Công cụ đánh giá quỹ đất').getAttribute('src')).toBe('/legacy/?embedded=1');
-    expect(screen.getByRole('contentinfo')).toBeTruthy();
+    expect(screen.queryByRole('contentinfo')).toBeNull();
+    expect(document.documentElement.style.getPropertyValue('--site-header-height')).toBe('0px');
     const frame = screen.getByTitle('Công cụ đánh giá quỹ đất');
-    await user.click(within(screen.getByRole('navigation')).getByRole('link', { name: 'Dự án' }));
+    act(() => { navigateTo('/projects'); });
     expect(await screen.findByRole('heading', { name: 'Khám phá các dự án' })).toBeTruthy();
+    expect(screen.getByRole('banner')).toBeTruthy();
+    expect(screen.getByRole('contentinfo')).toBeTruthy();
     expect(screen.getByTitle('Công cụ đánh giá quỹ đất')).toBe(frame);
     await user.click(within(screen.getByRole('navigation')).getByRole('link', { name: /Đánh giá quỹ đất/ }));
     expect(screen.getByTitle('Công cụ đánh giá quỹ đất')).toBe(frame);
@@ -90,6 +95,8 @@ describe('React portal shell', () => {
     const fetcher = mockAPI(); mount('/projects/phu-quoc');
     expect(await screen.findByRole('heading', { name: 'TP Phú Quốc' })).toBeTruthy();
     expect(await screen.findByLabelText('Bản đồ lưới dự án')).toBeTruthy();
+    expect(screen.queryByRole('banner')).toBeNull();
+    expect(screen.queryByRole('contentinfo')).toBeNull();
     expect(screen.getByText('2 ô lưới · 1 ô có nhãn Y')).toBeTruthy();
     expect(fetcher.mock.calls.some(([url]) => String(url).includes('/projects/phu-quoc/map?source_crs=EPSG%3A9208'))).toBe(true);
     expect(screen.queryByRole('button', { name: /dự đoán/i })).toBeNull();

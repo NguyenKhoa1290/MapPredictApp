@@ -548,3 +548,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Chặn kết quả đọc file cookie cũ điền sang tài khoản khác, trạng thái định kỳ không ghi đè cấu hình đang nhập
 - 151 kiểm thử Python, 43 kiểm thử frontend và build TypeScript đã đạt
 - Bổ sung Gmail cho một hồ sơ nhập cũ sau khi đối chiếu khớp mã băm cookie và chỉ số tài khoản với hồ sơ tham khảo, hồ sơ chưa khớp giữ Chưa xác định
+
+## 2026-10-28 Bỏ header và footer tại trang làm việc
+
+- Trang xem bản đồ dự án và công cụ đánh giá AI không hiển thị header, footer của portal
+- Bỏ phần chiều cao dự phòng cho header tại các trang này để bản đồ dùng hết chiều cao
+- Trang giới thiệu, danh sách dự án và quản trị vẫn giữ bố cục chung
+- Chuyển trang vẫn giữ iframe đánh giá và dữ liệu đang làm việc
+- 43 kiểm thử frontend và build TypeScript đã đạt
