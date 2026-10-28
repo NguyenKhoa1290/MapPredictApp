@@ -9,6 +9,60 @@ const historyContext = vm.createContext({ Blob, structuredClone });
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../wwwroot/workspace_store.js'), 'utf8'), historyContext);
 const WorkspaceHistory = historyContext.WorkspaceHistory;
 
+test('joined parcel clicks show a safe name popup without zoom while base layer clicks still zoom', () => {
+    const path = require('node:path');
+    const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
+    const html = read('templates/index.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+    const dom = new JSDOM(html, { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
+    const w = dom.window;
+    const fits = [], cells = [];
+    const bounds = () => ({ isValid: () => true, extend() { return this; } });
+    w.map = { removeLayer() {}, getSize: () => ({ x: 1200 }), fitBounds: (...args) => fits.push(args) };
+    w.L = { latLngBounds: bounds, geoJSON(data, options) {
+        const children = data.features.map(feature => {
+            const layer = { listeners: {}, on(name, handler) { this.listeners[name] = handler; },
+                bindPopup(content, options) { this.popup = { content, options }; }, setStyle() {}, getBounds: bounds };
+            cells.push(layer); options.onEachFeature(feature, layer); return layer;
+        });
+        return { getBounds: bounds, getLayers: () => children, hasLayer: () => true, addTo() {}, addLayer() {}, removeLayer() {} };
+    } };
+    try {
+        w.eval(`const $ = id => document.getElementById(id); let overlays = [], cadFiles = [], predictionFiles = [], pendingMapBounds = null;\n`
+            + read('wwwroot/color_adjustments.js') + '\n' + read('wwwroot/layer_manager.js'));
+        const feature = properties => ({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [] }, properties });
+        const item = (kind, properties, join = 'grid_id') => ({ kind, name: kind, source_id: kind, crs: 'EPSG:9208',
+            data: { features: [feature(properties)], join_summary: { layer_join: join } } });
+        w.renderManagedLayers([
+            item('prediction', { result_key: 'TP01', grid_id: '1', Y: 2 }),
+            item('base', { layer: 'terrain' }),
+        ]);
+        fits.length = 0;
+        assert.equal(cells[0].popup.content.textContent, 'TP01');
+        assert.equal(cells[0].popup.options.autoPan, false);
+        assert.equal(cells[1].popup, undefined);
+        cells[0].listeners.click();
+        assert.equal(fits.length, 0);
+        assert.equal(w.document.getElementById('layer-inspector').hidden, false);
+        assert.match(w.document.getElementById('feature-details').textContent, /TP01/);
+        w.closeLayerInspector();
+        cells[1].listeners.click();
+        assert.equal(fits.length, 1);
+        fits.length = 0;
+        w.document.querySelector('[data-layer-id="prediction"] .cad-action').click();
+        assert.equal(fits.length, 1); // Explicit "Den layer" remains available.
+        const overlay = { item: item('prediction', {}, 'parcel_name') };
+        for (const [properties, expected] of [
+            [{ tenlodat: 'Lô 02', result_key: 'TP02' }, 'Lô 02'],
+            [{ grid_id: 0 }, '0'], [{ parcel_name: 'A3' }, 'A3'], [{}, 'Lô đất chưa có tên'],
+        ]) assert.equal(w.parcelPopupName(overlay, feature(properties)), expected);
+        const unsafe = '<img src=x onerror=alert(1)>';
+        w.renderManagedLayers([item('prediction', { result_key: unsafe })]);
+        const popup = cells.at(-1).popup.content;
+        assert.equal(popup.textContent, unsafe);
+        assert.equal(popup.querySelector('img'), null);
+    } finally { w.close(); }
+});
+
 test('real workspace restores DXF, empty CSV input and table across confirm undo redo', async () => {
     const path = require('node:path');
     const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');

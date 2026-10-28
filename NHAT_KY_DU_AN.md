@@ -1,5 +1,12 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-28 Popup tên lô trên layer ghép
+
+- Bấm ô trên layer prediction hiện popup nhỏ tên lô, dùng tenlodat, mã dữ liệu đã ghép hoặc mã lưới, không tự zoom và không tự kéo bản đồ
+- Tiếp tục mở bảng thuộc tính của ô được chọn, giữ thao tác zoom khi bấm layer nền hoặc nút Đến layer
+- Tên lô được hiển thị bằng textContent để không thực thi HTML từ dữ liệu, có nhãn thay thế cho ô chưa có tên
+- Kiểm thử click từng loại layer, nút zoom riêng, tên từ các trường dữ liệu và nội dung HTML trong tên lô
+
 ## 2026-10-28 Agent chỉnh cấu trúc và giá trị CSV
 
 - Bổ sung table_edits cho CSV đang nạp ở tab dự đoán, gồm set_cell, delete_row và delete_column, tối đa 200 thao tác mỗi lượt trên các dòng đã gửi trong ngữ cảnh

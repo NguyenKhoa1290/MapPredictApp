@@ -602,3 +602,4 @@ body.workspace-mode .workspace-panel { height: 100%; min-height: 0; }
     .prediction-empty { padding: 12px; overflow: auto; }
 }
 
+.parcel-name-popup .leaflet-popup-content { margin:8px 12px; font-size:14px; line-height:1.5; overflow-wrap:anywhere; }

@@ -20,6 +20,14 @@ function componentLabel(group) {
     return group.name === "Kết quả Y = Chưa có" ? "Chưa có dữ liệu" : group.name;
 }
 
+function parcelPopupName(overlay, feature) {
+    const properties = feature.properties || {};
+    const keys = ['tenlodat', 'attr:tenlodat', 'code', 'result_key', 'grid_id', overlay.item.data.join_summary?.layer_join];
+    const value = keys.map(key => properties[key]).find(value =>
+        value != null && ['string', 'number'].includes(typeof value) && String(value).trim());
+    return value == null ? 'Lô đất chưa có tên' : String(value);
+}
+
 function managedStyle(overlay, feature, adjustColors = true) {
     const group = overlay.groups.get(componentKey(overlay, feature));
     const style = { ...overlay.style, ...group?.style };
@@ -95,8 +103,14 @@ function renderManagedLayers(items, savedLayers = null) {
             onEachFeature: (feature, layer) => {
                 const record = { feature, layer, group: componentKey(overlay, feature), index: overlay.records.length };
                 overlay.records.push(record);
+                if (item.kind === 'prediction') {
+                    const name = document.createElement('span');
+                    name.className = 'parcel-popup-name';
+                    name.textContent = parcelPopupName(overlay, feature);
+                    layer.bindPopup(name, { className: 'parcel-name-popup', minWidth: 70, maxWidth: 220, autoPan: false });
+                }
                 layer.on("click", () => {
-                    selectManagedLayer(overlay.id, record.group);
+                    selectManagedLayer(overlay.id, record.group, item.kind !== 'prediction');
                     inspectFeature(overlay, record);
                 });
             },
@@ -157,7 +171,7 @@ function closeLayerInspector() {
     for (const card of document.querySelectorAll(".layer-card")) card.classList.remove("selected");
 }
 
-function selectManagedLayer(id, scope = "") {
+function selectManagedLayer(id, scope = "", zoom = true) {
     const overlay = overlays.find((entry) => entry.id === id);
     if (!overlay) return;
     const changed = selectedLayerId !== id;
@@ -180,7 +194,7 @@ function selectManagedLayer(id, scope = "") {
     for (const card of document.querySelectorAll(".layer-card")) card.classList.toggle("selected", card.dataset.layerId === id);
     renderStyleEditor(overlay); renderComponents(overlay); renderAttributes(overlay);
     renderColorAdjustments(overlay);
-    if (opening) fitManagedBounds(overlay.bounds);
+    if (opening && zoom) fitManagedBounds(overlay.bounds);
 }
 
 function currentOverlay() { return overlays.find((overlay) => overlay.id === selectedLayerId); }
