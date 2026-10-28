@@ -105,7 +105,6 @@ class AccountStore:
         session = GoogleSession(path)
         bodies = rpc_bodies(session.request_rpc('otAQ7b', source='/app'), 'otAQ7b')
         routes = None
-        fast_models, fast_headers = {}, {}
         for body in bodies:
             if not isinstance(body, list) or len(body) <= 17 or not isinstance(body[15], list):
                 continue
@@ -128,9 +127,7 @@ class AccountStore:
                     return model[index] if len(model) > index else None
                 category = value(1) or value(10) or ''
                 display = value(11) or value(19) or category
-                is_argon = 'argon' in (str(category) + ' ' + str(display)).casefold()
-                is_flash = str(category).casefold() == 'flash'
-                if not is_argon and not is_flash:
+                if 'argon' not in (str(category) + ' ' + str(display)).casefold():
                     continue
                 number = value(17) if type(value(17)) is int else value(9)
                 if type(number) is not int or not isinstance(value(0), str):
@@ -139,21 +136,13 @@ class AccountStore:
                 header[field - 1] = capacity
                 headers = {str(number): {'x-goog-ext-525001261-jspb': json.dumps(header),
                                         'x-goog-ext-73010989-jspb': '[0]', 'x-goog-ext-73010990-jspb': '[0,0,0]'}}
-                if is_argon:
-                    routes = ({'gemini-4-argon': {'mode': number, 'think': 1, 'desc': str(display)}}, headers)
-                else:
-                    fast_models = {name: {'mode': number, 'think': 1, 'desc': str(display)}
-                                   for name in ('gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash')}
-                    fast_headers = headers
+                routes = ({'gemini-4-argon': {'mode': number, 'think': 1, 'desc': str(display)}}, headers)
         with private_lock(path.with_suffix('.lock')):
             config = json.loads(path.read_text(encoding='utf-8'))
             config['model_available'] = routes is not None
             config['model_checked_at'] = time.time()
             if routes:
                 config['extra_models'], config['model_headers'] = routes
-            if fast_models:
-                config.setdefault('extra_models', {}).update(fast_models)
-                config.setdefault('model_headers', {}).update(fast_headers)
             write_json(path, config)
         return routes is not None
 

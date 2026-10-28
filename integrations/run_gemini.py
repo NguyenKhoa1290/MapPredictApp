@@ -75,13 +75,6 @@ class ManagedGeminiHandler(GeminiHandler):
     def _handle_chat(self, body):
         request = self._parse_body(body)
         if not isinstance(request, dict) or request.get('model') != ARGON:
-            if isinstance(request, dict) and request.get('model') in ('gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash'):
-                try:
-                    with pool.fast_profile(request['model']):
-                        return super()._handle_chat(body)
-                except QuotaRejected as error:
-                    self.send_json(error.response(), error.status)
-                    return
             return super()._handle_chat(body)
         try:
             thinking_depth(request.get('reasoning_effort'), 1)

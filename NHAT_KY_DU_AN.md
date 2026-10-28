@@ -1,5 +1,13 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-29 Kết luận kiểm chứng effort theo phản hồi Google
+
+- Argon đã trả applied_level=1, 4 và 2 tương ứng Low, Medium và High trong ba lượt gọi thật, cùng trả lời đúng bài tính 137 nhân 149
+- Flash route legacy trả applied_level=1 ngay cả khi yêu cầu 4 hoặc 2, thử route Flash có định danh tài khoản bị timeout nên bỏ thử nghiệm đó và khôi phục đường Nhanh ổn định
+- Giao diện và API chỉ cho Nhanh chọn Mặc định hoặc Thấp, Thông minh giữ cả ba mức và không tự chuyển model, provider compatible vẫn chuyển reasoning_effort theo cấu hình
+- Lưu lựa chọn Cao cho Thông minh khi chuyển qua Nhanh rồi trở lại, báo rõ giới hạn bằng tooltip và lỗi EFFORT_UNSUPPORTED thay vì giả định mọi model hỗ trợ
+- Kết quả này thay thế nhận định ban đầu rằng ba mức của cả hai model đã hoạt động chỉ vì kiểm thử truyền tham số thành công
+
 ## 2026-10-28 Kiểm tra effort thật và sửa giao thức Gemini Web
 
 - Sau triển khai lần đầu, Google đã báo applied_level đúng 1/4/2 cho cả ba mức của Argon, nhưng Flash ở route cũ vẫn báo 1 khi yêu cầu 4 hoặc 2

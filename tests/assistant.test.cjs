@@ -447,21 +447,42 @@ test('chat sends the chosen model mode without an arbitrary model or endpoint', 
     } finally { f.close(); }
 });
 
-test('effort preference persists and is sent in Fast mode without replacing the model', async () => {
+test('supported Fast effort persists and is sent without replacing the model', async () => {
     const f = fixture();
     try {
         assert.equal(f.get('effort').value, 'auto');
-        f.get('effort').value = 'medium';
+        assert.equal([...f.get('effort').options].find(option => option.value === 'medium').disabled, true);
+        f.get('effort').value = 'low';
         f.get('effort').dispatchEvent(new f.window.Event('change'));
-        assert.equal(f.window.localStorage.getItem('mapPredict.assistant.effort.v1'), 'medium');
+        assert.equal(f.window.localStorage.getItem('mapPredict.assistant.effort.v1'), 'low');
         // Reinitialize as a page reload would, retaining browser storage.
         f.window.document.querySelector('.assistant-root').remove();
         f.window.eval(script);
-        assert.equal(f.get('effort').value, 'medium');
+        assert.equal(f.get('effort').value, 'low');
         await f.submit();
         const form = f.calls.find(call => call.url.endsWith('/preview')).options.body;
-        assert.equal(form.get('effort'), 'medium');
+        assert.equal(form.get('effort'), 'low');
         assert.equal(form.get('mode'), 'fast');
+    } finally { f.close(); }
+});
+
+test('Smart keeps High while switching to Fast only permits verified Low effort', async () => {
+    const f = fixture();
+    try {
+        f.get('mode').value = 'smart';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        const high = [...f.get('effort').options].find(option => option.value === 'high');
+        assert.equal(high.disabled, false);
+        f.get('effort').value = 'high';
+        f.get('effort').dispatchEvent(new f.window.Event('change'));
+        f.get('mode').value = 'fast';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        assert.equal(high.disabled, true);
+        assert.equal(f.get('effort').value, 'auto');
+        f.get('mode').value = 'smart';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        assert.equal(high.disabled, false);
+        assert.equal(f.get('effort').value, 'high');
     } finally { f.close(); }
 });
 

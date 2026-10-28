@@ -55,9 +55,28 @@ class AssistantTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.json['error']['code'], 'INVALID_EFFORT')
                 model.assert_not_called()
+            elif effort in ('medium', 'high'):
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json['error']['code'], 'EFFORT_UNSUPPORTED')
+                model.assert_not_called()
             else:
                 self.assertEqual(response.status_code, 200, response.json)
                 self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
+
+    def test_smart_accepts_all_levels_and_status_reports_real_route_capabilities(self):
+        from backend.map_predict.services import ai_settings
+        with patch.object(ai_settings, 'argon_availability', return_value='ready'):
+            modes = {row['id']: row for row in self.client.get('/api/v1/assistant/status').json['data']['modes']}
+        self.assertEqual(modes['fast']['efforts'], ['auto', 'low'])
+        self.assertEqual(modes['smart']['efforts'], ['auto', 'low', 'medium', 'high'])
+        for effort in ('auto', 'low', 'medium', 'high'):
+            RATES.clear()
+            with patch.object(ai_settings, 'require_argon_cookie'), patch.object(ai_settings, 'authorize_pro'), \
+                    patch.object(assistant, 'call_model', return_value={'answer': 'ok'}) as model:
+                response = self.client.post('/api/v1/assistant/preview', data={'scope': 'map', 'message': 'hello',
+                                            'web': 'false', 'mode': 'smart', 'effort': effort})
+            self.assertEqual(response.status_code, 200, response.json)
+            self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
 
     def test_passcode_confirmation_checks_service_hash_without_model_or_files(self):
         from backend.map_predict.services.ai_settings import set_passcode

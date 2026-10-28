@@ -174,13 +174,20 @@ def save(config, incoming):
         return public(result)
 
 
+def supported_efforts(row):
+    # Gemini Web's legacy Flash route reports Low for every supplied level.
+    # Only Argon has been verified with upstream applied_level=1/4/2.
+    return ['auto', 'low'] if row['provider'] == 'gemini' and not is_argon(row['model']) else ['auto', 'low', 'medium', 'high']
+
+
 def model_config(config, mode='fast'):
     if mode not in ('fast', 'smart'):
         raise PredictionError('INVALID_MODEL_MODE', 'Chọn chế độ Nhanh hoặc Thông minh', 400)
     row = load(config)['models'][mode]
     result = dict(config)
     result.update(ASSISTANT_MODEL=row['model'], ASSISTANT_PROVIDER=row['provider'],
-                  ASSISTANT_API_KEY=row.get('api_key', ''), ASSISTANT_RETRIEVAL_MODE='keyword')
+                  ASSISTANT_API_KEY=row.get('api_key', ''), ASSISTANT_RETRIEVAL_MODE='keyword',
+                  ASSISTANT_SUPPORTED_EFFORTS=supported_efforts(row))
     if row['provider'] == 'compatible':
         result['ASSISTANT_URL'] = row['url']
     return result

@@ -25,16 +25,28 @@
         if (['auto', 'low', 'medium', 'high'].includes(saved)) get('effort').value = saved;
     } catch { /* Chat still works without persistence. */ }
     get('effort').addEventListener('change', () => {
+        preferredEffort = get('effort').value;
         try { localStorage.setItem(effortKey, get('effort').value); } catch { /* Optional preference. */ }
     });
     let history = [], pending = null, controller = null, busy = false;
     let protectedModes = new Set(['smart']);
     let unavailableModes = new Map();
+    let preferredEffort = get('effort').value;
+    let effortModes = new Map([['fast', ['auto', 'low']], ['smart', ['auto', 'low', 'medium', 'high']]]);
+    function updateEfforts() {
+        const allowed = effortModes.get(get('mode').value) || ['auto', 'low'];
+        for (const option of get('effort').options) option.disabled = !allowed.includes(option.value);
+        get('effort').value = allowed.includes(preferredEffort) ? preferredEffort : 'auto';
+        get('effort').title = allowed.includes('high') ? 'Mức độ suy nghĩ của model'
+            : 'API Web Nhanh hiện chỉ áp dụng mức Thấp, dùng Thông minh để chọn Trung bình hoặc Cao';
+    }
+    updateEfforts();
     let verifiedPasscode = '', authorizing = false;
     function updatePasscode() {
         get('passcode-label').hidden = !!verifiedPasscode || !protectedModes.has(get('mode').value) || unavailableModes.has(get('mode').value);
     }
     get('mode').addEventListener('change', () => {
+        updateEfforts();
         updatePasscode();
         get('passcode').value = '';
         notice.textContent = unavailableModes.get(get('mode').value) || '';
@@ -256,6 +268,9 @@
     fetch('/api/v1/assistant/status').then(response => response.json()).then(payload => {
         if (!payload.data?.enabled) notice.textContent = 'Chatbot chưa được bật trên máy chủ';
         if (Array.isArray(payload.data?.modes)) {
+            effortModes = new Map(payload.data.modes.map(mode => [mode.id, Array.isArray(mode.efforts) ? mode.efforts
+                : mode.id === 'smart' ? ['auto', 'low', 'medium', 'high'] : ['auto', 'low']]));
+            updateEfforts();
             protectedModes = new Set(payload.data.modes.filter(mode => mode.requires_passcode).map(mode => mode.id));
             unavailableModes = new Map(payload.data.modes.filter(mode => mode.availability === 'cookie_required').map(mode => [mode.id, mode.message || 'Thông minh chưa có cookie hợp lệ, hãy cập nhật trong quản trị']));
             updatePasscode();
