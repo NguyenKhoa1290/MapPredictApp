@@ -8,17 +8,25 @@
         <header class="assistant-header"><div><strong>Trợ lý GIS</strong><small>DXF và tiêu chí đánh giá</small></div><button type="button" class="assistant-close" aria-label="Thu nhỏ trợ lý">×</button></header>
         <div class="assistant-messages" role="log" aria-live="polite"></div>
         <label class="assistant-mode-label">Chế độ trả lời<select class="assistant-mode"><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select></label>
+        <label class="assistant-effort-label">Effort<select class="assistant-effort" title="Mức độ suy nghĩ của model"><option value="auto">Mặc định</option><option value="low">Thấp</option><option value="medium">Trung bình</option><option value="high">Cao</option></select></label>
         <label class="assistant-passcode-label" hidden>Passcode Thông minh<input class="assistant-passcode" type="password" maxlength="128" autocomplete="off" placeholder="Passcode do quản trị cấp"></label>
         <div class="assistant-preview" hidden></div>
-        <div class="assistant-history-slot"></div>
         <div class="assistant-notice" role="status"></div>
-        <form class="assistant-form"><label class="sr-only" for="assistant-question">Yêu cầu với trợ lý</label><textarea id="assistant-question" rows="2" maxlength="4000" placeholder="Đọc DXF, chỉnh layer hoặc đề xuất điểm cho ô đất" required></textarea><div><button type="submit">Gửi</button><button class="assistant-stop" type="button" hidden>Dừng chờ</button><button class="assistant-clear" type="button">Xóa hội thoại</button></div></form>
+        <form class="assistant-form"><label class="sr-only" for="assistant-question">Yêu cầu với trợ lý</label><textarea id="assistant-question" rows="2" maxlength="4000" placeholder="Đọc DXF, chỉnh layer hoặc đề xuất điểm cho ô đất" required></textarea><div class="assistant-actions"><div class="assistant-history-slot"></div><button type="submit">Gửi</button><button class="assistant-stop" type="button" hidden>Dừng chờ</button><button class="assistant-clear" type="button">Xóa hội thoại</button></div></form>
       </section>`;
     document.body.append(root);
     const get = selector => root.querySelector('.assistant-' + selector);
     const launcher = get('launcher'), panel = get('window');
     const messages = get('messages'), notice = get('notice'), preview = get('preview');
     const historyKey = 'mapPredict.assistant.history.v1';
+    const effortKey = 'mapPredict.assistant.effort.v1';
+    try {
+        const saved = localStorage.getItem(effortKey);
+        if (['auto', 'low', 'medium', 'high'].includes(saved)) get('effort').value = saved;
+    } catch { /* Chat still works without persistence. */ }
+    get('effort').addEventListener('change', () => {
+        try { localStorage.setItem(effortKey, get('effort').value); } catch { /* Optional preference. */ }
+    });
     let history = [], pending = null, controller = null, busy = false;
     let protectedModes = new Set(['smart']);
     let unavailableModes = new Map();
@@ -148,6 +156,7 @@
         }
         form.append('message', question); form.append('history', JSON.stringify(history.slice(-6)));
         form.append('mode', get('mode').value);
+        form.append('effort', get('effort').value);
         form.append('start', '1');
         form.append('web', 'true'); form.append('crs', window.assistantWorkspace.crs() || '');
         clearPreview(); message('user', question); textarea.value = '';

@@ -47,11 +47,20 @@ MODELS = {
 }
 
 
-def resolve_model(model_name: str, default: str = "gemini-3.6-flash"):
+def thinking_depth(effort, default):
+    # Same web-protocol depths as the supplied gemini-agent server.
+    # These are not Gemini API thinking_level values.
+    if effort is None:
+        return default
+    if not isinstance(effort, str) or effort not in ('low', 'medium', 'high'):
+        raise ValueError('Invalid reasoning_effort; use low, medium, or high')
+    return {'low': 4, 'medium': 2, 'high': 0}[effort]
+
+
+def resolve_model(model_name: str, default: str = "gemini-3.6-flash", effort=None):
     """Resolve model name to (name, mode_id, think_mode, error, extra_fields).
 
-    Unknown model names fall back to default rather than erroring,
-    since upstream clients may request arbitrary model identifiers.
+    Unknown model names fail without routing to a different model.
     """
     think_override = None
     if "@think=" in model_name:
@@ -68,5 +77,9 @@ def resolve_model(model_name: str, default: str = "gemini-3.6-flash"):
         return None, None, None, 'Model cần tài khoản và quota đã xác minh', None
     mode_id = cfg["mode"]
     think_mode = think_override if think_override is not None else cfg["think"]
+    try:
+        think_mode = thinking_depth(effort, think_mode)
+    except ValueError as error:
+        return None, None, None, str(error), None
     extra = cfg.get("extra")
     return model_name, mode_id, think_mode, None, extra

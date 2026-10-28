@@ -1,5 +1,12 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-28 Effort và nút lịch sử trong chat
+
+- Thêm lựa chọn Effort gồm mặc định, thấp, trung bình và cao, tự lưu lựa chọn trên trình duyệt
+- Áp dụng riêng cho từng yêu cầu của cả Nhanh và Thông minh, dùng ánh xạ web-protocol low=4, medium=2, high=0 từ server tham khảo gemini-agent, không đổi model hoặc hạ cấp Thông minh
+- Đổi Hoàn tác và Làm lại thành hai biểu tượng mũi tên vòng đặt ngay cạnh nút Gửi, giữ nhãn hỗ trợ truy cập, tooltip và lịch sử DXF/CSV
+- Kiểm thử giá trị effort từ giao diện qua API đến hàm generate của từng route, từ chối giá trị không hợp lệ và giữ cấu hình model mặc định khi không chọn effort
+
 ## 2026-10-28 Rút gọn cụm local theo yêu cầu
 
 - Người dùng xác nhận chỉ thử nghiệm production giả lập trên máy, chưa dùng VPS, có backup riêng và không cần snapshot hoặc nhiều phiên chạy

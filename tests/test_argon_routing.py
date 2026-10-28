@@ -4,7 +4,7 @@ import sys
 import tempfile
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 class ArgonRoutingTests(unittest.TestCase):
@@ -139,6 +139,39 @@ class ArgonRoutingTests(unittest.TestCase):
         from gemini_web2api.models import resolve_model
         self.assertIsNotNone(resolve_model('unknown-pro-model')[3])
         self.assertIsNotNone(resolve_model('gemini-4-argon')[3])
+
+    def test_chat_effort_reaches_generation_for_both_routes_without_downgrade(self):
+        import importlib.util
+        import gemini_web2api
+        spec = importlib.util.spec_from_file_location('effort_test_runner',
+                    Path(gemini_web2api.__file__).resolve().parent.parent / 'run_gemini.py')
+        runner = importlib.util.module_from_spec(spec)
+        with patch('pathlib.Path.read_text', return_value='test-internal-key'), \
+                patch('gemini_web2api.session_manager.SessionManager'), \
+                patch('gemini_web2api.account_pool.AccountPool'):
+            spec.loader.exec_module(runner)
+        runner.pool.run.side_effect = lambda callback: callback(71, 4)
+        handler = object.__new__(runner.ManagedGeminiHandler)
+        handler.send_json = Mock()
+        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71)):
+            for effort, depth in ((None, 4), ('low', 4), ('medium', 2), ('high', 0)):
+                with self.subTest(model=model, effort=effort):
+                    handler.send_json.reset_mock()
+                    body = {'model': model, 'messages': [{'role': 'user', 'content': 'hello'}]}
+                    if effort is not None:
+                        body['reasoning_effort'] = effort
+                    with patch('gemini_web2api.server.generate', return_value='fast') as fast, \
+                            patch.object(runner, 'generate', return_value='smart') as smart:
+                        handler._handle_chat(json.dumps(body).encode())
+                    called, untouched = (smart, fast) if model == 'gemini-4-argon' else (fast, smart)
+                    self.assertEqual(called.call_args.args[1:3], (mode, depth))
+                    untouched.assert_not_called()
+                    self.assertEqual(handler.send_json.call_args.args[0]['model'], model)
+            with patch('gemini_web2api.server.generate') as fast, patch.object(runner, 'generate') as smart:
+                handler._handle_chat(json.dumps({'model': model, 'reasoning_effort': 'invalid'}).encode())
+                self.assertEqual(handler.send_json.call_args.args[1], 400)
+                fast.assert_not_called()
+                smart.assert_not_called()
 
     def test_quota_requires_both_finite_windows(self):
         from gemini_web2api.quota_guard import QuotaGuard, QuotaRejected

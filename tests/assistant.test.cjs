@@ -42,6 +42,15 @@ test('real workspace restores DXF, empty CSV input and table across confirm undo
         w.eval(code);
         for (let i = 0; i < 40 && !w.workspacePersistence.ready; i++) await tick();
         assert.equal(w.workspacePersistence.ready, true);
+        w.eval(script);
+        const historySlot = w.document.querySelector('.assistant-actions .assistant-history-slot');
+        assert.equal(historySlot.nextElementSibling.type, 'submit');
+        for (const action of ['undo', 'redo']) {
+            const control = historySlot.querySelector(`[data-action="${action}"]`);
+            assert.ok(control.querySelector('svg[aria-hidden="true"]'));
+            assert.ok(control.getAttribute('aria-label'));
+            assert.equal(control.textContent, '');
+        }
         w.seedResources();
         const originalCheckpoint = w.workspacePersistence.checkpoint();
         await w.assistantWorkspace.stage({ sourceId: 'cad-1', original: w.assistantWorkspace.sources()[0].file,
@@ -57,7 +66,7 @@ test('real workspace restores DXF, empty CSV input and table across confirm undo
         assert.equal(savedHistory.past.length, 1);
         assert.equal(savedHistory.past[0].before.assets.has('history:assistant'), false);
         w.assistantWorkspace.restoreHistory(w.structuredClone(savedHistory));
-        w.document.querySelector('[data-action="undo"]').click();
+        w.document.querySelector('[data-action="undo"] svg').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
         await tick();
         assert.equal(w.inspectResources().name, 'base.dxf');
         assert.equal(w.inspectResources().csv, undefined);
@@ -331,12 +340,32 @@ test('chat sends the chosen model mode without an arbitrary model or endpoint', 
     const f = fixture();
     try {
         f.get('mode').value = 'smart';
+        f.get('effort').value = 'high';
         f.get('passcode').value = 'temporary-smart-code';
         await f.submit();
         const request = f.calls.find(call => call.url.endsWith('/preview'));
         assert.equal(request.options.body.get('mode'), 'smart');
+        assert.equal(request.options.body.get('effort'), 'high');
         assert.equal(request.options.body.get('model'), null);
         assert.equal(request.options.body.get('url'), null);
+    } finally { f.close(); }
+});
+
+test('effort preference persists and is sent in Fast mode without replacing the model', async () => {
+    const f = fixture();
+    try {
+        assert.equal(f.get('effort').value, 'auto');
+        f.get('effort').value = 'medium';
+        f.get('effort').dispatchEvent(new f.window.Event('change'));
+        assert.equal(f.window.localStorage.getItem('mapPredict.assistant.effort.v1'), 'medium');
+        // Reinitialize as a page reload would, retaining browser storage.
+        f.window.document.querySelector('.assistant-root').remove();
+        f.window.eval(script);
+        assert.equal(f.get('effort').value, 'medium');
+        await f.submit();
+        const form = f.calls.find(call => call.url.endsWith('/preview')).options.body;
+        assert.equal(form.get('effort'), 'medium');
+        assert.equal(form.get('mode'), 'fast');
     } finally { f.close(); }
 });
 

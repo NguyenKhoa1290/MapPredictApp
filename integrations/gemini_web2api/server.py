@@ -179,7 +179,7 @@ class GeminiHandler(BaseHTTPRequestHandler):
             self.send_json({"error": {"message": "invalid JSON"}}, 400)
             return
         model_name, model_id, think_mode, err, extra_fields = resolve_model(
-            req.get("model", CONFIG["default_model"]))
+            req.get("model", CONFIG["default_model"]), effort=req.get('reasoning_effort'))
         if err:
             self.send_json({"error": {"message": err}}, 400)
             return

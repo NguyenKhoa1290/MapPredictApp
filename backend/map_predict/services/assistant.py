@@ -190,8 +190,11 @@ def rules(document):
 
 def call_model(messages, config):
     base = config['ASSISTANT_URL'].rstrip('/')
-    body = json.dumps({'model': config['ASSISTANT_MODEL'], 'messages': messages,
-                       'temperature': 0.1, 'stream': False}, ensure_ascii=False).encode()
+    payload = {'model': config['ASSISTANT_MODEL'], 'messages': messages,
+               'temperature': 0.1, 'stream': False}
+    if config.get('ASSISTANT_EFFORT', 'auto') != 'auto':
+        payload['reasoning_effort'] = config['ASSISTANT_EFFORT']
+    body = json.dumps(payload, ensure_ascii=False).encode()
     headers = {'Content-Type': 'application/json'}
     path = config.get('ASSISTANT_SECRET_FILE')
     if config.get('ASSISTANT_PROVIDER') == 'compatible':
@@ -334,6 +337,10 @@ def new_table(value):
 def preview(path, dxf, csv, options, config, resources=None):
     from .ai_settings import model_config
     config = model_config(config, options.get('mode', 'fast'))
+    effort = options.get('effort', 'auto')
+    if effort not in ('auto', 'low', 'medium', 'high'):
+        raise PredictionError('INVALID_EFFORT', 'Chọn effort mặc định, thấp, trung bình hoặc cao', 400)
+    config['ASSISTANT_EFFORT'] = effort
     from .ai_settings import authorize_pro, require_argon_cookie
     require_argon_cookie(config)
     authorize_pro(config, options.get('passcode', ''))

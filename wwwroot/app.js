@@ -897,11 +897,11 @@ const assistantHistory = new WorkspaceHistory({
 });
 const historyBar = document.createElement('div');
 historyBar.className = 'assistant-history-bar';
-historyBar.innerHTML = `<span role="status" aria-live="polite">Lịch sử chỉnh sửa AI</span>
+historyBar.innerHTML = `<span class="sr-only" role="status" aria-live="polite">Lịch sử chỉnh sửa AI</span>
     <button type="button" data-action="confirm" hidden>Xác nhận thay đổi</button>
     <button type="button" data-action="discard" hidden>Bỏ bản nháp</button>
-    <button type="button" data-action="undo" disabled>Hoàn tác</button>
-    <button type="button" data-action="redo" disabled>Làm lại</button>`;
+    <button type="button" data-action="undo" aria-label="Hoàn tác" title="Hoàn tác" disabled><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg></button>
+    <button type="button" data-action="redo" aria-label="Làm lại" title="Làm lại" disabled><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 10a9 9 0 1 0-2 8M21 4v6h-6"/></svg></button>`;
 document.querySelector('.workspace-header').append(historyBar);
 function updateAssistantHistory() {
     if (typeof historyBar === 'undefined') return;
@@ -941,5 +941,9 @@ historyBar.addEventListener('click', async event => {
     try {
         if (action === 'confirm') assistantHistory.confirm();
         else await assistantHistory.travel(action);
-    } catch (error) { historyBar.querySelector('[role="status"]').textContent = error.message; }
+    } catch (error) {
+        historyBar.querySelector('[role="status"]').textContent = error.message;
+        const notice = document.querySelector('.assistant-notice');
+        if (notice) notice.textContent = error.message;
+    }
 });

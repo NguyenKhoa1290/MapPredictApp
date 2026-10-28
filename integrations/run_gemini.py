@@ -13,6 +13,7 @@ from gemini_web2api.quota_guard import QuotaRejected
 from gemini_web2api.gemini import generate
 from gemini_web2api.tools import messages_to_prompt
 from gemini_web2api.google_session import SESSION_POLL_INTERVAL
+from gemini_web2api.models import thinking_depth
 
 token = Path('/run/secrets/assistant_key').read_text().strip()
 CONFIG.update(host='0.0.0.0', port=8081, api_keys=[token], cookie_file=None,
@@ -75,6 +76,11 @@ class ManagedGeminiHandler(GeminiHandler):
         request = self._parse_body(body)
         if not isinstance(request, dict) or request.get('model') != ARGON:
             return super()._handle_chat(body)
+        try:
+            thinking_depth(request.get('reasoning_effort'), 4)
+        except ValueError as error:
+            self.send_json({'error': {'message': str(error)}}, 400)
+            return
         if request.get('stream') or request.get('tools'):
             self.send_json({'error': {'code': 'unsupported_argon_request', 'message': 'Thông minh chỉ nhận chat không streaming'}}, 400)
             return
@@ -83,7 +89,7 @@ class ManagedGeminiHandler(GeminiHandler):
             self.send_json({'error': {'message': 'Thông minh nhận nội dung văn bản đã tóm tắt'}}, 400)
             return
         try:
-            text = pool.run(lambda mode, think: generate(prompt, mode, think))
+            text = pool.run(lambda mode, think: generate(prompt, mode, thinking_depth(request.get('reasoning_effort'), think)))
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
                             'created': int(time.time()), 'model': ARGON,
                             'choices': [{'index': 0, 'message': {'role': 'assistant', 'content': text}, 'finish_reason': 'stop'}]})

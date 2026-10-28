@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import ezdxf
 
@@ -44,6 +44,38 @@ class AssistantTests(unittest.TestCase):
             response = self.post('preview', message='Ô A1 là đất nông nghiệp xen kẹt', web='false')
         self.assertEqual(response.status_code, 200, response.json)
         return response.json['data']
+
+    def test_effort_is_validated_and_forwarded_to_model_config(self):
+        for effort in ('auto', 'low', 'medium', 'high', 'invalid'):
+            RATES.clear()
+            with patch.object(assistant, 'call_model', return_value={'answer': 'ok'}) as model:
+                response = self.client.post('/api/v1/assistant/preview', data={
+                    'scope': 'map', 'message': 'hello', 'web': 'false', 'effort': effort})
+            if effort == 'invalid':
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json['error']['code'], 'INVALID_EFFORT')
+                model.assert_not_called()
+            else:
+                self.assertEqual(response.status_code, 200, response.json)
+                self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
+
+    def test_model_request_sends_effort_without_changing_model_or_default(self):
+        remote = Mock()
+        remote.__enter__ = Mock(return_value=remote)
+        remote.__exit__ = Mock(return_value=False)
+        remote.read.return_value = b'{"choices":[{"message":{"content":"{\\"answer\\":\\"ok\\"}"}}]}'
+        opener = Mock()
+        opener.open.return_value = remote
+        for model in ('gemini-3.6-flash', 'gemini-4-argon'):
+            for effort in ('auto', 'low', 'medium', 'high'):
+                with patch.object(assistant, 'build_opener', return_value=opener):
+                    assistant.call_model([], {**self.app.config, 'ASSISTANT_MODEL': model, 'ASSISTANT_EFFORT': effort})
+                payload = json.loads(opener.open.call_args.args[0].data)
+                self.assertEqual(payload['model'], model)
+                if effort == 'auto':
+                    self.assertNotIn('reasoning_effort', payload)
+                else:
+                    self.assertEqual(payload['reasoning_effort'], effort)
 
     def test_edit_requires_preview_and_apply_only_returns_a_copy(self):
         original = self.dxf
