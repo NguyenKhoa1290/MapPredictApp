@@ -64,12 +64,12 @@ Docker Desktop phải hoạt động, người dùng cài tác vụ phải đang
 1. Push code lên main, CI chạy kiểm thử và đóng gói
 2. Job cuối cập nhật nhánh `deploy-ready` tới commit đã qua đủ các job
 3. Máy local chỉ cập nhật khi main và deploy-ready trùng SHA, workspace sạch và đang ở nhánh main
-4. Git chỉ fast-forward tới đúng SHA đã xác nhận, sau đó build và chuyển slot bằng quy trình Docker hiện có
-5. Bản đang chạy được giữ khi build hoặc kiểm tra bản mới thất bại, lần kiểm tra sau thử lại
+4. Git chỉ fast-forward tới đúng SHA đã xác nhận, sau đó build và cập nhật trực tiếp các service trong cùng Compose
+5. Build thất bại không restart, kiểm tra health thất bại không ghi revision thành công và lần kiểm tra sau thử lại
 
 Không dùng nhánh deploy-ready để phát triển hoặc push thủ công, nhánh này là tín hiệu do CI ghi
 Nếu có code chưa commit trong workspace, tác vụ bỏ qua để tránh ảnh hưởng công việc đang làm
-Giữ image slot cũ và dữ liệu mount, không tự xóa cache Docker
+Giữ dữ liệu mount và volume Qdrant, không giữ slot ứng dụng cũ, không tự xóa cache Docker
 
 ```powershell
 # Cài lại trên workspace hiện tại, cần venv đã có Python

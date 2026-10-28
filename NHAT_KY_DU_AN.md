@@ -1,5 +1,15 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-28 Rút gọn cụm local theo yêu cầu
+
+- Người dùng xác nhận chỉ thử nghiệm production giả lập trên máy, chưa dùng VPS, có backup riêng và không cần snapshot hoặc nhiều phiên chạy
+- Bỏ blue/green, chỉ giữ một web và một AI, CI tiếp tục cập nhật trực tiếp sau khi kiểm thử đạt
+- Đưa Qdrant vào cùng Compose project, chuyển dữ liệu sparse sang named volume thay cho writable layer của container ngoài
+- Đối chiếu đầy đủ SHA-256 payload/vector của 807 point trong 6 collection, tất cả khớp
+- Container Qdrant nguồn đã được xóa sau đối chiếu, snapshot do agent tạo lần trước cũng đã được xóa ở máy và Qdrant
+- Không tạo snapshot mới, tệp truyền tạm được xóa sau khi chuyển xong, volume chiếm khoảng 54 MiB thực
+- Cấu hình cập nhật mới chấp nhận gián đoạn ngắn, không giữ bản dự phòng và không tự rollback
+
 ## 2026-10-28 Service AI riêng, Qdrant và xuất DXF
 
 - Đã đọc dự án Thuchanh, xác định CSDL-Datdai có 5 point, vector 1024 chiều và model qwen3-embedding:0.6b

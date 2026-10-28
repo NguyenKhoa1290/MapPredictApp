@@ -24,91 +24,59 @@ class PortableDeploymentTests(unittest.TestCase):
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
 
-    def test_candidate_failure_preserves_live_config_and_state(self):
+    def test_build_failure_does_not_restart_services_or_record_success(self):
+        initial = self.state.read_text()
+        with patch.object(docker_stack, 'run', return_value='a' * 40), \
+                patch.object(docker_stack, 'compose', side_effect=RuntimeError('Build failed')) as calls:
+            with self.assertRaisesRegex(RuntimeError, 'Build failed'):
+                docker_stack.deploy()
+        self.assertEqual(self.state.read_text(), initial)
+        self.assertEqual(self.config.read_text(), 'app-blue 1000')
+        self.assertEqual(calls.call_count, 1)
+        self.assertEqual(calls.call_args.args, ('build', 'web', 'ai', 'gemini'))
+
+    def test_failed_health_check_does_not_record_success(self):
         initial = self.state.read_text()
 
         def compose(*args, **kwargs):
-            if args[:3] == ('exec', '-T', 'app-green'):
-                raise RuntimeError('Model failed')
-            return ''
-
-        with patch.object(docker_stack, 'run', return_value='a' * 40), \
-                patch.object(docker_stack, 'compose', side_effect=compose) as calls:
-            with self.assertRaisesRegex(RuntimeError, 'Model failed'):
-                docker_stack.deploy()
-        self.assertEqual(self.config.read_text(), 'app-blue 1000')
-        self.assertEqual(self.state.read_text(), initial)
-        self.assertFalse(any(call.args[0] == 'stop' for call in calls.call_args_list))
-
-    def test_proxy_validation_failure_restores_previous_config(self):
-        def compose(*args, **kwargs):
-            if args == ('exec', '-T', 'app', 'nginx', '-t'):
-                raise RuntimeError('Bad proxy')
+            if args[0] == 'up' and args[-2:] == ('ai', 'web'):
+                raise RuntimeError('Service unhealthy')
             return ''
 
         with patch.object(docker_stack, 'run', return_value='a' * 40), \
                 patch.object(docker_stack, 'compose', side_effect=compose):
-            with self.assertRaisesRegex(RuntimeError, 'Bad proxy'):
+            with self.assertRaisesRegex(RuntimeError, 'Service unhealthy'):
                 docker_stack.deploy()
-        self.assertEqual(self.config.read_text(), 'app-blue 1000')
-        self.assertEqual(json.loads(self.state.read_text())['active'], 'blue')
+        self.assertEqual(self.state.read_text(), initial)
 
-    def test_switch_records_revision_before_draining_old_slot(self):
+    def test_success_records_single_mode_only_after_verification(self):
         events = []
+        initial = self.state.read_text()
 
         def compose(*args, **kwargs):
             events.append(args)
-            if args[0] == 'stop':
-                state = json.loads(self.state.read_text())
-                self.assertEqual(state['active'], 'green')
-                self.assertEqual(state['revision'], 'a' * 40)
-                self.assertEqual(self.config.read_text(), 'app-green 1000')
+            if args[-1] == 'reload':
+                self.assertEqual(self.state.read_text(), initial)
+                self.assertEqual(self.config.read_text(), 'web 1000')
             return ''
 
         with patch.object(docker_stack, 'run', return_value='a' * 40), \
                 patch.object(docker_stack, 'compose', side_effect=compose):
             docker_stack.deploy()
-        reload_index = events.index(('exec', '-T', 'app', 'nginx', '-s', 'reload'))
-        stop_index = events.index(('stop', 'app-blue'))
-        self.assertIn(('exec', '-T', 'app', 'ps', '-o', 'args'), events[reload_index + 1:stop_index])
-        self.assertIn(('rm', '-f', 'app-blue'), events)
+        state = json.loads(self.state.read_text())
+        self.assertEqual(state['mode'], 'single')
+        self.assertEqual(state['revision'], 'a' * 40)
+        self.assertNotIn('active', state)
+        self.assertTrue(any(call[:4] == ('exec', '-T', 'web', 'python') for call in events))
+        self.assertFalse(any(call[0] in ('rm', 'stop', 'down') for call in events))
 
-    def test_timeout_keeps_previous_container_after_switch(self):
-        with patch.object(docker_stack, 'run', return_value='a' * 40), \
-                patch.object(docker_stack, 'compose', return_value='') as calls, \
-                patch.object(docker_stack, 'wait_for_drain', side_effect=[None, RuntimeError('Still draining')]):
-            with self.assertRaisesRegex(RuntimeError, 'Still draining'):
-                docker_stack.deploy()
-        self.assertEqual(json.loads(self.state.read_text())['active'], 'green')
-        self.assertFalse(any(call.args[0] == 'stop' for call in calls.call_args_list))
-
-    def test_start_only_activates_recorded_slot_and_preserves_settings(self):
+    def test_start_uses_one_compose_project_with_dependencies(self):
         with patch.object(docker_stack, 'compose', return_value='') as calls:
             docker_stack.start()
-        self.assertEqual(len(calls.call_args_list), 2)
-        self.assertEqual(calls.call_args_list[0].args[-1], 'app-blue')
-        self.assertEqual(calls.call_args_list[1].args[-2:], ('app', 'cloudflared'))
-        self.assertEqual(self.config.read_text(), 'app-blue 1000')
-
-    def test_unhealthy_ai_candidate_never_switches_live_web(self):
-        (self.root / '.env').write_text('MAP_PREDICT_ASSISTANT_ENABLED=1\n')
-        initial = self.state.read_text()
-
-        def compose(*args, **kwargs):
-            if args[0] == 'up' and args[-1] == 'ai-green':
-                raise RuntimeError('AI candidate unhealthy')
-            return ''
-
-        with patch.object(docker_stack, 'run', return_value='a' * 40), \
-                patch.object(docker_stack, 'compose', side_effect=compose) as calls, \
-                patch.dict(docker_stack.os.environ, {'MAP_PREDICT_ASSISTANT_ENABLED': '1'}):
-            with self.assertRaisesRegex(RuntimeError, 'AI candidate unhealthy'):
-                docker_stack.deploy()
-        self.assertEqual(self.state.read_text(), initial)
-        self.assertEqual(self.config.read_text(), 'app-blue 1000')
-        self.assertFalse(any(call.args[0] == 'up' and call.args[-1] == 'app-green'
-                             for call in calls.call_args_list))
-        self.assertFalse(any('reload' in call.args for call in calls.call_args_list))
+        self.assertEqual(calls.call_args_list[0].args,
+                         ('up', '-d', '--build', '--wait', '--wait-timeout', '180'))
+        self.assertEqual(self.config.read_text(), 'web 1000')
+        self.assertEqual(calls.call_args_list[-1].args, ('exec', '-T', 'app', 'nginx', '-s', 'reload'))
 
     def test_linux_timer_is_short_lived_and_boot_starts_stack(self):
         units = install_linux.units(PurePosixPath('/srv/map app'), '/usr/bin/python3', 'deploy')

@@ -307,6 +307,8 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
 
 ## 7. Nhật ký cập nhật note
 
+- 2026-10-28: theo yêu cầu chỉ mô phỏng production local, bỏ snapshot và blue/green, gom Qdrant vào cùng Compose bằng named volume, giữ nguyên 6 collection/807 point đã đối chiếu hash. Chỉ một bản chạy mỗi service, backup do người dùng quản lý
+
 - 2026-10-28: tiếp tục CV-27 theo yêu cầu Qdrant, tách service AI riêng, prompt có thể chỉnh từ config, bổ sung xuất DXF từ preview và nguồn RAG có ID/ô tham chiếu. Giữ collection cũ và tạo snapshot, chi tiết docs/AI_SERVICE_QDRANT.md
 
 - 2026-10-27: bổ sung triển khai tự động dùng chung Windows/Linux bằng Python, Linux dùng systemd timer và dịch vụ khởi động stack. Không tăng container thường trực, không đổi mã khi chuyển VPS. Cần cấp máy Linux, dữ liệu riêng và token tunnel trong lần cài đầu

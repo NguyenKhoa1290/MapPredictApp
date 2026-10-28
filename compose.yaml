@@ -6,7 +6,7 @@ x-worker: &worker
     target: runtime
   restart: unless-stopped
   init: true
-  environment: &web_environment
+  environment:
     MAP_PREDICT_PROXY_HOPS: '1'
     MAP_PREDICT_MAX_UPLOAD_BYTES: '${MAP_PREDICT_MAX_UPLOAD_BYTES:-67108864}'
     MAP_PREDICT_MODEL_DIR: /app/models
@@ -15,6 +15,7 @@ x-worker: &worker
     MAP_PREDICT_ASSISTANT_URL: http://gemini:8081/v1
     MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.6-flash}'
     MAP_PREDICT_ASSISTANT_SECRET_FILE: /run/secrets/assistant_key
+    MAP_PREDICT_AI_SERVICE_URL: http://ai:8001
   secrets: [assistant_key]
   volumes:
     - type: bind
@@ -65,7 +66,7 @@ x-ai: &ai_worker
     MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.6-flash}'
     MAP_PREDICT_ASSISTANT_URL: http://gemini:8081/v1
     MAP_PREDICT_ASSISTANT_SECRET_FILE: /run/secrets/assistant_key
-    AI_QDRANT_URL: '${AI_QDRANT_URL:-}'
+    AI_QDRANT_URL: '${AI_QDRANT_URL:-http://qdrant:6333}'
     AI_QDRANT_COLLECTION: '${AI_QDRANT_COLLECTION:-CSDL-Datdai}'
     AI_QDRANT_API_KEY: '${AI_QDRANT_API_KEY:-}'
     AI_QDRANT_VECTOR_NAME: '${AI_QDRANT_VECTOR_NAME:-}'
@@ -108,30 +109,64 @@ services:
       options:
         max-size: 5m
         max-file: '2'
-  app-blue:
+  web:
     <<: *worker
-    image: map-predict-app:blue
-    environment:
-      <<: *web_environment
-      MAP_PREDICT_AI_SERVICE_URL: http://ai-blue:8001
-  app-green:
-    <<: *worker
-    image: map-predict-app:green
-    environment:
-      <<: *web_environment
-      MAP_PREDICT_AI_SERVICE_URL: http://ai-green:8001
-  ai-blue:
+    image: map-predict-web:local
+    depends_on:
+      ai:
+        condition: service_healthy
+  ai:
     <<: *ai_worker
-    image: map-predict-ai:blue
-  ai-green:
-    <<: *ai_worker
-    image: map-predict-ai:green
+    image: map-predict-ai:local
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      gemini:
+        condition: service_healthy
+  qdrant:
+    image: qdrant/qdrant@sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10
+    restart: unless-stopped
+    ports: ['127.0.0.1:6333:6333']
+    volumes:
+      - type: volume
+        source: qdrant_data
+        target: /qdrant/storage
+        volume:
+          nocopy: true
+    networks:
+      default:
+        aliases: [knowledge-qdrant]
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -ec
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/6333
+          printf 'GET /readyz HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+          IFS= read -r status <&3
+          [[ "$$status" == *" 200 "* ]]
+      interval: 30s
+      timeout: 5s
+      start_interval: 2s
+      start_period: 20s
+      retries: 4
+    mem_limit: 1g
+    cpus: 2
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '2'
   app:
     image: nginx@sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951
     restart: unless-stopped
     user: '101:101'
     entrypoint: [nginx]
     command: [-g, 'daemon off;']
+    depends_on:
+      web:
+        condition: service_healthy
     ports:
       - "127.0.0.1:${APP_HOST_PORT:-8765}:8000"
     volumes:
@@ -177,3 +212,6 @@ secrets:
     file: ./.secrets/assistant-key
   tunnel_token:
     file: ./.secrets/cloudflared-token
+
+volumes:
+  qdrant_data:

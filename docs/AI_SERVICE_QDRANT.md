@@ -4,15 +4,15 @@ Ngày 2026-10-28 đã kết nối collection `CSDL-Datdai` trong container Qdran
 Collection có 5 point, vector dense không đặt tên, 1024 chiều, cùng sparse vector `langchain-sparse`
 Dự án tham khảo dùng `qwen3-embedding:0.6b`, đã kiểm tra model đang có trên máy và trả vector 1024 chiều
 
-## Cách tách service
+## Cách tách service hiện tại
 
 - Frontend tiếp tục gọi `/api/v1/assistant`, không giữ khóa hoặc địa chỉ nội bộ
 - Backend web kiểm tra origin, hạn mức và chuyển request qua gateway mỏng
-- `ai-blue` hoặc `ai-green` là tiến trình Gunicorn riêng, xử lý RAG, prompt, Gemini, DXF và bản xem trước
-- Chỉ slot AI tương ứng với slot web đang hoạt động được giữ chạy thường xuyên
-- Gemini adapter tiếp tục là service riêng, Qdrant dùng container hiện có, Ollama dùng model đã cài
+- `ai` là một tiến trình Gunicorn riêng, xử lý RAG, prompt, Gemini, DXF và bản xem trước
+- Chỉ một bản web và một bản AI, không có slot dự phòng
+- Gemini và Qdrant là service trong cùng Compose, Ollama dùng model host đã cài
 - Web và AI trao đổi bằng khóa nội bộ, các cổng AI không xuất ra host
-- Khi triển khai, dựng AI và web mới, kiểm tra gateway rồi chuyển Nginx, chờ request cũ kết thúc trước khi gỡ slot cũ
+- Khi triển khai, build rồi cập nhật trực tiếp web/AI và reload Nginx, chấp nhận gián đoạn ngắn trong thử nghiệm local
 
 Code AI dùng chung lớp xử lý file, image AI và web chia sẻ các layer Docker để tránh nhân đôi thư viện trên ổ đĩa
 Không nạp pandas và scikit-learn trong tiến trình AI chỉ để đọc CSV
@@ -56,23 +56,20 @@ Không coi nội dung DXF, CSV hoặc tài liệu truy xuất là lệnh có quy
 Các giá trị kết nối nằm trong `.env`, không được đưa lên Git
 
 ```dotenv
-AI_QDRANT_CONTAINER=qdrant
-AI_QDRANT_URL=http://knowledge-qdrant:6333
+AI_QDRANT_URL=http://qdrant:6333
 AI_QDRANT_COLLECTION=CSDL-Datdai
 AI_EMBEDDING_URL=http://host.docker.internal:11434
 AI_EMBEDDING_MODEL=qwen3-embedding:0.6b
 ```
 
-Script khởi động kết nối container Qdrant được chỉ định vào mạng ứng dụng với alias `knowledge-qdrant`
-Qdrant không được đưa vào Compose theo cách tạo lại container, do dữ liệu gốc hiện nằm trong writable layer của container cũ và chưa có volume
-Đã tạo snapshot riêng của CSDL-Datdai tại `.secrets/qdrant-snapshots`, dung lượng 2127872 byte, không đưa vào Git hoặc image
-Không sao lưu hoặc sửa các collection khác trên Qdrant
+Qdrant đã chuyển vào Compose với volume map-predict_qdrant_data, giữ nguyên 6 collection và 807 point
+Đã đối chiếu hash toàn bộ payload/vector, không tạo lại collection hoặc thay embedding
+Không tự tạo snapshot, snapshot do agent tạo ở lần trước đã được xóa theo yêu cầu
+Backup do người dùng quản lý, không giữ nhiều phiên ứng dụng để dự phòng
 
-Khi chuyển VPS, tạo Qdrant có volume bền vững và khôi phục snapshot vào collection mới chưa có dữ liệu
-Snapshot hiện được tạo bởi Qdrant 1.19.1, dùng phiên bản khôi phục tương thích theo tài liệu chính thức
-Cài cùng model embedding hoặc cấu hình URL dịch vụ embedding đã có, không dùng model khác chỉ vì cùng số chiều
-Ollama trên máy này là tiến trình host đã cài sẵn, không nằm trong Compose, khi chưa chạy sẽ hiện chế độ dự phòng từ khóa
-Chỉ đổi giá trị kết nối, tên container và dữ liệu triển khai, không sửa code frontend hay backend
+Khi chuyển VPS, dùng cùng code/Compose và đưa bản backup của bạn vào volume dữ liệu
+Ollama là dịch vụ host hoặc dịch vụ embedding khác có URL truy cập được từ container AI
+Chỉ đổi kết nối và dữ liệu triển khai, không sửa code frontend/backend
 
 ## Kiểm tra đã thực hiện
 

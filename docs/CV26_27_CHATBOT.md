@@ -60,7 +60,7 @@ Gemini là service riêng trong Compose, không mở cổng host, dùng khóa n�
 `MAP_PREDICT_ASSISTANT_ENABLED=1` bật assistant, đặt 0 trong `.env` để tắt API
 `MAP_PREDICT_ASSISTANT_MODEL` chọn tên model mà adapter đang hỗ trợ
 Khởi động bằng `python tools/docker_stack.py start`, triển khai dùng script hiện có trên cả Windows và Linux
-Ứng dụng chạy thường xuyên với năm container khi bật AI và Gemini, cùng container Qdrant tham khảo hiện có, slot dự phòng vẫn chỉ bật trong lúc cập nhật
+Ứng dụng chạy sáu container trong cùng Compose, gồm cả Qdrant, chỉ một bản cho mỗi service và không giữ slot dự phòng
 
 Trường hợp Gemini hết hạn mức, mất mạng hoặc trả sai JSON, giao diện báo lỗi và giữ nguyên dữ liệu
 Không tự chuyển sang tài khoản hoặc cookie khác
