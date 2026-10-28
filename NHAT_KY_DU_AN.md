@@ -515,3 +515,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu nguyên tử tối đa 10 thao tác trước và sau cùng workspace trong IndexedDB, localStorage giữ vị trí lịch sử
 - Tải lại trang vẫn quay lại trước và sau để so sánh, không lưu bản nháp chưa duyệt
 - Kiểm thử đạt 145 test Python, 41 test frontend và 46 test JavaScript, gồm kiểm tra đóng mở lại IndexedDB với DXF và lịch sử đầy đủ
+
+## 2026-10-28 Cố định khung chat và phím gửi
+
+- Giữ kích thước cửa sổ chat theo viewport, cuộn riêng tin nhắn và bản duyệt, không cuộn toàn khung
+- Ô nhập có chiều cao cố định và cuộn nội dung, không kéo giãn bằng chuột
+- Enter gửi, Shift Enter xuống dòng, không gửi khi đang gõ IME hoặc giữ phím Enter
+- 18 kiểm thử chatbot và lịch sử tài nguyên đã đạt

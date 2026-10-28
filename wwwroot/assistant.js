@@ -57,6 +57,13 @@
     });
     get('close').addEventListener('click', () => { panel.hidden = true; launcher.setAttribute('aria-expanded', 'false'); launcher.focus(); });
     panel.addEventListener('keydown', event => { if (event.key === 'Escape') get('close').click(); });
+    const questionInput = get('form').querySelector('textarea');
+    questionInput.title = 'Enter để gửi, Shift + Enter để xuống dòng';
+    questionInput.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229) return;
+        event.preventDefault();
+        if (!event.repeat && !busy && !window.assistantWorkspace.hasDraft()) get('form').requestSubmit();
+    });
     document.addEventListener('fullscreenchange', () => (document.fullscreenElement || document.body).append(root));
     function snapshot() { return window.assistantWorkspace.context(); }
     function sameFiles(before) {

@@ -232,6 +232,36 @@ test('chat uses project resources only when submitted and stages a signed draft'
     } finally { f.close(); }
 });
 
+test('Enter sends once and prevents a newline or repeated submission while busy', async () => {
+    const f = fixture();
+    try {
+        const input = f.get('form').querySelector('textarea');
+        input.value = 'Đổi màu nét';
+        const enter = new f.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+        input.dispatchEvent(enter);
+        input.dispatchEvent(new f.window.KeyboardEvent('keydown', { key: 'Enter', repeat: true, bubbles: true, cancelable: true }));
+        await tick();
+        assert.equal(enter.defaultPrevented, true);
+        assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 1);
+    } finally { f.close(); }
+});
+
+test('Shift Enter and IME confirmation do not submit and retain native text entry', async () => {
+    const f = fixture();
+    try {
+        const input = f.get('form').querySelector('textarea');
+        input.value = 'Nội dung nhiều dòng';
+        for (const options of [{ shiftKey: true }, { isComposing: true }, { keyCode: 229 }]) {
+            const event = new f.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, ...options });
+            input.dispatchEvent(event);
+            assert.equal(event.defaultPrevented, false);
+        }
+        await tick();
+        assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 0);
+        assert.equal(input.value, 'Nội dung nhiều dòng');
+    } finally { f.close(); }
+});
+
 test('confirmation accepts the already rendered draft without generating it twice', async () => {
     const f = fixture();
     try {
