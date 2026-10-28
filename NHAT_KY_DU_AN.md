@@ -547,3 +547,4 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Chỉ trả Gmail và thời gian qua API quản trị đã xác thực, không đưa cookie, XSRF hay header định tuyến ra giao diện
 - Chặn kết quả đọc file cookie cũ điền sang tài khoản khác, trạng thái định kỳ không ghi đè cấu hình đang nhập
 - 151 kiểm thử Python, 43 kiểm thử frontend và build TypeScript đã đạt
+- Bổ sung Gmail cho một hồ sơ nhập cũ sau khi đối chiếu khớp mã băm cookie và chỉ số tài khoản với hồ sơ tham khảo, hồ sơ chưa khớp giữ Chưa xác định
