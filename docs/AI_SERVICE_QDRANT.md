@@ -56,8 +56,8 @@ Không nạp pandas và scikit-learn trong tiến trình AI chỉ để đọc C
 ## Truy xuất tài liệu
 
 1. Đọc thông số collection có sẵn, không tạo hoặc ghi lại collection
-2. Gửi câu hỏi tới Ollama `/api/embed` bằng đúng model `qwen3-embedding:0.6b`
-3. Kiểm tra số chiều rồi gọi Qdrant `/points/query`, lấy tối đa 5 đoạn
+2. Chatbot đọc tối đa 200 point bằng scroll, nhận diện tiêu chí và xếp hạng từ khóa trên đoạn nội dung thực
+3. Riêng công cụ quản trị gửi câu hỏi tới Ollama `/api/embed` bằng model đã lưu, kiểm tra số chiều rồi gọi Qdrant `/points/query`, lấy tối đa 5 point
 4. Giữ ID point, record_id và ô nguồn từ nội dung thực, không đưa đường dẫn temp của máy nguồn ra giao diện
 5. Đưa các đoạn vào prompt và xây danh mục quy tắc chấm điểm từ chính nội dung đã truy xuất
 6. Nguồn Qdrant chứng minh ngưỡng chấm điểm, không thay thế bằng chứng hiện trạng từng ô đất
@@ -66,9 +66,9 @@ Metadata của một chunk có thể chỉ mô tả một trong nhiều tiêu ch
 Vì vậy không lọc cứng theo metadata tiêu chí khi điều đó làm mất phần nội dung khác của cùng chunk
 Parser giữ điểm nhóm và hỗ trợ cả bảng Markdown lẫn nhãn điểm ở từng đoạn văn như tiêu chí GPMB
 
-Bản này dùng dense retrieval, không tuyên bố dùng bộ sparse/hybrid của dự án tham khảo
-Nếu embedding chưa sẵn sàng hoặc sai số chiều, dùng dự phòng xếp hạng từ khóa trên tối đa 200 point đọc bằng scroll
-Giao diện ghi rõ chế độ dự phòng, không thay model và không tái lập chỉ mục
+Công cụ quản trị dùng dense retrieval, chatbot dùng truy xuất từ khóa theo cấu hình đã chốt, không dùng bộ sparse/hybrid của dự án tham khảo
+Nếu công cụ quản trị chưa có embedding hoặc sai số chiều, dùng dự phòng xếp hạng từ khóa trên tối đa 200 point đọc bằng scroll
+API trả rõ chế độ truy xuất, không thay model và không tái lập chỉ mục
 Nếu đã cấu hình Qdrant nhưng không đọc được collection thì báo lỗi, không âm thầm đổi sang bản local
 Khi không cấu hình URL Qdrant, chế độ tài liệu local vẫn được giữ để chạy app độc lập
 
