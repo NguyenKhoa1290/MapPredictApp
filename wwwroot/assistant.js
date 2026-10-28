@@ -136,10 +136,6 @@
         const textarea = get('form').querySelector('textarea'), question = textarea.value.trim();
         if (!question) return;
         const files = snapshot();
-        if (files.scope === 'map' && !files.resources.length) {
-            notice.textContent = 'Hãy nạp DXF, hiển thị trên bản đồ và tích bật file cần sửa trước khi gửi';
-            return;
-        }
         if (files.resources.length > 5) {
             notice.textContent = 'Mỗi lượt sửa tối đa 5 DXF, hãy tắt bớt file trên bản đồ';
             return;

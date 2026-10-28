@@ -78,7 +78,7 @@ class AssistantTests(unittest.TestCase):
 
     def test_scope_rejects_wrong_files_and_map_cannot_create_a_new_dxf(self):
         with patch.object(assistant, 'call_model') as model:
-            response = self.client.post('/api/v1/assistant/preview', data={'scope': 'map', 'message': 'Vẽ bản đồ'})
+            response = self.client.post('/api/v1/assistant/apply', data={'scope': 'map', 'token': 'no-file'})
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.json['error']['code'], 'MAP_RESOURCE_REQUIRED')
             response = self.post('preview', scope='prediction', message='Sửa DXF')
@@ -86,6 +86,20 @@ class AssistantTests(unittest.TestCase):
             response = self.post('preview', scope='map', resource_ids='["file-a"]', message='Sửa điểm')
             self.assertEqual(response.status_code, 400)
             model.assert_not_called()
+
+    def test_empty_map_can_chat_but_cannot_propose_any_file_mutation(self):
+        result = {'answer': 'Bạn có thể nạp DXF để chỉnh bản vẽ', 'sources': [], 'scores': [],
+                  'create_table': True, 'table_rows': [{'id': 'A1'}],
+                  'edits': [{'handle': 'NEW', 'operation': 'add_line', 'value': {'points': [[1, 2], [3, 4]]}}]}
+        with patch.object(assistant, 'call_model', return_value=result) as model:
+            response = self.client.post('/api/v1/assistant/preview', data={'scope': 'map', 'message': 'Xin chào', 'web': 'false'})
+        self.assertEqual(response.status_code, 200, response.json)
+        model.assert_called_once()
+        self.assertEqual(response.json['data']['answer'], result['answer'])
+        self.assertIsNone(response.json['data']['token'])
+        self.assertFalse(response.json['data']['edits'])
+        self.assertFalse(response.json['data']['scores'])
+        self.assertFalse(response.json['data']['create_table'])
 
     def map_request(self, action, **options):
         return self.client.post('/api/v1/assistant/' + action, data={

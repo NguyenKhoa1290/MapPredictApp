@@ -107,7 +107,7 @@ def execute(action):
         files = request.files.getlist('dxf')
         try:
             ids = json.loads(options.get('resource_ids', '[]'))
-            if not isinstance(ids, list) or not 1 <= len(files) <= 5 or len(ids) != len(files) or len(set(ids)) != len(ids):
+            if not isinstance(ids, list) or not (0 if action == 'preview' else 1) <= len(files) <= 5 or len(ids) != len(files) or len(set(ids)) != len(ids):
                 raise ValueError()
             for item, source_id in zip(files, ids):
                 if not isinstance(source_id, str) or not 1 <= len(source_id) <= 100 or Path(item.filename or '').suffix.lower() != '.dxf':

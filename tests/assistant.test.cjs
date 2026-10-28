@@ -194,7 +194,8 @@ function fixture(status = { enabled: true }) {
         calls.push({ url, options });
         return { ok: true, blob: async () => new window.Blob(['DXF edited']), json: async () => ({ data: url.endsWith('/status') ? status
             : url.endsWith('/apply') ? scope === 'map' ? { dxfs: [{ source_id: 'dxf-1', dxf: window.btoa('DXF edited') }], rows: null }
-                : { dxfs: [], rows: [{ id: 'A1', x1: '' }] } : proposal }) };
+                : { dxfs: [], rows: [{ id: 'A1', x1: '' }] } : scope === 'map' && !active
+                    ? { ...proposal, token: null, edits: [], scores: [] } : proposal }) };
     };
     window.HTMLAnchorElement.prototype.click = function () {};
     window.eval(script);
@@ -298,13 +299,16 @@ test('prediction sends only the current CSV and can request creation without a C
     } finally { f.close(); }
 });
 
-test('map refuses to send files that are not displayed and checked', async () => {
+test('map without displayed files still chats without sending or modifying resources', async () => {
     const f = fixture();
     try {
         f.setActive(false);
         await f.submit();
-        assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 0);
-        assert.match(f.get('notice').textContent, /hiển thị trên bản đồ/);
+        const request = f.calls.find(call => call.url.endsWith('/preview'));
+        assert.equal(request.options.body.get('dxf'), null);
+        assert.equal(request.options.body.get('csv'), null);
+        assert.equal(f.commits.length, 0);
+        assert.equal(f.get('preview').hidden, true);
     } finally { f.close(); }
 });
 

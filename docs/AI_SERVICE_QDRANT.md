@@ -7,7 +7,7 @@
 - Khi chưa có CSV, Agent có thể đề xuất tạo bảng tối đa 100 dòng, mã ô đất duy nhất, điểm chỉ được điền qua quy tắc đã kiểm chứng
 - Tab bản đồ chỉ gửi DXF đã nạp, hiển thị theo hệ tọa độ hiện tại và đang tích bật, không gửi CSV
 - Mỗi lượt tối đa 5 DXF, tổng 300 đối tượng mẫu, handle có tiền tố theo file để không lẫn đối tượng giữa các bản vẽ
-- Không có DXF được bật thì không gọi Agent, không cho tự tạo file DXF mới
+- Không có DXF được bật vẫn trò chuyện bình thường, không cấp quyền sửa, vẽ hoặc tạo file DXF
 - Cho phép đổi màu, layer, chữ, dịch đối tượng, thêm thuộc tính XDATA và vẽ LINE, LWPOLYLINE, CIRCLE, TEXT trong file có sẵn
 - Thuộc tính riêng được ghi vào XDATA MAP_PREDICT và hiển thị với tiền tố attr: trong thông tin đối tượng
 - Đề xuất hợp lệ được dựng thành bản nháp ngay trên bản đồ và bảng dữ liệu, chưa tự lưu cho đến khi xác nhận

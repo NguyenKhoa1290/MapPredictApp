@@ -522,3 +522,9 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Ô nhập có chiều cao cố định và cuộn nội dung, không kéo giãn bằng chuột
 - Enter gửi, Shift Enter xuống dòng, không gửi khi đang gõ IME hoặc giữ phím Enter
 - 18 kiểm thử chatbot và lịch sử tài nguyên đã đạt
+
+## 2026-10-28 Cho phép chat khi chưa có lớp
+
+- Chưa nạp hoặc chưa bật DXF vẫn gửi hội thoại được
+- Giữ chặn thao tác sửa, vẽ và tạo DXF khi không có tài nguyên, không tạo bản duyệt thay đổi
+- 18 kiểm thử chatbot và 19 kiểm thử service trợ lý đã đạt
