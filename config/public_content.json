@@ -15,5 +15,39 @@
       "title": "Công nghệ hướng ứng dụng",
       "description": "Phát triển công cụ AI theo hướng dễ sử dụng, hỗ trợ nghiên cứu và mở rộng theo nhu cầu thực tế"
     }
+  ],
+  "members": [
+    {
+      "id": "member-1",
+      "bio": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
+      "name": null,
+      "role": null,
+      "contact": null,
+      "photo": null
+    },
+    {
+      "id": "member-2",
+      "bio": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
+      "name": null,
+      "role": null,
+      "contact": null,
+      "photo": null
+    },
+    {
+      "id": "member-3",
+      "bio": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
+      "name": null,
+      "role": null,
+      "contact": null,
+      "photo": null
+    },
+    {
+      "id": "member-4",
+      "bio": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
+      "name": null,
+      "role": null,
+      "contact": null,
+      "photo": null
+    }
   ]
 }
