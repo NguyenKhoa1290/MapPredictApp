@@ -100,7 +100,8 @@ class PortableDeploymentTests(unittest.TestCase):
             return ''
 
         with patch.object(docker_stack, 'run', return_value='a' * 40), \
-                patch.object(docker_stack, 'compose', side_effect=compose) as calls:
+                patch.object(docker_stack, 'compose', side_effect=compose) as calls, \
+                patch.dict(docker_stack.os.environ, {'MAP_PREDICT_ASSISTANT_ENABLED': '1'}):
             with self.assertRaisesRegex(RuntimeError, 'AI candidate unhealthy'):
                 docker_stack.deploy()
         self.assertEqual(self.state.read_text(), initial)
