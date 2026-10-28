@@ -1,4 +1,10 @@
 .ai-admin { max-width: 1180px; }
+.admin-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; border-bottom: 1px solid #cbdcd2; }
+.admin-tabs [role="tab"] { flex-shrink: 0; padding: 12px 18px; border: 1px solid #cbdcd2; border-radius: 9px; background: white; color: #28513d; font: inherit; cursor: pointer; }
+.admin-tabs [aria-selected="true"] { background: #e6f3eb; border-color: #16835b; color: #087445; font-weight: 600; }
+.admin-tabs [role="tab"]:focus-visible { outline: 3px solid #79b994; outline-offset: 2px; }
+.ai-admin [role="tabpanel"][hidden] { display: none; }
+.ai-admin [role="tabpanel"] > form > .button { margin-top: 24px; }
 .admin-heading { display: flex; gap: 24px; align-items: center; justify-content: space-between; margin-bottom: 28px; }
 .admin-heading h1 { margin-bottom: 12px; }
 .admin-card { padding: 28px; margin: 24px 0; border: 1px solid #cbdcd2; border-radius: 14px; background: #fafcf9; min-width: 0; }

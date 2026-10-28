@@ -528,3 +528,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Chưa nạp hoặc chưa bật DXF vẫn gửi hội thoại được
 - Giữ chặn thao tác sửa, vẽ và tạo DXF khi không có tài nguyên, không tạo bản duyệt thay đổi
 - 18 kiểm thử chatbot và 19 kiểm thử service trợ lý đã đạt
+
+## 2026-10-28 Chia tab quản trị AI
+
+- Tách 4 tab Model, Tài khoản Thông minh, Phiên Gemini và Embedding
+- Giữ bản nháp nhập liệu khi đổi tab, tách thao tác lưu Model và Embedding
+- Thêm điều hướng bàn phím và thanh tab cuộn ngang trên màn hình nhỏ
+- Giữ xác thực, CSRF, kiểm tra service và kết quả kiểm tra hiện tại
+- 42 kiểm thử frontend đã đạt

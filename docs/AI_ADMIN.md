@@ -7,6 +7,16 @@ Tên miền admin mở trực tiếp `/portal/admin/ai`, header dẫn về porta
 Khi chạy local vẫn dùng `/portal/admin/ai`, cookie đăng nhập được giữ riêng theo hostname
 Web chỉ chuyển tiếp yêu cầu, service ai-assistant xác thực mật khẩu và phiên quản trị
 
+## Các tab quản trị
+
+- Model cấu hình Nhanh và xem cấu hình Thông minh
+- Tài khoản Thông minh quản lý passcode, cookie tài khoản và quota
+- Phiên Gemini nhập cookie và quản lý gia hạn phiên chung
+- Embedding cấu hình Ollama, kiểm tra vector và truy xuất tài liệu
+
+Đổi tab giữ nguyên nội dung đang nhập, lưu Model và Embedding độc lập
+Tab hỗ trợ phím trái, phải, Home và End, màn hình nhỏ cuộn ngang thanh tab
+
 ## Mật khẩu
 
 ```bash
