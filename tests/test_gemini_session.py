@@ -47,3 +47,5 @@ class GeminiSessionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 manager.import_cookie('SID=missing-required-cookies')
             self.assertFalse(manager.path.exists())
+            with self.assertRaises(ValueError):
+                manager.import_cookie(None)

@@ -455,3 +455,7 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Đặt tên service web-portal, ai-assistant, gemini-session, ai-embedding, qdrant, web-gateway, cloudflare-tunnel
 - Giữ nguyên dữ liệu Qdrant, không tạo snapshot và không khôi phục blue/green
 - Kiểm tra hiện tại 125 test Python, 40 test frontend và 5 test bong bóng trợ lý đều đạt
+- Kiểm tra thực tế HTTPS đăng nhập với cookie Secure, lưu cấu hình và nhận phản hồi của cả hai chế độ model
+- Công cụ embedding trả vector 1024 chiều, dense retrieval trả 5 nguồn từ collection hiện có
+- Sau công cụ, ollama ps không còn model nạp và service embedding dùng khoảng 14 MiB RAM tại lần đo local này
+- Model được chép từ kho Ollama có sẵn, đối chiếu SHA-256 từng blob trước khi đưa vào volume riêng

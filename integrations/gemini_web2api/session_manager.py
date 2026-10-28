@@ -5,7 +5,7 @@ import threading
 import time
 
 from .config import CONFIG
-from .google_session import GoogleSession, cookie_pairs, header_cookie, write_json, atomic_text
+from .google_session import GoogleSession, UsageAuthError, cookie_pairs, header_cookie, write_json, atomic_text
 
 
 class SessionManager:
@@ -52,12 +52,17 @@ class SessionManager:
                     self.session.refresh()
                 self.activate()
                 self.details.update(state='ready', attempt_at=time.time())
+            except UsageAuthError:
+                CONFIG.update(cookie_file=None, auth_user=None, xsrf_token=None)
+                self.details.update(state='needs_attention', attempt_at=time.time())
             except Exception:
                 # Never return exception text, cookies, account identity or XSRF tokens.
                 self.details.update(state='needs_attention', attempt_at=time.time())
             return self.status()
 
     def import_cookie(self, content, account=None):
+        if not isinstance(content, str) or not 1 <= len(content) <= 60000:
+            raise ValueError('Invalid cookie content')
         pairs = cookie_pairs(content)
         if account is not None and (not isinstance(account, str) or not account.isdecimal() or len(account) > 2):
             raise ValueError('Invalid account index')
