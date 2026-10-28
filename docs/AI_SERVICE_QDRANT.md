@@ -2,15 +2,23 @@
 
 ## Chỉnh sửa tài nguyên dự án qua chatbot
 
-- Chatbot lấy DXF nền, DXF lưới và CSV đã nạp trong dự án, không có ô đính kèm riêng trong chat
-- Khi có nhiều file, chọn DXF và CSV cần làm việc trong mục Tài nguyên trong dự án
+- Chatbot tự lấy dữ liệu của tab đang mở, không có bộ chọn file, layer hoặc phạm vi dòng trong chat
+- Tab dự đoán chỉ gửi CSV đầu vào đang nạp, hoặc CSV kết quả nếu không có đầu vào
+- Khi chưa có CSV, Agent có thể đề xuất tạo bảng tối đa 100 dòng, mã ô đất duy nhất, điểm chỉ được điền qua quy tắc đã kiểm chứng
+- Tab bản đồ chỉ gửi DXF đã nạp, hiển thị theo hệ tọa độ hiện tại và đang tích bật, không gửi CSV
+- Mỗi lượt tối đa 5 DXF, tổng 300 đối tượng mẫu, handle có tiền tố theo file để không lẫn đối tượng giữa các bản vẽ
+- Không có DXF được bật thì không gọi Agent, không cho tự tạo file DXF mới
+- Cho phép đổi màu, layer, chữ, dịch đối tượng, thêm thuộc tính XDATA và vẽ LINE, LWPOLYLINE, CIRCLE, TEXT trong file có sẵn
+- Thuộc tính riêng được ghi vào XDATA MAP_PREDICT và hiển thị với tiền tố attr: trong thông tin đối tượng
 - Đề xuất hợp lệ được dựng thành bản nháp ngay trên bản đồ và bảng dữ liệu, chưa tự lưu cho đến khi xác nhận
-- Xác nhận thay đổi hoặc Bỏ bản nháp ở chatbot hay thanh công cụ dùng chung cho hai tab
+- Xác nhận thay đổi, Bỏ bản nháp, Hoàn tác và Làm lại nằm trong cửa sổ chat
 - Hoàn tác và Làm lại khôi phục cả DXF, bảng CSV, kết quả dự đoán và layer hiển thị của cùng một lần sửa AI
-- Lịch sử tối đa 10 lần sửa trong bộ nhớ của tab, tải lại trang chỉ khôi phục dữ liệu đã xác nhận, không giữ lịch sử hoàn tác
+- Lịch sử tối đa 10 lần sửa cùng trước và sau được lưu nguyên tử với workspace trong IndexedDB, localStorage lưu vị trí lịch sử
+- Tải lại trang vẫn có thể Hoàn tác và Làm lại để so sánh, bản nháp chưa xác nhận không được lưu
 - Sửa điểm làm mất hiệu lực Y cũ và CSV kết quả cũ, cần chạy lại mô hình để tính kết quả mới
 - Nếu không dựng được bản đồ, khôi phục cả bảng và DXF trước lần sửa, không giữ nửa thay đổi
-- File gốc trên máy không bị ghi đè, có thể xuất tài nguyên đã xác nhận từ chatbot
+- File gốc trên máy không bị ghi đè, DXF sửa tự thay vào tài nguyên cùng tên và hiện trên bản đồ
+- Nút Xuất file ở danh sách tài nguyên và Xuất CSV ở bảng dữ liệu nằm ngoài chat
 - Nếu tài nguyên đã được sửa bằng thao tác khác, không cho lịch sử AI ghi đè dữ liệu mới
 
 ## Cấu hình quản trị hiện tại

@@ -98,9 +98,35 @@ def execute(action):
         return forward(action)
     if set(request.files) - {'dxf', 'csv'}:
         raise PredictionError('INVALID_ATTACHMENT', 'Chỉ gửi DXF và CSV đã chọn', 400)
-    dxf = uploaded('dxf', '.dxf', assistant.MAX_FILE)
-    csv = uploaded('csv', '.csv', 5 * 1024 * 1024)
     options = request.form.to_dict()
+    scope = options.get('scope', 'legacy')
+    if scope not in ('legacy', 'map', 'prediction'):
+        raise PredictionError('INVALID_CONTEXT', 'Tab dữ liệu không hợp lệ', 400)
+    resources = []
+    if scope == 'map':
+        files = request.files.getlist('dxf')
+        try:
+            ids = json.loads(options.get('resource_ids', '[]'))
+            if not isinstance(ids, list) or not 1 <= len(files) <= 5 or len(ids) != len(files) or len(set(ids)) != len(ids):
+                raise ValueError()
+            for item, source_id in zip(files, ids):
+                if not isinstance(source_id, str) or not 1 <= len(source_id) <= 100 or Path(item.filename or '').suffix.lower() != '.dxf':
+                    raise ValueError()
+                content = item.read(assistant.MAX_FILE + 1)
+                if not content or len(content) > assistant.MAX_FILE:
+                    raise ValueError()
+                resources.append({'id': source_id, 'name': Path(item.filename).name, 'data': content})
+        except (ValueError, TypeError):
+            raise PredictionError('MAP_RESOURCE_REQUIRED', 'Cần từ 1 đến 5 DXF đã nạp và bật trên bản đồ, tối đa 12 MB mỗi file', 400) from None
+        if request.files.getlist('csv'):
+            raise PredictionError('INVALID_CONTEXT', 'Tab bản đồ chỉ dùng DXF đang hiển thị', 400)
+        dxf = assistant.resource_bytes(resources)
+        csv = b''
+    else:
+        dxf = uploaded('dxf', '.dxf', assistant.MAX_FILE)
+        csv = uploaded('csv', '.csv', 5 * 1024 * 1024)
+        if scope == 'prediction' and dxf:
+            raise PredictionError('INVALID_CONTEXT', 'Tab dự đoán chỉ dùng bảng CSV', 400)
     if action == 'preview':
         if not 1 <= len(options.get('message', '').strip()) <= 4000:
             raise PredictionError('MESSAGE_REQUIRED', 'Nhập yêu cầu từ 1 đến 4000 ký tự', 400)
@@ -118,18 +144,24 @@ def execute(action):
     try:
         with tempfile.TemporaryDirectory(prefix='map-assistant-') as folder:
             path = Path(folder) / 'drawing.dxf'
-            if dxf:
+            if resources:
+                for index, resource in enumerate(resources):
+                    resource['path'] = Path(folder) / f'drawing-{index}.dxf'
+                    resource['path'].write_bytes(resource['data'])
+            elif dxf:
                 path.write_bytes(dxf)
             try:
                 if action == 'preview':
-                    result = assistant.preview(path, dxf, csv, options, current_app.config)
+                    result = assistant.preview(path, dxf, csv, options, current_app.config, resources=resources)
                 else:
-                    result = assistant.apply(path, dxf, csv, options.get('token', ''), current_app.config)
+                    result = assistant.apply(path, dxf, csv, options.get('token', ''), current_app.config, resources=resources)
             except (ValueError, assistant.ezdxf.DXFError) as error:
                 if isinstance(error, PredictionError):
                     raise
                 raise PredictionError('INVALID_DRAWING', 'DXF hoặc đề xuất không hợp lệ, dữ liệu chưa thay đổi') from error
         if action == 'export':
+            if resources:
+                raise PredictionError('INVALID_CONTEXT', 'Xuất từng DXF đã duyệt trong dự án', 400)
             if not result['dxf']:
                 raise PredictionError('NO_DXF_CHANGES', 'Bản xem trước chưa có thay đổi DXF để xuất', 400)
             name = Path(request.files['dxf'].filename).stem + '_edited.dxf'

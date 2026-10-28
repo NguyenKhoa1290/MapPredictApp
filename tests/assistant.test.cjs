@@ -53,6 +53,10 @@ test('real workspace restores DXF, empty CSV input and table across confirm undo
         w.assistantWorkspace.confirm();
         await w.workspacePersistence.flush();
         assert.equal(w.savedWorkspace.assets.get('table:view').rows[0].x1, 5);
+        const savedHistory = w.savedWorkspace.assets.get('history:assistant');
+        assert.equal(savedHistory.past.length, 1);
+        assert.equal(savedHistory.past[0].before.assets.has('history:assistant'), false);
+        w.assistantWorkspace.restoreHistory(w.structuredClone(savedHistory));
         w.document.querySelector('[data-action="undo"]').click();
         await tick();
         assert.equal(w.inspectResources().name, 'base.dxf');
@@ -126,12 +130,52 @@ test('history refuses to overwrite newer CSV edits and drops redo after a new co
     assert.equal(f.history.future.length, 0);
 });
 
+test('a new page can import before and after history with DXF bytes and redo position', async () => {
+    const first = historyFixture();
+    await first.history.stage(first.edit); first.history.confirm();
+    await first.history.travel('undo');
+    const stored = structuredClone(first.history.export());
+    const reloaded = historyFixture();
+    reloaded.history.import(stored);
+    assert.equal(reloaded.history.future.length, 1);
+    await reloaded.history.travel('redo');
+    assert.equal(await reloaded.value.assets.get('dxf').text(), 'edited DXF');
+    assert.equal(reloaded.value.assets.get('rows')[0].x1, 5);
+    await reloaded.history.travel('undo');
+    assert.equal(await reloaded.value.assets.get('dxf').text(), 'original');
+});
+
+test('IndexedDB stores the complete timeline and DXF bytes across a database reopen', async () => {
+    const { IDBFactory } = require('../frontend/node_modules/fake-indexeddb');
+    const factory = new IDBFactory();
+    const first = new historyContext.WorkspaceStore(factory, 'timeline-test');
+    const second = new historyContext.WorkspaceStore(factory, 'timeline-test');
+    try {
+        await first.read();
+        const f = historyFixture();
+        await f.history.stage(f.edit); f.history.confirm();
+        const assets = new Map(f.value.assets);
+        assets.set('history:assistant', f.history.export());
+        await first.write(f.value.state, assets);
+        first.db.close();
+        const stored = await second.read();
+        assert.equal(await stored.assets.get('dxf').text(), 'edited DXF');
+        const restored = historyFixture(); restored.edit();
+        restored.history.import(stored.assets.get('history:assistant'));
+        await restored.history.travel('undo');
+        assert.equal(await restored.value.assets.get('dxf').text(), 'original');
+        await restored.history.travel('redo');
+        assert.equal(restored.value.assets.get('rows')[0].x1, 5);
+    } finally { first.db?.close(); second.db?.close(); }
+});
+
 function fixture(status = { enabled: true }) {
     const dom = new JSDOM('<!doctype html><body></body>', { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
     const window = dom.window;
     let sourceFile = new window.File(['DXF'], 'test.dxf');
     const csvFile = new window.File(['id,x1\n1,0'], 'input.csv');
     let draft = false;
+    let scope = 'map', active = true, currentCsv = csvFile;
     const calls = [], commits = [];
     const proposal = { answer: '<img src=x onerror=alert(1)>', sources: [],
         edits: [{ handle: 'AB', operation: 'color', before: 7, value: 1 }], scores: [],
@@ -139,6 +183,8 @@ function fixture(status = { enabled: true }) {
     window.assistantWorkspace = { sources: () => [{ id: 'dxf-1', file: sourceFile }],
         tables: () => [{ id: 'csv-file', file: csvFile }],
         csv: () => csvFile, version: () => 1, crs: () => 'EPSG:9208',
+        context: () => ({ scope, resources: scope === 'map' && active ? [{ id: 'dxf-1', file: sourceFile }] : [],
+            csv: scope === 'prediction' ? currentCsv : null, csvId: 'csv-file', version: 1 }),
         hasDraft: () => draft,
         stage: async value => { commits.push(value); draft = true; },
         confirm: () => { draft = false; window.dispatchEvent(new window.Event('assistant-workspace-change')); },
@@ -147,18 +193,20 @@ function fixture(status = { enabled: true }) {
     window.fetch = async (url, options) => {
         calls.push({ url, options });
         return { ok: true, blob: async () => new window.Blob(['DXF edited']), json: async () => ({ data: url.endsWith('/status') ? status
-            : url.endsWith('/apply') ? { dxf: window.btoa('DXF edited'), rows: null } : proposal }) };
+            : url.endsWith('/apply') ? scope === 'map' ? { dxfs: [{ source_id: 'dxf-1', dxf: window.btoa('DXF edited') }], rows: null }
+                : { dxfs: [], rows: [{ id: 'A1', x1: '' }] } : proposal }) };
     };
     window.HTMLAnchorElement.prototype.click = function () {};
     window.eval(script);
     const get = name => window.document.querySelector('.assistant-' + name);
     const submit = async () => {
-        get('launcher').click(); get('source').value = 'dxf-1';
+        get('launcher').click();
         get('form').querySelector('textarea').value = 'Đổi màu nét';
         get('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
         await tick();
     };
     return { window, get, calls, commits, submit, close: () => window.close(),
+        setScope: value => { scope = value; }, setActive: value => { active = value; }, clearCsv: () => { currentCsv = null; },
         changeFile: () => { sourceFile = new window.File(['CHANGED'], 'test.dxf'); } };
 }
 
@@ -174,7 +222,11 @@ test('chat uses project resources only when submitted and stages a signed draft'
         assert.equal(f.calls.filter(c => c.url.endsWith('/apply')).length, 1);
         const form = f.calls.find(c => c.url.endsWith('/preview')).options.body;
         assert.equal(form.get('dxf').name, 'test.dxf');
-        assert.equal(form.get('csv').name, 'input.csv');
+        assert.equal(form.get('csv'), null);
+        assert.equal(form.get('scope'), 'map');
+        assert.equal(form.get('resource_ids'), '["dxf-1"]');
+        assert.equal(f.get('context'), null);
+        assert.equal(f.get('source'), null);
         assert.equal(f.window.document.querySelector('input[type="file"]'), null);
         assert.equal(f.get('messages').querySelector('img'), null);
     } finally { f.close(); }
@@ -190,10 +242,54 @@ test('confirmation accepts the already rendered draft without generating it twic
         assert.equal(f.calls.filter(c => c.url.endsWith('/apply')).length, 1);
         assert.equal(f.calls.find(c => c.url.endsWith('/apply')).options.body.get('token'), 'signed-preview');
         assert.equal(f.commits.length, 1);
-        assert.equal(f.commits[0].dxf.name, 'test_edited.dxf');
+        assert.equal(f.commits[0].dxfs[0].file.name, 'test.dxf');
         assert.equal(f.get('preview').hidden, true);
         assert.equal(f.window.assistantWorkspace.hasDraft(), false);
-        assert.equal(f.get('exports').querySelector('a').download, 'test.dxf');
+        assert.equal(f.get('exports'), null);
+    } finally { f.close(); }
+});
+
+test('prediction sends only the current CSV and can request creation without a CSV', async () => {
+    const f = fixture();
+    try {
+        f.setScope('prediction');
+        await f.submit();
+        const form = f.calls.find(call => call.url.endsWith('/preview')).options.body;
+        assert.equal(form.get('csv').name, 'input.csv');
+        assert.equal(form.get('dxf'), null);
+        assert.equal(form.get('scope'), 'prediction');
+        f.window.assistantWorkspace.confirm();
+        f.clearCsv();
+        await f.submit();
+        const empty = f.calls.filter(call => call.url.endsWith('/preview')).at(-1).options.body;
+        assert.equal(empty.get('csv'), null);
+        assert.equal(empty.get('dxf'), null);
+        assert.equal(f.commits.at(-1).rows[0].id, 'A1');
+    } finally { f.close(); }
+});
+
+test('map refuses to send files that are not displayed and checked', async () => {
+    const f = fixture();
+    try {
+        f.setActive(false);
+        await f.submit();
+        assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 0);
+        assert.match(f.get('notice').textContent, /hiển thị trên bản đồ/);
+    } finally { f.close(); }
+});
+
+test('switching tabs while waiting does not apply edits to another tab', async () => {
+    const f = fixture();
+    try {
+        const fetcher = f.window.fetch;
+        f.window.fetch = async (url, options) => {
+            const response = await fetcher(url, options);
+            if (url.endsWith('/preview')) f.setScope('prediction');
+            return response;
+        };
+        await f.submit();
+        assert.equal(f.commits.length, 0);
+        assert.match(f.get('notice').textContent, /đã thay đổi/);
     } finally { f.close(); }
 });
 

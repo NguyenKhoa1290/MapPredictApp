@@ -56,6 +56,81 @@ class AssistantTests(unittest.TestCase):
         self.assertEqual(edited.entitydb[self.handle].dxf.color, 1)
         self.assertEqual(self.dxf, original)
 
+    def test_prediction_creates_csv_without_dxf_and_scores_only_via_verified_rules(self):
+        result = {'answer': 'Đề xuất bảng mới', 'create_table': True, 'table_rows': [{'id': 'A1', 'x4': 100, 'Y': 2}],
+                  'edits': [], 'sources': [], 'scores': [{'row_index': 0, 'column': 'x4', 'value': 9,
+                    'rule': 'L9', 'evidence': 'USER', 'quote': 'đất nông nghiệp xen kẹt'}]}
+        with patch.object(assistant, 'call_model', return_value=result):
+            response = self.client.post('/api/v1/assistant/preview', data={'scope': 'prediction',
+                'message': 'Tạo CSV cho A1 là đất nông nghiệp xen kẹt', 'web': 'false'})
+        self.assertEqual(response.status_code, 200, response.json)
+        preview = response.json['data']
+        self.assertTrue(preview['create_table'])
+        self.assertEqual(preview['row_count'], 1)
+        response = self.client.post('/api/v1/assistant/apply', data={'scope': 'prediction', 'token': preview['token']})
+        self.assertEqual(response.status_code, 200, response.json)
+        rows = response.json['data']['rows']
+        self.assertEqual(rows[0]['id'], 'A1')
+        self.assertEqual(rows[0]['x4'], 9)
+        self.assertEqual(rows[0]['x1'], '')
+        self.assertNotIn('Y', rows[0])
+        self.assertIsNone(response.json['data']['dxf'])
+
+    def test_scope_rejects_wrong_files_and_map_cannot_create_a_new_dxf(self):
+        with patch.object(assistant, 'call_model') as model:
+            response = self.client.post('/api/v1/assistant/preview', data={'scope': 'map', 'message': 'Vẽ bản đồ'})
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.json['error']['code'], 'MAP_RESOURCE_REQUIRED')
+            response = self.post('preview', scope='prediction', message='Sửa DXF')
+            self.assertEqual(response.status_code, 400)
+            response = self.post('preview', scope='map', resource_ids='["file-a"]', message='Sửa điểm')
+            self.assertEqual(response.status_code, 400)
+            model.assert_not_called()
+
+    def map_request(self, action, **options):
+        return self.client.post('/api/v1/assistant/' + action, data={
+            'scope': 'map', 'resource_ids': '["file-a","file-b"]',
+            'dxf': [(io.BytesIO(self.dxf), 'a.dxf'), (io.BytesIO(self.dxf), 'b.dxf')], **options})
+
+    def test_multiple_dxf_handles_are_scoped_drawings_and_attributes_survive_export(self):
+        result = {'answer': 'Đề xuất sửa hai file', 'sources': [], 'scores': [], 'edits': [
+            {'handle': '0~' + self.handle, 'operation': 'color', 'value': 1},
+            {'handle': '1~' + self.handle, 'operation': 'color', 'value': 3},
+            {'handle': '0~' + self.handle, 'operation': 'attribute', 'value': {'name': 'tenlodat', 'value': 'Lô A1'}},
+            {'handle': 'NEW', 'source_id': 'file-b', 'operation': 'add_line',
+             'value': {'points': [[10, 20], [30, 40]], 'layer': 'DuongMoi', 'color': 2}},
+            {'handle': 'NEW', 'source_id': 'not-loaded', 'operation': 'add_circle',
+             'value': {'position': [1, 2], 'radius': 3}}]}
+        with patch.object(assistant, 'call_model', return_value=result) as model:
+            response = self.map_request('preview', message='Sửa màu, thêm thuộc tính và vẽ đường', web='false')
+            context = json.loads(model.call_args.args[0][-1]['content'].split('DỮ LIỆU NGƯỜI DÙNG\n')[1].split('\nYÊU CẦU\n')[0])
+        self.assertEqual(response.status_code, 200, response.json)
+        self.assertEqual(len(context['dxf']['files']), 2)
+        preview = response.json['data']
+        self.assertEqual(len(preview['edits']), 4)
+        self.assertEqual(len(preview['rejected']), 1)
+        response = self.map_request('apply', token=preview['token'])
+        self.assertEqual(response.status_code, 200, response.json)
+        output = {item['source_id']: ezdxf.read(io.StringIO(base64.b64decode(item['dxf']).decode()))
+                  for item in response.json['data']['dxfs']}
+        self.assertEqual(output['file-a'].entitydb[self.handle].dxf.color, 1)
+        self.assertEqual(output['file-b'].entitydb[self.handle].dxf.color, 3)
+        self.assertEqual(len(output['file-a'].modelspace().query('LINE')), 0)
+        self.assertEqual(len(output['file-b'].modelspace().query('LINE')), 1)
+        from cad_to_geojson import read_assistant_attributes
+        self.assertEqual(read_assistant_attributes(output['file-a'].entitydb[self.handle])['tenlodat'], 'Lô A1')
+        response = self.client.post('/api/v1/assistant/apply', data={'scope': 'map', 'resource_ids': '["file-a"]',
+            'dxf': (io.BytesIO(self.dxf), 'a.dxf'), 'token': preview['token']})
+        self.assertEqual(response.status_code, 409)
+
+    def test_new_table_and_drawing_validators_reject_unbounded_or_ambiguous_data(self):
+        for value in ([], [{'id': 'A1'}, {'id': 'A1'}], [{'x1': 3}]):
+            with self.assertRaises(ValueError):
+                assistant.new_table(value)
+        for value in ({'position': [float('nan'), 1], 'radius': 1}, {'position': [1, 2], 'radius': -1}):
+            with self.assertRaises(ValueError):
+                assistant.valid_drawing({'operation': 'add_circle', 'value': value})
+
     def test_scores_keep_other_columns_and_invalidate_old_predictions(self):
         preview = self.plan(scores=[{'row_index': 0, 'column': 'x4', 'value': 9,
                                     'rule': 'L9', 'evidence': 'USER', 'quote': 'đất nông nghiệp xen kẹt'}])

@@ -29,6 +29,18 @@ def _xy(point):
     return [float(point[0]), float(point[1])]
 
 
+def read_assistant_attributes(entity):
+    """Custom CAD properties stored as bounded, portable XDATA text chunks."""
+    if not entity.has_xdata('MAP_PREDICT'):
+        return {}
+    try:
+        text = ''.join(tag.value for tag in entity.get_xdata('MAP_PREDICT') if tag.code == 1000)
+        value = json.loads(text[:16384])
+        return value if isinstance(value, dict) else {}
+    except (ValueError, TypeError, ezdxf.DXFError):
+        return {}
+
+
 def _feature(coords, layer):
     return {
         "type": "Feature",
@@ -61,6 +73,7 @@ def _entity_features(entity, *, inherited_layer=None, inherited_color=None,
                   "handle": source_entity.dxf.get("handle") or "",
                   "block": " / ".join(block_path),
                   "linetype": entity.dxf.get("linetype", "BYLAYER")}
+    properties.update({'attr:' + key: value for key, value in read_assistant_attributes(source_entity).items()})
 
     def warn(reason):
         if warnings is not None:

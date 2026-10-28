@@ -19,7 +19,7 @@
     function fileValue(file) {
         return file ? { name: file.name, type: file.type, lastModified: file.lastModified } : null;
     }
-    function capture() {
+    function capture(includeHistory = true) {
         const assets = new Map();
         const sources = (entries, kind) => entries.map((entry) => {
             const assetKey = `file:${entry.id}`;
@@ -43,7 +43,7 @@
         const layers = overlays.map((overlay) => {
             assets.set(`layer:${overlay.id}`, overlay.item);
             return {
-                id: overlay.id, color: overlay.color, opacity: overlay.opacity, visible: overlay.visible,
+                id: overlay.id, sourceKey: overlay.sourceKey, color: overlay.color, opacity: overlay.opacity, visible: overlay.visible,
                 style: { ...overlay.style }, adjustments: { ...overlay.adjustments },
                 groups: [...overlay.groups].map(([key, group]) => [key, {
                     visible: group.visible, style: { ...group.style },
@@ -52,6 +52,7 @@
         });
         assets.set("table:results", predictionRows);
         assets.set("table:view", predictionView);
+        if (includeHistory) assets.set('history:assistant', window.assistantWorkspace.history());
         const center = map?.getCenter();
         return { assets, state: {
             schema: 1, cad, prediction, inputs, layers,
@@ -159,7 +160,7 @@
         $("prediction-offset-y").value = state.offsetY;
         // Seed lightweight styles before rebuilding Leaflet paths from cached data.
         const savedLayers = state.layers.map((layer) => ({ ...layer, groups: new Map(layer.groups) }));
-        renderMap(state.layers.map((layer) => assets.get(`layer:${layer.id}`)), savedLayers);
+        renderMap(state.layers.map((layer) => assets.get(`layer:${layer.id}`)), savedLayers, true);
         const inspector = state.inspector;
         if (inspector?.selectedLayerId && overlays.some((overlay) => overlay.id === inspector.selectedLayerId)) {
             selectManagedLayer(inspector.selectedLayerId, inspector.scope);
@@ -195,9 +196,11 @@
             // Merely opening another tab must not create a new saved revision.
             await new Promise((resolve) => setTimeout(resolve, 0));
             ready = true;
+            window.assistantWorkspace.restoreHistory(snapshot?.assets.get('history:assistant'));
         } catch (error) {
             // Never replace an unreadable saved workspace with the initial empty UI.
             blocked = true;
+            ready = false;
             status("Không mở được bản lưu. Phiên cũ không bị ghi đè; kiểm tra quyền lưu trữ rồi tải lại.", true);
         } finally {
             surfaces.forEach((element) => { element.inert = false; });
@@ -207,7 +210,7 @@
     window.workspacePersistence = { schedule, flush,
         checkpoint() {
             if (!ready || blocked) throw new Error('Phiên làm việc chưa sẵn sàng');
-            return structuredClone(capture());
+            return structuredClone(capture(false));
         },
         async pausePreview() {
             if (!ready || blocked || !await flush()) throw new Error('Chưa lưu được dữ liệu trước khi xem bản nháp');

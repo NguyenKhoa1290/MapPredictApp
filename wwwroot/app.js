@@ -109,7 +109,7 @@ function updateCadOptions() {
         offsetX.addEventListener("input", clearCadPreview);
         offsetY.addEventListener("input", clearCadPreview);
         const remove = sourceRemoveButton(entry, "cad");
-        card.append(analyze, remove, result);
+        card.append(analyze, sourceExportButton(entry), remove, result);
         container.append(card);
     }
     window.workspacePersistence?.schedule();
@@ -146,6 +146,17 @@ function sourceRemoveButton(entry, kind) {
     return button;
 }
 
+function sourceExportButton(entry) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'cad-action'; button.textContent = 'Xuất file';
+    button.addEventListener('click', () => {
+        const url = URL.createObjectURL(entry.file), link = document.createElement('a');
+        link.href = url; link.download = entry.file.name; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    return button;
+}
+
 function commonPredictionColumns() {
     return predictionFiles.length && predictionFiles.every((entry) => entry.columns)
         ? predictionFiles[0].columns.filter((name) => predictionFiles.every((entry) => entry.columns.includes(name))) : [];
@@ -166,7 +177,7 @@ function updatePredictionSources() {
         row.className = "prediction-source";
         const name = document.createElement("span");
         name.textContent = `${entry.file.name}${entry.error ? ` · ${entry.error}` : ""}`;
-        row.append(name, sourceRemoveButton(entry, "prediction"));
+        row.append(name, sourceExportButton(entry), sourceRemoveButton(entry, "prediction"));
         if (entry.diagnostics?.format === "dxf") {
             const note = document.createElement("p");
             note.className = "field-note";
@@ -372,11 +383,12 @@ function renderPredictionTable(rows, isResult, total = rows.length) {
     const hasData = rows.length > 0;
     $("prediction-empty").hidden = hasData;
     $("prediction-table-scroll").hidden = !hasData;
-    $("prediction-export").hidden = !hasData || !isResult;
+    $("prediction-export").hidden = !hasData;
     if (predictionDownloadUrl) URL.revokeObjectURL(predictionDownloadUrl);
-    predictionDownloadUrl = hasData && isResult ? URL.createObjectURL(resultsCsvFile(rows)) : null;
+    const exportFile = isResult ? resultsCsvFile(rows) : $('csv-file').files[0] || $('result-file').files[0] || resultsCsvFile(rows);
+    predictionDownloadUrl = hasData ? URL.createObjectURL(exportFile) : null;
     $("prediction-export").href = predictionDownloadUrl || "#";
-    $("prediction-export").download = "KetQua.csv";
+    $("prediction-export").download = exportFile.name;
     $("prediction-title").textContent = hasData
         ? (isResult ? "Kết quả dự đoán" : "Dữ liệu đầu vào") : "Bảng dữ liệu";
     const table = $("prediction-table");
@@ -545,11 +557,15 @@ $("basemap-labels").addEventListener("change", (event) => {
     } catch { /* Toggling labels does not require browser storage. */ }
 });
 
-function renderMap(layers, savedLayers = null) {
+function renderMap(layers, savedLayers = null, restoring = false) {
     clearCadPreview();
     initializeMap();
     if (!map) return;
     renderManagedLayers(layers, savedLayers);
+    for (const overlay of overlays) {
+        const entry = [...cadFiles, ...predictionFiles].find(item => item.id === overlay.item.source_id);
+        overlay.sourceKey = restoring ? savedLayers?.find(item => item.id === overlay.id)?.sourceKey || entry?.key : entry?.key;
+    }
     window.workspacePersistence?.schedule();
 }
 
@@ -777,10 +793,26 @@ window.assistantWorkspace = {
     csv(id = 'csv-file') { return $(id)?.files[0] || null; },
     version() { return `${predictionTableVersion}:${mapRequestVersion}:${resultColumnsVersion}:${sharedSourceCrs()}`; },
     crs() { return sharedSourceCrs(); },
-    async commit({ sourceId, original, dxf, rows, csvId = 'csv-file' }) {
+    context() {
+        const scope = $('map-panel').hidden ? 'prediction' : 'map';
+        if (scope === 'prediction') {
+            const csvId = $('csv-file').files[0] ? 'csv-file' : 'result-file';
+            return { scope, csvId, csv: this.csv(csvId), resources: [], version: this.version() };
+        }
+        const resources = this.sources().filter(entry => overlays.some(overlay => overlay.visible
+            && overlay.item.source_id === entry.id && overlay.sourceKey === entry.key
+            && overlay.item.crs === sharedSourceCrs()));
+        return { scope, csv: null, csvId: '', resources, version: this.version() };
+    },
+    async commit({ sourceId, original, dxf, dxfs = [], rows, csvId = 'csv-file' }) {
         if (!window.workspacePersistence?.ready) throw new Error('Workspace chưa khôi phục xong, hãy chờ hoặc kiểm tra trạng thái bản lưu');
         const entry = [...cadFiles, ...predictionFiles].find(item => item.id === sourceId);
         if (sourceId && (!entry || entry.file !== original)) throw new Error('File DXF đã thay đổi, hãy tạo lại bản xem trước');
+        const changes = [...dxfs, ...(dxf ? [{ sourceId, original, file: dxf }] : [])];
+        for (const change of changes) {
+            const source = [...cadFiles, ...predictionFiles].find(item => item.id === change.sourceId);
+            if (!source || source.file !== change.original) throw new Error('Chỉ sửa DXF đang có trong dự án');
+        }
         if (rows) {
             const name = this.csv(csvId)?.name || 'TieuChi.csv';
             const file = new File([await resultsCsvFile(rows).arrayBuffer()], name, { type: 'text/csv;charset=utf-8' });
@@ -798,21 +830,22 @@ window.assistantWorkspace = {
             renderPredictionTable(rows, false);
             showStatus('predict-message', 'Đã áp dụng tiêu chí từ chatbot, có thể kiểm tra bảng rồi chạy mô hình');
         }
-        if (dxf) {
-            if (entry) {
-                entry.file = dxf;
-                entry.key = JSON.stringify([dxf.name, dxf.size, dxf.lastModified]);
-                delete entry.columns;
-                delete entry.diagnostics;
-                delete entry.error;
-            } else appendSourceFiles(cadFiles, [dxf]);
+        if (changes.length) {
+            for (const change of changes) {
+                const source = [...cadFiles, ...predictionFiles].find(item => item.id === change.sourceId);
+                source.file = change.file;
+                source.key = JSON.stringify([change.file.name, change.file.size, change.file.lastModified]);
+                delete source.columns;
+                delete source.diagnostics;
+                delete source.error;
+            }
             ++mapRequestVersion;
             mapRequestController?.abort();
             updateCadOptions();
             updatePredictionSources();
             await readPredictionSources();
         }
-        if ((dxf || rows) && sharedSourceCrs() && (cadFiles.length || predictionFiles.length)) {
+        if ((changes.length || rows) && sharedSourceCrs() && (cadFiles.length || predictionFiles.length)) {
             const version = ++mapRequestVersion;
             mapRequestController?.abort();
             mapRequestController = new AbortController();
@@ -832,7 +865,7 @@ window.assistantWorkspace = {
             const styles = overlays;
             renderMap(payload.layers, styles);
             if (center) { pendingMapBounds = null; map.setView(center, zoom, { animate: false }); }
-        } else if (dxf && overlays.length) {
+        } else if (changes.length && overlays.length) {
             throw new Error('Chọn hệ tọa độ để hiển thị DXF đã sửa trên bản đồ');
         }
         window.workspacePersistence?.schedule();
@@ -863,6 +896,11 @@ document.querySelector('.workspace-header').append(historyBar);
 function updateAssistantHistory() {
     if (typeof historyBar === 'undefined') return;
     const { pending, busy, past, future } = assistantHistory;
+    try {
+        const key = 'mapPredict.assistant.timeline.v1';
+        const cursor = JSON.stringify({ undo: past.length, redo: future.length, storage: 'IndexedDB' });
+        if (localStorage.getItem(key) !== cursor) localStorage.setItem(key, cursor);
+    } catch { /* The atomic workspace store remains authoritative. */ }
     for (const action of ['confirm', 'discard']) {
         const button = historyBar.querySelector(`[data-action="${action}"]`);
         button.hidden = !pending; button.disabled = busy;
@@ -881,6 +919,11 @@ Object.assign(window.assistantWorkspace, {
     confirm: () => assistantHistory.confirm(),
     discard: () => assistantHistory.travel('discard'),
     hasDraft: () => !!assistantHistory.pending,
+    history: () => assistantHistory.export(),
+    restoreHistory: value => assistantHistory.import(value),
+    travel: action => assistantHistory.travel(action),
+    historyState: () => ({ pending: !!assistantHistory.pending, busy: assistantHistory.busy,
+        undo: assistantHistory.past.length, redo: assistantHistory.future.length }),
 });
 historyBar.addEventListener('click', async event => {
     const action = event.target.closest('button')?.dataset.action;

@@ -83,17 +83,31 @@
         }
     }
     root.WorkspaceStore = WorkspaceStore;
-    // In-memory, bounded history of complete AI transactions, never a disk backup.
+    // Bounded history, saved atomically with workspace assets in IndexedDB.
     class WorkspaceHistory {
         constructor({ capture, restore, pause, resume, changed = () => {}, limit = 10 }) {
             Object.assign(this, { capture, restore, pause, resume, changed, limit });
             this.past = []; this.future = []; this.pending = null; this.busy = false;
+            this.persisted = null;
         }
         key(snapshot) {
             const { view, tab, details, inspector, basemap, labels, ...data } = snapshot.state;
-            return JSON.stringify([data, [...snapshot.assets].map(([key, value]) =>
+            if (Array.isArray(data.layers)) data.layers = data.layers.map(({ id, sourceKey }) => ({ id, sourceKey }));
+            return JSON.stringify([data, [...snapshot.assets].sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) =>
                 [key, key === 'table:view' && !value?.rows?.length ? null
                     : value instanceof Blob ? [value.size, value.type] : value])]);
+        }
+        export() { return this.persisted ||= { version: 1, past: this.past, future: this.future }; }
+        import(value) {
+            if (!value) { this.changed(); return; }
+            if (value.version !== 1 || !Array.isArray(value.past) || !Array.isArray(value.future)
+                || value.past.length + value.future.length > this.limit
+                || [...value.past, ...value.future].some(item => !item?.before?.state || !item?.after?.state
+                    || Object.prototype.toString.call(item.before.assets) !== '[object Map]'
+                    || Object.prototype.toString.call(item.after.assets) !== '[object Map]')) {
+                throw new Error('Lịch sử chỉnh sửa đã lưu không hợp lệ');
+            }
+            this.past = value.past; this.future = value.future; this.persisted = value; this.changed();
         }
         assertCurrent(snapshot) {
             if (this.key(this.capture()) !== this.key(snapshot)) {
@@ -122,6 +136,7 @@
             this.past.push(this.pending);
             if (this.past.length > this.limit) this.past.shift();
             this.future = []; this.pending = null;
+            this.persisted = null;
             this.resume(); this.changed();
         }
         async travel(direction) {
@@ -138,6 +153,7 @@
                 await this.restore(direction === 'redo' ? item.after : item.before);
                 if (discard) this.pending = null;
                 else { from.pop(); to.push(item); }
+                this.persisted = null;
                 this.resume();
             } finally { this.busy = false; this.changed(); }
         }

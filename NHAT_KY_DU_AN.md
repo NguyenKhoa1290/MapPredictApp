@@ -501,3 +501,17 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lịch sử giữ tối đa 10 thao tác trong bộ nhớ tab, không tạo file sao lưu hoặc phiên service
 - Sửa điểm loại kết quả dự đoán cũ, giữ xuất file từ tài nguyên đã xác nhận
 - Đã đạt 141 kiểm thử Python, 41 kiểm thử frontend và 41 kiểm thử JavaScript, gồm 11 kiểm thử chatbot cùng lịch sử tài nguyên
+
+## 2026-10-28 Agent tự nhận dữ liệu theo tab và lưu lịch sử so sánh
+
+- Bỏ bộ chọn file, layer, dòng dữ liệu và thông tin truy xuất kỹ thuật trong cửa sổ chat
+- Tab dự đoán chỉ lấy CSV đang nạp, cho phép đề xuất tạo CSV mới khi chưa có file
+- Bảng mới có mã ô đất duy nhất, x1 đến x9 chỉ được chấm qua căn cứ đã kiểm chứng, không tự tạo Y
+- Tab bản đồ chỉ lấy DXF đã hiển thị theo hệ tọa độ hiện tại và đang tích bật, không tự tạo file DXF
+- Thêm xử lý tối đa 5 DXF cùng lượt với handle có phạm vi file, tránh nhầm đối tượng trùng handle
+- Bổ sung vẽ LINE, LWPOLYLINE, CIRCLE, TEXT trong file sẵn có và thuộc tính XDATA MAP_PREDICT
+- DXF sửa tự nạp cùng tên tài nguyên, người dùng duyệt giữ lại hoặc bỏ để khôi phục
+- Chuyển thanh Hoàn tác và Làm lại vào cửa sổ chat, chuyển xuất file về danh sách tài nguyên và bảng dữ liệu
+- Lưu nguyên tử tối đa 10 thao tác trước và sau cùng workspace trong IndexedDB, localStorage giữ vị trí lịch sử
+- Tải lại trang vẫn quay lại trước và sau để so sánh, không lưu bản nháp chưa duyệt
+- Kiểm thử đạt 145 test Python, 41 test frontend và 46 test JavaScript, gồm kiểm tra đóng mở lại IndexedDB với DXF và lịch sử đầy đủ

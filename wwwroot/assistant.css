@@ -56,3 +56,5 @@
 .assistant-history-bar button:disabled { opacity:.45; cursor:default; }
 .assistant-history-bar [hidden] { display:none; }
 .assistant-history-bar button:focus-visible { outline:3px solid #79b994; outline-offset:2px; }
+.assistant-history-slot { flex-shrink:0; }
+.assistant-history-slot [data-action="confirm"], .assistant-history-slot [data-action="discard"] { display:none; }
