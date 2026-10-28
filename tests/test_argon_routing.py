@@ -154,7 +154,7 @@ class ArgonRoutingTests(unittest.TestCase):
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
         for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71)):
-            for effort, depth in ((None, 4), ('low', 4), ('medium', 2), ('high', 0)):
+            for effort, depth in ((None, 1), ('low', 1), ('medium', 4), ('high', 2)):
                 with self.subTest(model=model, effort=effort):
                     handler.send_json.reset_mock()
                     body = {'model': model, 'messages': [{'role': 'user', 'content': 'hello'}]}
@@ -204,3 +204,52 @@ class ArgonRoutingTests(unittest.TestCase):
                       model_headers={'71': {'x-goog-ext-525001261-jspb': '[1]'}})
         with self.assertRaises(RuntimeError):
             gemini._build_headers(71)
+
+    def test_effort_updates_native_metadata_header_without_changing_account_route(self):
+        from gemini_web2api import gemini
+        from gemini_web2api.config import CONFIG
+        from gemini_web2api.models import thinking_depth
+        from urllib.parse import parse_qs
+        original = [1] + [None] * 13 + [71, 1, 'old-client-id']
+        original[11] = 3
+        CONFIG.update(xsrf_token='verified-test-token', model_headers={'71': {
+            'x-goog-ext-525001261-jspb': json.dumps(original)}})
+        for effort, expected in (('low', 1), ('medium', 4), ('high', 2)):
+            level = thinking_depth(effort, 1)
+            with patch.object(gemini, 'load_cookie', return_value=('SID=test', 'test-sapisid')):
+                header = gemini._build_headers(71, level)
+            value = json.loads(header['x-goog-ext-525001261-jspb'])
+            self.assertEqual(value[15], expected)
+            self.assertEqual(len(value), 17)
+            self.assertEqual(value[14], 71)
+            self.assertEqual(value[11], 3)
+            self.assertNotEqual(value[16], 'old-client-id')
+            self.assertEqual(json.loads(CONFIG['model_headers']['71']['x-goog-ext-525001261-jspb']), original)
+            body = json.loads(json.loads(parse_qs(gemini._build_payload('test', 71, level))['f.req'][0])[1])
+            self.assertEqual(body[17], [[expected]])
+
+    def test_fast_route_also_sends_native_thinking_level_metadata(self):
+        from gemini_web2api import gemini
+        from gemini_web2api.config import CONFIG
+        CONFIG['model_headers'] = {}
+        with patch.object(gemini, 'load_cookie', return_value=('', None)):
+            header = gemini._build_headers(1, 4)
+        value = json.loads(header['x-goog-ext-525001261-jspb'])
+        self.assertEqual(value[14:16], [1, 4])
+        self.assertNotIn('Authorization', header)
+
+    def test_generation_reads_applied_level_from_upstream_not_from_the_request(self):
+        from gemini_web2api import gemini
+        from gemini_web2api.config import CONFIG
+        CONFIG.update(retry_attempts=1, model_headers={})
+        response = [None] * 60
+        response[4] = [[None, ['Final answer: 7']]]
+        response[59] = 4  # Deliberately differs from requested High=2.
+        remote = Mock()
+        remote.read.return_value = json.dumps([['wrb.fr', None, json.dumps(response)]]).encode()
+        metadata = {}
+        with patch.object(gemini, 'load_cookie', return_value=('', None)), \
+                patch.object(gemini.urllib.request, 'urlopen', return_value=remote):
+            gemini.generate('test', 1, 2, metadata=metadata)
+        self.assertEqual(metadata, {'requested_level': 2, 'applied_level': 4})
+        self.assertNotIn('Final answer', str(metadata))

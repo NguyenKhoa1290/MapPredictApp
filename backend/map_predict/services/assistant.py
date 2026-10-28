@@ -212,7 +212,7 @@ def call_model(messages, config):
         headers['Authorization'] = 'Bearer ' + Path(path).read_text().strip()
     try:
         with build_opener(ProxyHandler({})).open(Request(base + '/chat/completions', data=body,
-                                                       headers=headers), timeout=145 if config['ASSISTANT_MODEL'] == 'gemini-4-argon' else 90) as response:
+                                                       headers=headers), timeout=150) as response:
             payload = json.loads(response.read(500_001))
         text = payload['choices'][0]['message']['content'].strip()
         text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text)

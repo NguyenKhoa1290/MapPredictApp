@@ -5,7 +5,7 @@
 
 MODELS = {
     'gemini-4-argon': {
-        'mode': None, 'think': 4,
+        'mode': None, 'think': 1,
         'desc': 'Pro Argon, requires a verified account route and quota',
     },
     "gemini-3.7-flash": {
@@ -13,7 +13,7 @@ MODELS = {
         "desc": "Latest all-around model (Gemini 3.7 Flash)",
     },
     "gemini-3.6-flash": {
-        "mode": 1, "think": 4,
+        "mode": 1, "think": 1,
         "desc": "All-around model (Gemini 3.6 Flash)",
     },
     "gemini-3.5-flash": {
@@ -48,13 +48,14 @@ MODELS = {
 
 
 def thinking_depth(effort, default):
-    # Same web-protocol depths as the supplied gemini-agent server.
-    # These are not Gemini API thinking_level values.
+    # Verified against Gemini Web's XJb/kBd enum on 2026-10-28:
+    # STANDARD=1 (Low), MEDIUM=4, EXTENDED=2 (High).
+    # These are web protocol values, not token budgets.
     if effort is None:
         return default
     if not isinstance(effort, str) or effort not in ('low', 'medium', 'high'):
         raise ValueError('Invalid reasoning_effort; use low, medium, or high')
-    return {'low': 4, 'medium': 2, 'high': 0}[effort]
+    return {'low': 1, 'medium': 4, 'high': 2}[effort]
 
 
 def resolve_model(model_name: str, default: str = "gemini-3.6-flash", effort=None):

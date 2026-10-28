@@ -86,7 +86,7 @@ def _account_prefix() -> str:
     return f"/u/{auth_user}"
 
 
-def _build_headers(model_id=None) -> dict:
+def _build_headers(model_id=None, think_mode=None) -> dict:
     account_prefix = _account_prefix()
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -106,9 +106,13 @@ def _build_headers(model_id=None) -> dict:
     if route and (not cookie_str or not sapisid or not CONFIG.get('xsrf_token')):
         raise RuntimeError('Verified session is required for the selected model route')
     name = 'x-goog-ext-525001261-jspb'
-    if name in route:
-        value = json.loads(route[name])
-        value.extend([1, str(uuid.uuid4()).upper()])
+    if name in route or think_mode is not None:
+        value = json.loads(route[name]) if name in route else [1] + [None] * 13 + [model_id]
+        # Native Web metadata fields 16 and 17: thinking level and client ID.
+        # Appending a constant 1 here previously forced every Argon call to Low.
+        value += [None] * max(0, 17 - len(value))
+        value[15] = think_mode if think_mode is not None else 1
+        value[16] = str(uuid.uuid4()).upper()
         route[name] = json.dumps(value)
     headers.update(route)
     return headers
@@ -214,11 +218,11 @@ def extract_response_text(raw: str) -> str:
     return clean_text(last_text)
 
 
-def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None, extra_fields: dict = None) -> str:
+def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None, extra_fields: dict = None, *, metadata=None) -> str:
     """Non-streaming generation with retry."""
     body = _build_payload(prompt, model_id, think_mode, file_refs, extra_fields).encode()
     url = _get_url()
-    headers = _build_headers(model_id)
+    headers = _build_headers(model_id, think_mode)
     ctx = _get_ssl_ctx()
     proxy = CONFIG.get("proxy")
 
@@ -235,6 +239,22 @@ def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None
             else:
                 resp = urllib.request.urlopen(req, context=ctx, timeout=CONFIG["request_timeout_sec"])
             raw = resp.read().decode("utf-8", errors="replace")
+            if metadata is not None:
+                metadata.clear()
+                metadata['requested_level'] = think_mode
+                # Native wNd reads StreamGenerate field 60 for the applied level.
+                # Keep only this numeric metadata, never internal reasoning text.
+                for line in raw.splitlines():
+                    try:
+                        frames = json.loads(line)
+                        for frame in frames:
+                            if frame[0] != 'wrb.fr' or not isinstance(frame[2], str):
+                                continue
+                            value = json.loads(frame[2])
+                            if len(value) > 59 and type(value[59]) is int and value[59] in (1, 2, 3, 4):
+                                metadata['applied_level'] = value[59]
+                    except (ValueError, TypeError, IndexError, KeyError):
+                        continue
             return extract_response_text(raw)
         except Exception as e:
             last_err = e
@@ -254,7 +274,7 @@ def generate_stream(prompt: str, model_id: int, think_mode: int, file_refs: list
 
     body = _build_payload(prompt, model_id, think_mode, file_refs, extra_fields)
     url = _get_url()
-    headers = _build_headers(model_id)
+    headers = _build_headers(model_id, think_mode)
     client = _get_httpx_client()
 
     last_err = None

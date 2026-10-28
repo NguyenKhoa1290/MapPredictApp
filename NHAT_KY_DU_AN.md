@@ -1,5 +1,16 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-28 Kiểm tra effort thật và sửa giao thức Gemini Web
+
+- Kiểm tra trực tiếp 6 lượt gọi hai model ở ba mức, xác nhận bản cũ gửi được request nhưng chưa đủ cơ sở kết luận mức suy nghĩ đã áp dụng đúng
+- Đối chiếu bundle Gemini Web hiện tại, hàm XJb/kBd ánh xạ STANDARD=1, MEDIUM=4, EXTENDED=2, khác ánh xạ low=4, medium=2, high=0 trong server tham khảo cũ
+- Phát hiện header x-goog-ext-525001261-jspb luôn thêm giá trị 1 ở trường 16 nên các lượt Argon bị cố định mức Low dù body nhận effort khác nhau
+- Sửa ánh xạ Thấp=1, Trung bình=4, Cao=2 và đặt đồng nhất trong body cùng metadata header, giữ nguyên danh tính route và tài khoản
+- Mặc định của hai model đang dùng giữ mức Low, bổ sung metadata chẩn đoán requested_level và applied_level nếu Google báo trường 60, không lưu hoặc trả nội dung suy nghĩ nội bộ
+- Một lượt Nhanh mức Cao trong bản cũ mất khoảng 135 giây, tăng timeout gọi model từ 90/145 lên 150 giây để không ngắt sớm trong giới hạn gateway 165 giây
+- Nguồn đối chiếu: Gemini Apps Help https://support.google.com/gemini/answer/18648722?hl=en và bundle BardChatUi.en_GB.cb_mRdMFAsE.2018.O, module xqG9Nd, SHA-256 a270e8daf1fada998b9aa21a6a215ad306aa111df4b240560e185d90bbd49f56
+- Kiểm thử cả header và body, giữ route tài khoản, nhận mức áp dụng từ phản hồi Google thay vì suy ra từ request
+
 ## 2026-10-28 Popup tên lô trên layer ghép
 
 - Bấm ô trên layer prediction hiện popup nhỏ tên lô, dùng tenlodat, mã dữ liệu đã ghép hoặc mã lưới, không tự zoom và không tự kéo bản đồ

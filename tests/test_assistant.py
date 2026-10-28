@@ -87,6 +87,7 @@ class AssistantTests(unittest.TestCase):
                 with patch.object(assistant, 'build_opener', return_value=opener):
                     assistant.call_model([], {**self.app.config, 'ASSISTANT_MODEL': model, 'ASSISTANT_EFFORT': effort})
                 payload = json.loads(opener.open.call_args.args[0].data)
+                self.assertEqual(opener.open.call_args.kwargs['timeout'], 150)
                 self.assertEqual(payload['model'], model)
                 if effort == 'auto':
                     self.assertNotIn('reasoning_effort', payload)

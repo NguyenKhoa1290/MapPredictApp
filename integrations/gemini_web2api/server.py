@@ -232,7 +232,8 @@ class GeminiHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            text = generate(prompt, model_id, think_mode, file_refs, extra_fields)
+            reasoning = {}
+            text = generate(prompt, model_id, think_mode, file_refs, extra_fields, metadata=reasoning)
         except Exception as e:
             self.send_json({"error": {"message": f"upstream error: {e}"}}, 502)
             return
@@ -256,6 +257,7 @@ class GeminiHandler(BaseHTTPRequestHandler):
             self.send_json({
                 "id": cid, "object": "chat.completion", "created": int(time.time()),
                 "model": model_name,
+                "reasoning": reasoning,
                 "choices": [{"index": 0, "message": msg, "finish_reason": finish}],
                 "usage": {"prompt_tokens": len(prompt)//4, "completion_tokens": len(text or "")//4,
                           "total_tokens": (len(prompt)+len(text or ""))//4},

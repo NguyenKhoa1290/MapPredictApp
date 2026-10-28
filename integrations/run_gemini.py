@@ -77,7 +77,7 @@ class ManagedGeminiHandler(GeminiHandler):
         if not isinstance(request, dict) or request.get('model') != ARGON:
             return super()._handle_chat(body)
         try:
-            thinking_depth(request.get('reasoning_effort'), 4)
+            thinking_depth(request.get('reasoning_effort'), 1)
         except ValueError as error:
             self.send_json({'error': {'message': str(error)}}, 400)
             return
@@ -89,9 +89,11 @@ class ManagedGeminiHandler(GeminiHandler):
             self.send_json({'error': {'message': 'Thông minh nhận nội dung văn bản đã tóm tắt'}}, 400)
             return
         try:
-            text = pool.run(lambda mode, think: generate(prompt, mode, thinking_depth(request.get('reasoning_effort'), think)))
+            reasoning = {}
+            text = pool.run(lambda mode, think: generate(prompt, mode, thinking_depth(request.get('reasoning_effort'), 1), metadata=reasoning))
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
                             'created': int(time.time()), 'model': ARGON,
+                            'reasoning': reasoning,
                             'choices': [{'index': 0, 'message': {'role': 'assistant', 'content': text}, 'finish_reason': 'stop'}]})
         except QuotaRejected as error:
             self.send_json(error.response(), error.status)
