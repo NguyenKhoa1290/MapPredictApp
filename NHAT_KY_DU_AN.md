@@ -752,4 +752,8 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Cập nhật cấu hình mặc định, di chuyển thiết lập Gemini Nhanh cũ sang model mới và khám phá route Flash-Lite riêng từ tài khoản
 - Giữ pool hai tài khoản đăng nhập, không chuyển sang ẩn danh, giữ nguyên cấu hình Thông minh
 - Chỉ mở effort mặc định và thấp cho Lite trong lúc chưa xác minh các mức cao hơn
+- 194 kiểm thử đạt, đã triển khai model mới lên VPS và cập nhật cả thiết lập Nhanh lưu trong volume
+- Gọi trực tiếp Gemini thành công trong 3,56 giây, phản hồi xác nhận applied_model_category=6 và applied_level=1
+- Gọi toàn API preview của website thành công sau 100,48 giây, RAGWire hybrid, trả lời đúng vai trò GIS và không tạo thay đổi dữ liệu
+- Kết quả này xác nhận chat Lite hoạt động qua ứng dụng, lượt tra cứu toàn luồng vẫn chậm, chưa coi là đã tối ưu độ trễ
 
