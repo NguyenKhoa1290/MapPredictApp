@@ -185,6 +185,17 @@ class ArgonRoutingTests(unittest.TestCase):
         self.assertEqual(result.exception.code, 'cookie_required')
         generate.assert_not_called()
 
+    def test_flash_rejects_busy_pool_without_queueing(self):
+        from gemini_web2api.quota_guard import QuotaRejected
+        self.pool.lock = threading.Lock()
+        self.pool.lock.acquire()
+        try:
+            with self.assertRaises(QuotaRejected) as error:
+                self.pool.run_flash(Mock(), timeout=30)
+            self.assertEqual(error.exception.code, 'accounts_busy')
+        finally:
+            self.pool.lock.release()
+
     def test_streaming_heartbeat_timeout_discards_partial_answer_and_closes_response(self):
         from gemini_web2api import gemini
         response = Mock()
@@ -209,7 +220,7 @@ class ArgonRoutingTests(unittest.TestCase):
                 patch('gemini_web2api.account_pool.AccountPool'):
             spec.loader.exec_module(runner)
         runner.pool.run.side_effect = lambda callback: callback(71, 4)
-        runner.pool.run_flash.side_effect = lambda callback: callback(1, 1)
+        runner.pool.run_flash.side_effect = lambda callback, **kwargs: callback(1, 1)
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
         for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-3.8-flash', 1)):
@@ -229,6 +240,8 @@ class ArgonRoutingTests(unittest.TestCase):
                     self.assertEqual(called.call_args.args[1:3], (mode, depth))
                     untouched.assert_not_called()
                     self.assertEqual(handler.send_json.call_args.args[0]['model'], model)
+                    if model == 'gemini-3.8-flash':
+                        self.assertEqual(runner.pool.run_flash.call_args.kwargs['timeout'], 120)
             with patch('gemini_web2api.server.generate') as fast, patch.object(runner, 'generate') as smart:
                 handler._handle_chat(json.dumps({'model': model, 'reasoning_effort': 'invalid'}).encode())
                 self.assertEqual(handler.send_json.call_args.args[1], 400)

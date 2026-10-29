@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 import re
 import secrets
+import time
 from urllib.request import Request, build_opener, ProxyHandler
 from urllib.error import HTTPError
 
@@ -211,6 +212,7 @@ def call_model(messages, config, *, response_kind='assistant'):
             headers['Authorization'] = 'Bearer ' + config['ASSISTANT_API_KEY']
     elif path:
         headers['Authorization'] = 'Bearer ' + Path(path).read_text().strip()
+        headers['X-Map-Predict-Timeout'] = str(max(1, min(120, config.get('ASSISTANT_CALL_TIMEOUT', 150) - 5)))
     try:
         with build_opener(ProxyHandler({})).open(Request(base + '/chat/completions', data=body,
                                                        headers=headers), timeout=config.get('ASSISTANT_CALL_TIMEOUT', 150)) as response:
@@ -225,9 +227,9 @@ def call_model(messages, config, *, response_kind='assistant'):
             code = None
         if code == 'effort_not_applied':
             raise PredictionError('EFFORT_NOT_APPLIED', 'Gemini chưa áp dụng được mức effort đã chọn, dữ liệu chưa thay đổi', 503) from None
-        if config['ASSISTANT_MODEL'] == 'gemini-3.8-flash' and code in ('cookie_required', 'model_unavailable'):
-            message = 'Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị' if code == 'cookie_required' else 'Chưa xác minh được tài khoản 3.8 Flash và effort, kiểm tra trong quản trị'
-            raise PredictionError(code.upper(), message, 503) from None
+        if config['ASSISTANT_MODEL'] == 'gemini-3.8-flash' and code in ('cookie_required', 'model_unavailable', 'accounts_busy'):
+            message = 'Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị' if code == 'cookie_required' else 'Gemini đang xử lý yêu cầu trước, hãy thử lại sau' if code == 'accounts_busy' else '3.8 Flash chưa trả kết quả hợp lệ trong thời gian cho phép, hãy thử lại'
+            raise PredictionError(code.upper(), message, 429 if code == 'accounts_busy' else 503) from None
         if config['ASSISTANT_MODEL'] == 'gemini-4-argon':
             if code == 'cookie_required':
                 from .ai_settings import COOKIE_MESSAGE
@@ -344,6 +346,7 @@ def new_table(value):
 
 
 def preview(path, dxf, csv, options, config, resources=None):
+    deadline = time.monotonic() + 145
     from .ai_settings import model_config
     config = model_config(config, options.get('mode', 'fast'))
     effort = options.get('effort', 'auto')
@@ -405,7 +408,10 @@ def preview(path, dxf, csv, options, config, resources=None):
     messages += [{'role': row['role'], 'content': str(row['content'])[:4000]} for row in history
                  if isinstance(row, dict) and row.get('role') in ('user', 'assistant') and 'content' in row]
     messages += [{'role': 'user', 'content': 'DỮ LIỆU NGƯỜI DÙNG\n' + request_context + '\nYÊU CẦU\n' + message}]
-    result = call_model(messages, config)
+    remaining = deadline - time.monotonic()
+    if remaining <= 5:
+        raise PredictionError('ASSISTANT_TIMEOUT', 'Tra cứu dữ liệu quá thời gian, hãy thử lại', 503)
+    result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': min(150, remaining)})
     sources = [verify_source(source) for source in (result.get('sources') or [])[:3]
                if isinstance(source, dict)] if context['web_search'] else []
     actions, scores, rejected, seen = [], [], [], set()

@@ -166,12 +166,21 @@ class AccountPool:
         finally:
             self.lock.release()
 
-    def run_flash(self, generate):
+    @contextmanager
+    def generation_slot(self):
+        if not self.lock.acquire(blocking=False):
+            raise QuotaRejected('Đang xử lý yêu cầu khác, hãy thử lại', code='accounts_busy')
+        try:
+            yield
+        finally:
+            self.lock.release()
+
+    def run_flash(self, generate, timeout=120):
         """Use only account-discovered 3.8 Flash routes, never anonymous Flash."""
-        with self.lock:
+        with self.generation_slot():
             entries = self.store.registry()['accounts']
             login_failures = 0
-            deadline = time.monotonic() + 120
+            deadline = time.monotonic() + timeout
             for entry in entries:
                 if time.monotonic() >= deadline:
                     break

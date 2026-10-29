@@ -725,3 +725,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Kiểm tra thực tế trên VPS xác nhận cả hai tài khoản có route 3.8 Flash và Argon, mức thấp và trung bình trả đúng applied_level
 - Mức cao gặp timeout upstream trong hai lần thử, chưa xác nhận thành công, thêm giới hạn tổng thời gian 120 giây để kết nối giữ sống không khóa service vô hạn
 
+# 2026-10-29 Sửa chờ phản hồi 3.8 Flash
+
+- Tái hiện API báo ASSISTANT_BUSY dù service và cookie đang ready
+- Đồng bộ ngân sách thời gian từ caller tới Gemini, yêu cầu bộ lọc 35 giây chỉ cấp tối đa 30 giây cho upstream
+- Bỏ hàng chờ khóa ngoài của HTTP handler với hai model được quản lý, pool trả accounts_busy ngay nếu đang có tác vụ khác
+- Bước chọn bộ lọc metadata dùng effort thấp, mức effort người dùng chọn vẫn áp dụng cho câu trả lời cuối
+- Giới hạn ngân sách toàn bộ lượt preview, dành thời gian xử lý còn lại cho câu trả lời sau truy xuất
+

@@ -67,15 +67,15 @@ class ManagedGeminiHandler(GeminiHandler):
         if self.path.startswith('/_internal/'):
             self.session_request()
         else:
-            # The supplied adapter uses process-global Google routing fields.
-            # Serialize every generation with session activation and maintenance.
-            with manager.lock:
-                super().do_POST()
+            # Managed pools reject a concurrent generation instead of queuing it
+            # behind an abandoned request whose caller already timed out.
+            super().do_POST()
 
     def _handle_chat(self, body):
         request = self._parse_body(body)
         if not isinstance(request, dict) or request.get('model') not in (ARGON, FLASH):
-            return super()._handle_chat(body)
+            with manager.lock:
+                return super()._handle_chat(body)
         model = request['model']
         try:
             thinking_depth(request.get('reasoning_effort'), 1)
@@ -97,7 +97,14 @@ class ManagedGeminiHandler(GeminiHandler):
                 if reasoning.get('applied_level', None if model == FLASH else level) != level:
                     raise ValueError('Argon thinking level was not honored')
                 return text
-            text = pool.run_flash(generate_argon) if model == FLASH else pool.run(generate_argon)
+            if model == FLASH:
+                try:
+                    budget = max(1, min(120, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', 120))))
+                except (ValueError, TypeError):
+                    budget = 120
+                text = pool.run_flash(generate_argon, timeout=budget)
+            else:
+                text = pool.run(generate_argon)
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
                             'created': int(time.time()), 'model': model,
                             'reasoning': reasoning,

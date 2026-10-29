@@ -138,7 +138,7 @@ def filter_completion(config, prompt):
         'Bạn chỉ chọn bộ lọc metadata để tìm tài liệu, không chỉnh dữ liệu. Trả một JSON object chứa các bộ lọc, '
         'không thêm answer, thao tác chỉnh sửa hoặc phần giải thích. '
         'Chỉ dùng tên trường và giá trị có trong dữ liệu, không tự suy diễn.'},
-        {'role': 'user', 'content': prompt.to_string()}], {**config, 'ASSISTANT_CALL_TIMEOUT': 35}, response_kind='filters')
+        {'role': 'user', 'content': prompt.to_string()}], {**config, 'ASSISTANT_CALL_TIMEOUT': 35, 'ASSISTANT_EFFORT': 'low'}, response_kind='filters')
     filters = result.get('filters', result)
     return AIMessage(content=json.dumps(filters if isinstance(filters, dict) else {}, ensure_ascii=False))
 
