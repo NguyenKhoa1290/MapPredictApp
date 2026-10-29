@@ -1,5 +1,30 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-29 Kiểm chứng cấu hình bộ nhớ cho VPS
+
+- Xác minh kernel không có log OOM trong boot trước, container không báo OOMKilled, chưa kết luận máy bị kill bởi OOM
+- Phát hiện vm.swappiness=0 tại sysctl.conf và liên kết 99-sysctl.conf, file thêm riêng không giữ được giá trị 60
+- Sửa mục cấu hình đang có sang 60, ghi nhận swap được sử dụng và gateway tiếp tục trả 200
+- Lượt thử đầu vẫn chạy khi cấu hình chưa được xác nhận, sau đó đã bổ sung kiểm tra bắt buộc và giới hạn riêng container trước khi nạp model
+- Thử embedding với RAM cứng 256 MB, tổng RAM cùng swap 2 GB, CPU 0,75 core, vector 1024 chiều trả sau 45,29 giây, không OOM
+- Giữ nguyên trọng số và tên model, đặt num_batch=32, num_thread=1 trong cấu hình model trên volume, đối chiếu blob trọng số trước và sau không đổi
+- Thử toàn API chatbot đạt RAGWire hybrid, đúng point x1 và các ô nguồn trong 75,47 giây, gateway trả 200 trong toàn bộ lượt, swap cao nhất khoảng 1,2 GB
+- Trang chính và admin đều mở được, đăng nhập admin qua Chrome thành công, local tiếp tục dừng cả stack và AutoDeploy
+- Gia hạn hai tài khoản Gemini vẫn needs_login, Thông minh giữ cookie_required, không chuyển xuống Nhanh
+- Bổ sung tùy chọn --low-memory cho cài đặt Linux, yêu cầu swap và sửa chính sách có sẵn, cấu hình Compose và 7 kiểm thử triển khai đạt
+
+## 2026-10-29 Chuyển stack sang VPS sau khi khởi động lại
+
+- SSH và sudo hoạt động lại sau reboot, xác minh route Docker không trùng mạng eth0 trong lần kiểm tra
+- Nạp đủ bốn image ứng dụng, khôi phục volume AI và Gemini, nhập 6 collection với 807 point và kiểm tra checksum đạt
+- Model qwen3-embedding:0.6b đã tải vào volume trên VPS, các service báo healthy và ba API bản đồ cùng gateway trả 200
+- Bật service khởi động systemd cùng timer cập nhật 5 phút, xác minh cả hai active và enabled
+- Theo yêu cầu, dừng cả 7 service local, đặt restart=no, tắt Scheduled Task MapPredictApp-AutoDeploy, Cloudflare xác nhận chỉ một connector từ VPS
+- Kiểm thử Chrome qua tên miền đạt khôi phục CSV/DXF và layer qua reload, duyệt nháp, hoàn tác, làm lại và xóa CSV
+- Trong lượt thử chatbot, SSH lại mất phản hồi, tên miền trả 502 và sau đó connector mất kết nối, chưa nhận kết quả RAG/embedding, chưa kết luận nguyên nhân
+- Đã yêu cầu log Console/VNC, giữ stack local tắt theo yêu cầu, chưa bàn giao triển khai ổn định
+- Trạng thái Thông minh ban đầu trên VPS là cookie_required, cần kiểm tra gia hạn sau khi khôi phục truy cập
+
 ## 2026-10-29 Chuẩn bị VPS Linux
 
 - Kết nối SSH thành công tới VPS Ubuntu 22.04, xác minh 2 CPU, 890 MB RAM và ổ 30 GB, chưa có Docker hoặc swap

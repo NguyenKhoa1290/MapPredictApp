@@ -94,6 +94,17 @@ class PortableDeploymentTests(unittest.TestCase):
         self.assertEqual(calls.call_args_list[0].args,
                          ('up', '-d', '--no-build', '--wait', '--wait-timeout', '180'))
 
+    def test_low_memory_policy_preserves_other_settings_and_comments(self):
+        original = '# vm.swappiness = 0\nnet.ipv4.ip_forward = 1\nvm.swappiness = 0\nvm.swappiness=30\n'
+        result = install_linux.memory_sysctl(original)
+        self.assertIn('# vm.swappiness = 0\n', result)
+        self.assertIn('net.ipv4.ip_forward = 1\n', result)
+        self.assertEqual(result.count('\nvm.swappiness = 60\n'), 1)
+        self.assertEqual(result.splitlines()[-2:], ['vm.swappiness = 60', 'vm.swappiness = 60'])
+        self.assertEqual(install_linux.memory_sysctl(result), result)
+        self.assertEqual(install_linux.memory_sysctl('net.ipv4.ip_forward=1\n'),
+                         'net.ipv4.ip_forward=1\nvm.swappiness = 60\n')
+
 
 if __name__ == '__main__':
     unittest.main()

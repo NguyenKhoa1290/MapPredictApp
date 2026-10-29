@@ -18,8 +18,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.embedding-cpu
-    mem_limit: 768m
+    mem_limit: 256m
     memswap_limit: 2g
+    cpus: 0.75
   web-gateway:
     mem_limit: 64m
   cloudflare-tunnel:
