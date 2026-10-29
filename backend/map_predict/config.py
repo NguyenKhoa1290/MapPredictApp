@@ -20,7 +20,7 @@ class Config:
     PREDICTION_MAX_ROWS = 10000
     ASSISTANT_ENABLED = os.environ.get('MAP_PREDICT_ASSISTANT_ENABLED', '0') == '1'
     ASSISTANT_URL = os.environ.get('MAP_PREDICT_ASSISTANT_URL', 'http://127.0.0.1:8081/v1')
-    ASSISTANT_MODEL = os.environ.get('MAP_PREDICT_ASSISTANT_MODEL', 'gemini-3.8-flash')
+    ASSISTANT_MODEL = os.environ.get('MAP_PREDICT_ASSISTANT_MODEL', 'gemini-3.5-flash-lite')
     ASSISTANT_SECRET_FILE = os.environ.get('MAP_PREDICT_ASSISTANT_SECRET_FILE')
     ASSISTANT_RUBRIC = ROOT / 'config' / 'assistant' / 'rubric.md'
     ASSISTANT_PROMPT = ROOT / 'config' / 'assistant' / 'system_prompt.txt'

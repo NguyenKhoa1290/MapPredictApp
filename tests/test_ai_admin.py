@@ -192,7 +192,7 @@ class AiAdminTests(unittest.TestCase):
         settings = ai_settings.load(self.app.config)
         self.assertEqual(set(settings['models']), {'fast', 'smart'})
         self.assertEqual(settings['models']['smart']['model'], 'gemini-4-argon')
-        self.assertEqual(settings['models']['fast']['model'], 'gemini-3.8-flash')
+        self.assertEqual(settings['models']['fast']['model'], 'gemini-3.5-flash-lite')
         with patch.object(ai_settings, 'argon_availability', return_value='cookie_required'):
             response = self.client.get('/api/v1/assistant/status', headers=self.headers)
         self.assertEqual([mode['id'] for mode in response.json['data']['modes']], ['fast', 'smart'])

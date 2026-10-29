@@ -58,6 +58,10 @@ class AssistantTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.json['error']['code'], 'INVALID_EFFORT')
                 model.assert_not_called()
+            elif effort in ('medium', 'high'):
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json['error']['code'], 'EFFORT_UNSUPPORTED')
+                model.assert_not_called()
             else:
                 self.assertEqual(response.status_code, 200, response.json)
                 self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
@@ -66,7 +70,7 @@ class AssistantTests(unittest.TestCase):
         from backend.map_predict.services import ai_settings
         with patch.object(ai_settings, 'argon_availability', return_value='ready'):
             modes = {row['id']: row for row in self.client.get('/api/v1/assistant/status').json['data']['modes']}
-        self.assertEqual(modes['fast']['efforts'], ['auto', 'low', 'medium', 'high'])
+        self.assertEqual(modes['fast']['efforts'], ['auto', 'low'])
         self.assertEqual(modes['smart']['efforts'], ['auto', 'low', 'medium', 'high'])
         for effort in ('auto', 'low', 'medium', 'high'):
             RATES.clear()

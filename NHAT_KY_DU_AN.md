@@ -746,3 +746,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Đã thử riêng các cờ payload, f.sid và HTTP transport khác trong tiến trình tạm, chưa nhận kết quả hợp lệ, không triển khai các phép thử này vào service
 - Việc còn lại là thay adapter bằng transport processSession và xác minh model hash từ phản hồi thực tế, chưa hoàn tất, không chuyển sang Flash-Lite hoặc phiên ẩn danh
 
+## 2026-10-29 Chuyển Nhanh sang 3.5 Flash-Lite theo yêu cầu
+
+- Người dùng chọn dừng hướng 3.8 và chuyển chế độ Nhanh sang gemini-3.5-flash-lite
+- Cập nhật cấu hình mặc định, di chuyển thiết lập Gemini Nhanh cũ sang model mới và khám phá route Flash-Lite riêng từ tài khoản
+- Giữ pool hai tài khoản đăng nhập, không chuyển sang ẩn danh, giữ nguyên cấu hình Thông minh
+- Chỉ mở effort mặc định và thấp cho Lite trong lúc chưa xác minh các mức cao hơn
+

@@ -35,8 +35,8 @@ Trạng thái kiểm tra ngày 29/10/2026: cookie đăng nhập được không 
 
 Nguồn đối chiếu: [báo lỗi của gemini-web2api](https://github.com/Sophomoresty/gemini-web2api/issues/110) và [mô tả giao thức processSession](https://github.com/stevensuna/gemini-web-mcp-cli/blob/main/docs/research/transport/processSession.md)
 
-- Nhanh dùng gemini-3.8-flash qua pool tài khoản đã đăng nhập, không dùng phiên ẩn danh
-- Route 3.8 Flash được khám phá riêng từ tài khoản, hỗ trợ effort thấp, trung bình và cao, chỉ trả kết quả khi metadata upstream xác nhận đúng mức đã chọn
+- Theo yêu cầu mới, Nhanh dùng gemini-3.5-flash-lite qua pool tài khoản đã đăng nhập, không dùng phiên ẩn danh
+- Route 3.5 Flash-Lite được khám phá riêng từ tài khoản, hiện chỉ mở effort mặc định và thấp
 - Thông minh cố định dùng gemini-4-argon, mã định tuyến và header lấy từ tài khoản Google đã xác minh
 - Chỉ có hai lựa chọn Nhanh và Thông minh, không còn lựa chọn Pro riêng
 - Nhanh có thể đổi sang API tương thích OpenAI, nhập URL gồm /v1, model và khóa riêng

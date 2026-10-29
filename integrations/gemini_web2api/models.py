@@ -4,6 +4,10 @@
 #   1=FAST, 2=THINKING, 3=PRO, 4=AUTO, 5=FAST_DYNAMIC_THINKING, 6=FLASH_LITE
 
 MODELS = {
+    'gemini-3.5-flash-lite': {
+        'mode': None, 'think': 1,
+        'desc': '3.5 Flash-Lite, requires a verified signed-in account route',
+    },
     'gemini-3.8-flash': {
         'mode': None, 'think': 1,
         'desc': '3.8 Flash, requires a verified signed-in account route',

@@ -227,8 +227,8 @@ def call_model(messages, config, *, response_kind='assistant'):
             code = None
         if code == 'effort_not_applied':
             raise PredictionError('EFFORT_NOT_APPLIED', 'Gemini chưa áp dụng được mức effort đã chọn, dữ liệu chưa thay đổi', 503) from None
-        if config['ASSISTANT_MODEL'] == 'gemini-3.8-flash' and code in ('cookie_required', 'model_unavailable', 'accounts_busy'):
-            message = 'Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị' if code == 'cookie_required' else 'Gemini đang xử lý yêu cầu trước, hãy thử lại sau' if code == 'accounts_busy' else '3.8 Flash chưa trả kết quả hợp lệ trong thời gian cho phép, hãy thử lại'
+        if config['ASSISTANT_MODEL'] == 'gemini-3.5-flash-lite' and code in ('cookie_required', 'model_unavailable', 'accounts_busy'):
+            message = 'Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị' if code == 'cookie_required' else 'Gemini đang xử lý yêu cầu trước, hãy thử lại sau' if code == 'accounts_busy' else '3.5 Flash-Lite chưa trả kết quả hợp lệ trong thời gian cho phép, hãy thử lại'
             raise PredictionError(code.upper(), message, 429 if code == 'accounts_busy' else 503) from None
         if config['ASSISTANT_MODEL'] == 'gemini-4-argon':
             if code == 'cookie_required':

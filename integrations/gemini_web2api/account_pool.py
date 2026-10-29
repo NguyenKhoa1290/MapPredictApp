@@ -13,7 +13,7 @@ from .google_session import write_json, GoogleSession, UsageAuthError, maintenan
 from .quota_guard import QuotaGuard, QuotaRejected
 
 ARGON = 'gemini-4-argon'
-FLASH = 'gemini-3.8-flash'
+FLASH = 'gemini-3.5-flash-lite'
 SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models')
 
 
@@ -176,7 +176,7 @@ class AccountPool:
             self.lock.release()
 
     def run_flash(self, generate, timeout=120):
-        """Use only account-discovered 3.8 Flash routes, never anonymous Flash."""
+        """Use only account-discovered Flash-Lite routes, never anonymous Flash."""
         with self.generation_slot():
             entries = self.store.registry()['accounts']
             login_failures = 0
@@ -217,4 +217,4 @@ class AccountPool:
                     continue
             if not entries or login_failures == len(entries):
                 raise QuotaRejected('Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị', status=503, code='cookie_required')
-            raise QuotaRejected('Không có tài khoản 3.8 Flash khả dụng, không dùng phiên ẩn danh hoặc model khác', status=503, code='model_unavailable')
+            raise QuotaRejected('Không có tài khoản 3.5 Flash-Lite khả dụng, không dùng phiên ẩn danh hoặc model khác', status=503, code='model_unavailable')

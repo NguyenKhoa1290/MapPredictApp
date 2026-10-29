@@ -139,11 +139,11 @@ class ArgonRoutingTests(unittest.TestCase):
         from gemini_web2api.models import resolve_model
         self.assertIsNotNone(resolve_model('unknown-pro-model')[3])
         self.assertIsNotNone(resolve_model('gemini-4-argon')[3])
-        self.assertIsNotNone(resolve_model('gemini-3.8-flash')[3])
+        self.assertIsNotNone(resolve_model('gemini-3.5-flash-lite')[3])
 
     def test_discovery_keeps_flash_and_argon_routes_separate(self):
         models = []
-        for display, category, number, identifier in [('3.8 Flash', 'Flash', 1, 'flash-id'), ('4 Argon', 'Argon', 8, 'argon-id')]:
+        for display, category, number, identifier in [('3.5 Flash-Lite', 'Flash-Lite', 6, 'flash-id'), ('4 Argon', 'Argon', 8, 'argon-id')]:
             model = [None] * 20
             model[0], model[1], model[11], model[17] = identifier, category, display, number
             models.append(model)
@@ -154,8 +154,8 @@ class ArgonRoutingTests(unittest.TestCase):
             session.return_value.request_rpc.return_value = rpc
             self.assertTrue(self.pool.store.discover('a' * 32))
         settings = json.loads(self.pool.store.path('a' * 32).read_text())
-        self.assertEqual(set(settings['extra_models']), {'gemini-3.8-flash', 'gemini-4-argon'})
-        header = json.loads(settings['model_headers']['1']['x-goog-ext-525001261-jspb'])
+        self.assertEqual(set(settings['extra_models']), {'gemini-3.5-flash-lite', 'gemini-4-argon'})
+        header = json.loads(settings['model_headers']['6']['x-goog-ext-525001261-jspb'])
         self.assertEqual(header[4], 'flash-id')
 
     def test_flash_uses_second_signed_in_account_without_argon_quota(self):
@@ -164,8 +164,8 @@ class ArgonRoutingTests(unittest.TestCase):
         for entry in self.pool.store.registry()['accounts']:
             path = self.pool.store.path(entry['id'])
             data = json.loads(path.read_text())
-            data['extra_models']['gemini-3.8-flash'] = {'mode': 1, 'think': 1}
-            data['model_headers']['1'] = {'x-goog-ext-525001261-jspb': '[1]'}
+            data['extra_models']['gemini-3.5-flash-lite'] = {'mode': 6, 'think': 1}
+            data['model_headers']['6'] = {'x-goog-ext-525001261-jspb': '[1]'}
             path.write_text(json.dumps(data))
         seen = []
         with patch('gemini_web2api.account_pool.GoogleSession') as session, patch('gemini_web2api.account_pool.QuotaGuard.check') as guard:
@@ -173,7 +173,7 @@ class ArgonRoutingTests(unittest.TestCase):
             result = self.pool.run_flash(lambda mode, think: seen.append((mode, CONFIG['cookie_file'])) or 'signed in')
             guard.assert_not_called()
         self.assertEqual(result, 'signed in')
-        self.assertEqual(seen, [(1, 'private-cookie-1')])
+        self.assertEqual(seen, [(6, 'private-cookie-1')])
 
     def test_flash_revoked_cookies_never_generate_anonymous_response(self):
         from gemini_web2api.google_session import UsageAuthError
@@ -220,10 +220,10 @@ class ArgonRoutingTests(unittest.TestCase):
                 patch('gemini_web2api.account_pool.AccountPool'):
             spec.loader.exec_module(runner)
         runner.pool.run.side_effect = lambda callback: callback(71, 4)
-        runner.pool.run_flash.side_effect = lambda callback, **kwargs: callback(1, 1)
+        runner.pool.run_flash.side_effect = lambda callback, **kwargs: callback(6, 1)
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
-        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-3.8-flash', 1)):
+        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-3.5-flash-lite', 6)):
             for effort, depth in ((None, 1), ('low', 1), ('medium', 4), ('high', 2)):
                 with self.subTest(model=model, effort=effort):
                     handler.send_json.reset_mock()
@@ -240,7 +240,7 @@ class ArgonRoutingTests(unittest.TestCase):
                     self.assertEqual(called.call_args.args[1:3], (mode, depth))
                     untouched.assert_not_called()
                     self.assertEqual(handler.send_json.call_args.args[0]['model'], model)
-                    if model == 'gemini-3.8-flash':
+                    if model == 'gemini-3.5-flash-lite':
                         self.assertEqual(runner.pool.run_flash.call_args.kwargs['timeout'], 120)
             with patch('gemini_web2api.server.generate') as fast, patch.object(runner, 'generate') as smart:
                 handler._handle_chat(json.dumps({'model': model, 'reasoning_effort': 'invalid'}).encode())

@@ -13,7 +13,7 @@ x-worker: &worker
     MAP_PREDICT_PROJECT_SOURCE_FOLDER: /app/project-data
     MAP_PREDICT_ASSISTANT_ENABLED: '${MAP_PREDICT_ASSISTANT_ENABLED:-1}'
     MAP_PREDICT_ASSISTANT_URL: http://gemini-session:8081/v1
-    MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.8-flash}'
+    MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.5-flash-lite}'
     MAP_PREDICT_ASSISTANT_SECRET_FILE: /run/secrets/assistant_key
     MAP_PREDICT_AI_SERVICE_URL: http://ai-assistant:8001
   secrets: [assistant_key]
@@ -63,7 +63,7 @@ x-ai: &ai_worker
   restart: unless-stopped
   init: true
   environment:
-    MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.8-flash}'
+    MAP_PREDICT_ASSISTANT_MODEL: '${MAP_PREDICT_ASSISTANT_MODEL:-gemini-3.5-flash-lite}'
     MAP_PREDICT_ASSISTANT_URL: http://gemini-session:8081/v1
     MAP_PREDICT_ASSISTANT_SECRET_FILE: /run/secrets/assistant_key
     AI_QDRANT_URL: '${AI_QDRANT_URL:-http://qdrant:6333}'

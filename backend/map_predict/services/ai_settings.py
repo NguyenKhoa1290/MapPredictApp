@@ -14,7 +14,7 @@ from .prediction import PredictionError
 
 LOCK = threading.RLock()
 ARGON = 'gemini-4-argon'
-FLASH = 'gemini-3.8-flash'
+FLASH = 'gemini-3.5-flash-lite'
 
 
 def is_argon(model):
@@ -105,7 +105,7 @@ def load(config):
             saved = json.loads(Path(path).read_text(encoding='utf-8'))
             if 'fast' in saved.get('models', {}):
                 result['models']['fast'].update(saved['models']['fast'])
-                if result['models']['fast']['provider'] == 'gemini' and result['models']['fast']['model'] in ('gemini-3.6-flash', 'gemini-3.7-flash'):
+                if result['models']['fast']['provider'] == 'gemini' and result['models']['fast']['model'] in ('gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash'):
                     result['models']['fast']['model'] = FLASH
             # Smart replaces the former separate Pro option, retaining its strict route.
             # Never restore the legacy thinking/Flash model or a third client option.
@@ -180,7 +180,7 @@ def save(config, incoming):
 def supported_efforts(row):
     # Gemini Web's legacy Flash route reports Low for every supplied level.
     # Only Argon has been verified with upstream applied_level=1/4/2.
-    return ['auto', 'low'] if row['provider'] == 'gemini' and not is_argon(row['model']) and row['model'] != FLASH else ['auto', 'low', 'medium', 'high']
+    return ['auto', 'low'] if row['provider'] == 'gemini' and not is_argon(row['model']) else ['auto', 'low', 'medium', 'high']
 
 
 def model_config(config, mode='fast'):
