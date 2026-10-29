@@ -1,5 +1,15 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-29 Chuẩn bị VPS Linux
+
+- Kết nối SSH thành công tới VPS Ubuntu 22.04, xác minh 2 CPU, 890 MB RAM và ổ 30 GB, chưa có Docker hoặc swap
+- Cài Docker Engine cùng Compose từ kho chính thức, thêm swap 4 GB, clone repository tại /opt/map-predict
+- Chuyển file dự án, cấu hình AI, dữ liệu Gemini, khóa nội bộ và bản xuất 6 collection với 807 point qua SSH, không đưa khóa lên Git
+- Tạo image Ollama chỉ CPU 265 MB thay cho image GPU 8,47 GB, thử model hiện có trả đúng 1024 chiều trên local, chuyển cùng image web, AI và Gemini
+- Thêm compose.vps.yaml giới hạn bộ nhớ, chế độ khởi động không build lại và công cụ nhập Qdrant có kiểm tra checksum, từ chối ghi đè collection khác dữ liệu
+- SSH mới không trả banner sau khi khởi tạo Docker, chưa xác minh khôi phục volume hoặc chạy ứng dụng, đã yêu cầu kiểm tra qua Console/VNC
+- Chưa chuyển tunnel, website tiếp tục do máy Windows phục vụ, hướng dẫn và tiến độ ghi trong docs/VPS_LINUX.md
+
 ## 2026-10-29 Lưu CSV và DXF sau khi AI sửa
 
 - Sửa hàng đợi tự lưu bị giữ promise đã hoàn thành khi flush không có dữ liệu thay đổi, khiến các lần lưu sau không chạy

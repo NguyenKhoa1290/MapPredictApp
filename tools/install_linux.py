@@ -39,7 +39,7 @@ RemainAfterExit=yes
 User={user}
 WorkingDirectory={directory}
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart={executable} -B {quote(str(root / 'tools/docker_stack.py'), command=True)} start
+ExecStart={executable} -B {quote(str(root / 'tools/docker_stack.py'), command=True)} start --no-build
 TimeoutStartSec=1800
 
 [Install]

@@ -1,0 +1,26 @@
+# CPU-only profile for the 2 CPU / 1 GB Linux VPS, with host swap enabled.
+# Select through COMPOSE_FILE=compose.yaml:compose.vps.yaml in the VPS .env.
+services:
+  web-portal:
+    mem_limit: 512m
+    memswap_limit: 1g
+  ai-assistant:
+    mem_limit: 512m
+    memswap_limit: 1g
+  gemini-session:
+    mem_limit: 192m
+    memswap_limit: 384m
+  qdrant:
+    mem_limit: 256m
+    memswap_limit: 512m
+  ai-embedding:
+    image: map-predict-embedding-cpu:local
+    build:
+      context: .
+      dockerfile: Dockerfile.embedding-cpu
+    mem_limit: 768m
+    memswap_limit: 2g
+  web-gateway:
+    mem_limit: 64m
+  cloudflare-tunnel:
+    mem_limit: 128m

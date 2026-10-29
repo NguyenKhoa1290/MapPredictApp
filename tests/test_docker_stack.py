@@ -86,6 +86,13 @@ class PortableDeploymentTests(unittest.TestCase):
         self.assertIn('WorkingDirectory=/srv/map app\n', units['map-predict-update.service'])
         self.assertIn('Requires=docker.service', units['map-predict-stack.service'])
         self.assertIn('User=deploy', units['map-predict-stack.service'])
+        self.assertIn('start --no-build', units['map-predict-stack.service'])
+
+    def test_boot_can_reuse_prebuilt_images_without_a_build(self):
+        with patch.object(docker_stack, 'compose', return_value='') as calls:
+            docker_stack.start(no_build=True)
+        self.assertEqual(calls.call_args_list[0].args,
+                         ('up', '-d', '--no-build', '--wait', '--wait-timeout', '180'))
 
 
 if __name__ == '__main__':

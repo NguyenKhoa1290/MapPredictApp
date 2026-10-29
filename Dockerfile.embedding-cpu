@@ -1,0 +1,12 @@
+FROM ollama/ollama@sha256:20d1bbfbabe1c97ba4b16301f08a20d8484bcf77047742a3cb71c613d8e12d0b AS source
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=source /bin/ollama /bin/ollama
+COPY --from=source /usr/lib/ollama/lib*.so* /usr/lib/ollama/
+COPY --from=source /usr/lib/ollama/llama-server /usr/lib/ollama/llama-server
+COPY --from=source /usr/lib/ollama/*LICENSE* /usr/lib/ollama/
+ENV OLLAMA_HOST=0.0.0.0:11434 OLLAMA_MODELS=/models OLLAMA_KEEP_ALIVE=0
+EXPOSE 11434
+ENTRYPOINT ["/bin/ollama"]
+CMD ["serve"]

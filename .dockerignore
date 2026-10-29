@@ -1,5 +1,6 @@
 **
 !Dockerfile
+!Dockerfile.embedding-cpu
 !integrations/
 !integrations/gemini_web2api/
 !integrations/gemini_web2api/*.py

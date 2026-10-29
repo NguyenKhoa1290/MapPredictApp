@@ -120,10 +120,10 @@ def reload_gateway() -> None:
     compose('exec', '-T', 'web-gateway', 'nginx', '-s', 'reload')
 
 
-def start() -> None:
+def start(no_build: bool = False) -> None:
     initialize()
     (ROOT / 'deploy/local/nginx/active.conf').write_text(configuration(), encoding='utf-8')
-    compose('up', '-d', '--build', '--wait', '--wait-timeout', '180')
+    compose('up', '-d', '--no-build' if no_build else '--build', '--wait', '--wait-timeout', '180')
     reload_gateway()
     print('Started one web, AI, Qdrant, Gemini, gateway and tunnel')
 
@@ -152,12 +152,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('initialize', 'start', 'deploy'))
     parser.add_argument('--pull', action='store_true', help='Fast-forward main before manual deployment')
+    parser.add_argument('--no-build', action='store_true', help='Start existing images without rebuilding at boot')
     options = parser.parse_args()
     with deployment_lock():
         if options.action == 'initialize':
             initialize()
         elif options.action == 'start':
-            start()
+            start(options.no_build)
         else:
             deploy(options.pull)
 
