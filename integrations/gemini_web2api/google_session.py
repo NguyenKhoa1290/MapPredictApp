@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-SESSION_ROTATE_INTERVAL = 12 * 60 * 60
+SESSION_ROTATE_INTERVAL = 10 * 60
 SESSION_REPAIR_COOLDOWN = 300
 SESSION_POLL_INTERVAL = 30
 

@@ -709,3 +709,9 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - 26 kiểm thử chatbot đạt, bổ sung kiểm thử giao dịch treo và mở lại nút khi workspace sẵn sàng
 - Bổ sung kiểm thử trình duyệt cho luồng tạo bảng từ chat rồi xác nhận ngay, không cần reload
 
+# 2026-10-29 Đổi lịch gia hạn cookie Gemini
+
+- Theo yêu cầu người dùng, đổi chu kỳ RotateCookies từ 12 giờ thành 10 phút
+- Giữ chu kỳ kiểm tra 30 giây và khoảng chờ phục hồi lỗi 5 phút
+- Cookie đã bị Google từ chối vẫn cần cập nhật thủ công tại trang quản trị
+

@@ -77,7 +77,7 @@ Các trường hợp chuyển tài khoản và hết quota đã kiểm thử b�
 
 ## Phiên Gemini
 
-Service gemini-session chạy liên tục, kiểm tra phiên và quota mỗi 30 giây và thử RotateCookies sau 12 giờ
+Service gemini-session chạy liên tục, kiểm tra phiên và quota mỗi 30 giây và thử RotateCookies mỗi 10 phút
 Giãn lần tự sửa phiên lỗi ít nhất 300 giây, dùng các mốc trong google_session.py và server_terminal.py của server tham khảo
 Trang quản trị đọc các mốc thời gian từ service và cập nhật trạng thái theo cùng chu kỳ, không làm mất bản nháp cấu hình đang nhập
 Cơ chế dựa trên google_session.py của dự án tham khảo, khóa file đã hỗ trợ Windows và Linux
