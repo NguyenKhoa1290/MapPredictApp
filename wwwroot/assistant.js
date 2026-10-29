@@ -237,7 +237,7 @@
         form.append('start', '1');
         form.append('web', 'true'); form.append('crs', window.assistantWorkspace.crs() || '');
         clearPreview(); message('user', question); textarea.value = '';
-        controller = new AbortController(); setBusy(true); notice.textContent = 'Gemini đang phân tích dữ liệu và đối chiếu nguồn';
+        controller = new AbortController(); setBusy(true); notice.textContent = 'Hệ thống đang phân tích dữ liệu và đối chiếu nguồn';
         try {
             const result = await request('preview', form, controller.signal);
             const item = message('assistant', result.answer, true, result.sources);
