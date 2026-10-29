@@ -757,3 +757,9 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Gọi toàn API preview của website thành công sau 100,48 giây, RAGWire hybrid, trả lời đúng vai trò GIS và không tạo thay đổi dữ liệu
 - Kết quả này xác nhận chat Lite hoạt động qua ứng dụng, lượt tra cứu toàn luồng vẫn chậm, chưa coi là đã tối ưu độ trễ
 
+## 2026-10-29 Đưa Nhanh về chế độ ẩn danh
+
+- Theo yêu cầu mới nhất của người dùng, giữ 3.5 Flash-Lite và bỏ phụ thuộc cookie cho chế độ Nhanh
+- Mỗi lượt Nhanh xóa cookie, AuthUser, XSRF và header định tuyến tài khoản trong phạm vi xử lý, khôi phục đủ trạng thái khi hoàn tất hoặc có lỗi
+- Trạng thái Nhanh không bị khóa khi cookie Thông minh hết hạn, Thông minh tiếp tục giữ pool tài khoản và passcode
+

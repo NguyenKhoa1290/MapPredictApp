@@ -79,7 +79,7 @@ def argon_availability(config):
 
 
 def require_argon_cookie(config):
-    if not is_argon(config['ASSISTANT_MODEL']) and config['ASSISTANT_MODEL'] != FLASH:
+    if not is_argon(config['ASSISTANT_MODEL']):
         return
     state = argon_availability(config)
     if state == 'cookie_required':

@@ -196,6 +196,37 @@ class ArgonRoutingTests(unittest.TestCase):
         finally:
             self.pool.lock.release()
 
+    def test_anonymous_fast_sends_no_account_credentials_and_restores_smart(self):
+        from gemini_web2api.config import CONFIG
+        from gemini_web2api import gemini
+        CONFIG.update(cookie_file='smart-private-cookie', auth_user='2', xsrf_token='smart-xsrf',
+                      model_headers={'6': {'x-goog-ext-525001261-jspb': '[1]'}},
+                      extra_models={'private': {'mode': 71}})
+        before = dict(CONFIG)
+        def generate(mode, think):
+            self.assertEqual((mode, think), (6, 1))
+            headers = gemini._build_headers(mode, think)
+            self.assertNotIn('Cookie', headers)
+            self.assertNotIn('Authorization', headers)
+            self.assertNotIn('X-Goog-AuthUser', headers)
+            self.assertNotIn('/u/', gemini._get_url())
+            self.assertIsNone(CONFIG['xsrf_token'])
+            self.assertEqual(CONFIG['extra_models'], {})
+            return 'anonymous reply'
+        with patch.object(self.pool.store, 'registry') as registry:
+            self.assertEqual(self.pool.run_anonymous(generate), 'anonymous reply')
+            registry.assert_not_called()
+        self.assertEqual(CONFIG, before)
+
+    def test_anonymous_failure_restores_smart_credentials(self):
+        from gemini_web2api.config import CONFIG
+        from gemini_web2api.quota_guard import QuotaRejected
+        CONFIG.update(cookie_file='smart-private-cookie', auth_user='1', xsrf_token='smart-xsrf')
+        before = dict(CONFIG)
+        with self.assertRaises(QuotaRejected):
+            self.pool.run_anonymous(Mock(side_effect=TimeoutError()))
+        self.assertEqual(CONFIG, before)
+
     def test_streaming_heartbeat_timeout_discards_partial_answer_and_closes_response(self):
         from gemini_web2api import gemini
         response = Mock()
@@ -220,7 +251,7 @@ class ArgonRoutingTests(unittest.TestCase):
                 patch('gemini_web2api.account_pool.AccountPool'):
             spec.loader.exec_module(runner)
         runner.pool.run.side_effect = lambda callback: callback(71, 4)
-        runner.pool.run_flash.side_effect = lambda callback, **kwargs: callback(6, 1)
+        runner.pool.run_anonymous.side_effect = lambda callback, **kwargs: callback(6, 1)
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
         for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-3.5-flash-lite', 6)):
@@ -241,7 +272,7 @@ class ArgonRoutingTests(unittest.TestCase):
                     untouched.assert_not_called()
                     self.assertEqual(handler.send_json.call_args.args[0]['model'], model)
                     if model == 'gemini-3.5-flash-lite':
-                        self.assertEqual(runner.pool.run_flash.call_args.kwargs['timeout'], 120)
+                        self.assertEqual(runner.pool.run_anonymous.call_args.kwargs['timeout'], 120)
             with patch('gemini_web2api.server.generate') as fast, patch.object(runner, 'generate') as smart:
                 handler._handle_chat(json.dumps({'model': model, 'reasoning_effort': 'invalid'}).encode())
                 self.assertEqual(handler.send_json.call_args.args[1], 400)

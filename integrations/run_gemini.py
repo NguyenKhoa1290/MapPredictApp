@@ -102,7 +102,7 @@ class ManagedGeminiHandler(GeminiHandler):
                     budget = max(1, min(120, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', 120))))
                 except (ValueError, TypeError):
                     budget = 120
-                text = pool.run_flash(generate_argon, timeout=budget)
+                text = pool.run_anonymous(generate_argon, timeout=budget)
             else:
                 text = pool.run(generate_argon)
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',

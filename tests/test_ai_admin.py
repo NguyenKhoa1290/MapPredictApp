@@ -197,3 +197,10 @@ class AiAdminTests(unittest.TestCase):
             response = self.client.get('/api/v1/assistant/status', headers=self.headers)
         self.assertEqual([mode['id'] for mode in response.json['data']['modes']], ['fast', 'smart'])
         self.assertEqual(response.json['data']['modes'][1]['availability'], 'cookie_required')
+        self.assertEqual(response.json['data']['modes'][0]['availability'], 'ready')
+
+    def test_anonymous_fast_does_not_check_account_cookie(self):
+        config = ai_settings.model_config(self.app.config, 'fast')
+        with patch.object(ai_settings, 'argon_availability') as check:
+            ai_settings.require_argon_cookie(config)
+            check.assert_not_called()

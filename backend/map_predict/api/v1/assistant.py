@@ -62,14 +62,14 @@ def status():
     if current_app.config['ASSISTANT_ENABLED'] and current_app.config.get('ASSISTANT_SERVICE_URL'):
         from ...services.assistant_gateway import forward
         return forward('status')
-    from ...services.ai_settings import load, is_argon, argon_availability, COOKIE_MESSAGE, supported_efforts, FLASH
+    from ...services.ai_settings import load, is_argon, argon_availability, COOKIE_MESSAGE, supported_efforts
     modes = load(current_app.config)['models']
     availability = argon_availability(current_app.config) if current_app.config['ASSISTANT_ENABLED'] else 'unknown'
     return jsonify(data={'enabled': current_app.config['ASSISTANT_ENABLED'],
                          'modes': [{'id': key, 'label': modes[key]['label'], 'requires_passcode': is_argon(modes[key]['model']),
                                     'efforts': supported_efforts(modes[key]),
-                                    'availability': availability if is_argon(modes[key]['model']) or modes[key]['model'] == FLASH else 'ready',
-                                    'message': (COOKIE_MESSAGE if key == 'smart' else 'Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị') if availability == 'cookie_required' and (is_argon(modes[key]['model']) or modes[key]['model'] == FLASH) else ''}
+                                    'availability': availability if is_argon(modes[key]['model']) else 'ready',
+                                    'message': COOKIE_MESSAGE if availability == 'cookie_required' and is_argon(modes[key]['model']) else ''}
                                    for key in ('fast', 'smart')],
                          'retrieval': 'ragwire_hybrid',
                          'model': current_app.config['ASSISTANT_MODEL'], 'apply': 'preview_required',

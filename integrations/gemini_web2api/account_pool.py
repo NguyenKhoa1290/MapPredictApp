@@ -218,3 +218,24 @@ class AccountPool:
             if not entries or login_failures == len(entries):
                 raise QuotaRejected('Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị', status=503, code='cookie_required')
             raise QuotaRejected('Không có tài khoản 3.5 Flash-Lite khả dụng, không dùng phiên ẩn danh hoặc model khác', status=503, code='model_unavailable')
+
+    def run_anonymous(self, generate, timeout=120):
+        """Isolate Fast from all account credentials, then restore Smart's state."""
+        with self.generation_slot():
+            settings = {'cookie_file': None, 'auth_user': None, 'xsrf_token': None,
+                        'gemini_bl': CONFIG.get('gemini_bl'), 'model_headers': {}, 'extra_models': {}}
+            with self.profile(settings):
+                previous = CONFIG.get('generation_deadline')
+                CONFIG['generation_deadline'] = time.monotonic() + timeout
+                try:
+                    result = generate(6, 1)
+                    if not isinstance(result, str) or not result.strip():
+                        raise ValueError('Empty anonymous response')
+                    return result
+                except Exception:
+                    raise QuotaRejected('Phiên Nhanh ẩn danh chưa trả lời được, hãy thử lại', status=503, code='model_unavailable') from None
+                finally:
+                    if previous is None:
+                        CONFIG.pop('generation_deadline', None)
+                    else:
+                        CONFIG['generation_deadline'] = previous
