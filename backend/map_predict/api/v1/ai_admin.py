@@ -149,7 +149,7 @@ def state():
     except Exception:
         accounts = {'accounts': [], 'unavailable': True}
     return jsonify(data={'csrf': g.admin_session['csrf'], 'settings': ai_settings.public(ai_settings.load(current_app.config)),
-                         'gemini': session, 'account_pool': accounts, 'pro_access': {'configured': ai_settings.has_passcode(current_app.config)}, 'chatbot_retrieval': 'keyword',
+                         'gemini': session, 'account_pool': accounts, 'pro_access': {'configured': ai_settings.has_passcode(current_app.config)}, 'chatbot_retrieval': 'ragwire_hybrid',
                          'services': ['web-portal', 'ai-assistant', 'gemini-session', 'ai-embedding', 'qdrant', 'web-gateway', 'cloudflare-tunnel']})
 
 

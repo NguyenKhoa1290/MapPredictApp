@@ -51,11 +51,7 @@ describe('React portal shell', () => {
     expect(within(nav).getByRole('link', { name: 'Giới thiệu' }).getAttribute('aria-current')).toBe('page');
     expect(screen.queryByRole('link', { name: 'Quản trị AI' })).toBeNull();
     expect(document.querySelector('a[href*="admin"]')).toBeNull();
-    const team = screen.getByRole('heading', { name: /Những người/ }).closest('section')!;
-    expect(within(team).getAllByRole('heading', { level: 3 })).toHaveLength(contentFile.members.length);
-    for (const member of contentFile.members) {
-      if (member.name) expect(within(team).getByRole('heading', { name: member.name })).toBeTruthy();
-    }
+    expect(screen.queryByRole('heading', { name: /Những người/ })).toBeNull();
     expect(fetcher.mock.calls.every(([url]) => String(url).startsWith('/api/v1/'))).toBe(true);
     expect(fetcher.mock.calls).toHaveLength(2);
   });

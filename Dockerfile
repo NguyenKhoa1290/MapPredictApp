@@ -12,6 +12,11 @@ COPY requirements.txt requirements-production.txt ./
 RUN pip install --prefix=/install --no-compile --no-cache-dir -r requirements-production.txt \
     && find /install/lib/python3.11/site-packages -type d \( -name tests -o -name test \) -prune -exec rm -rf '{}' +
 
+FROM python:3.11-slim-bookworm AS ai-dependencies
+WORKDIR /build
+COPY requirements.txt requirements-ai.txt ./
+RUN pip install --prefix=/install --no-compile --no-cache-dir -c requirements.txt -r requirements-ai.txt
+
 FROM python:3.11-slim-bookworm AS gemini
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HOME=/tmp
 WORKDIR /app
@@ -58,6 +63,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=3s -
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "2", "--timeout", "180", "--graceful-timeout", "30", "--worker-tmp-dir", "/dev/shm", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
 
 FROM application AS ai
+USER root
+COPY --from=ai-dependencies /install/ /usr/local/
+USER 10001:10001
 EXPOSE 8001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --start-interval=2s --retries=4 \
     CMD python -c "from urllib.request import urlopen; urlopen('http://127.0.0.1:8001/health',timeout=3)"

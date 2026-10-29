@@ -23,6 +23,7 @@ MAX_FILE = 12 * 1024 * 1024
 PROMPT = '''Bạn là trợ lý GIS của công cụ Đánh giá quỹ đất, trả lời tiếng Việt
 Chỉ trả một JSON object có answer, sources, edits, scores, table_edits, create_table, chưa tự áp dụng thay đổi
 Trong answer dùng từ đề xuất, không nói đã sửa hay đã điền điểm trước khi người dùng áp dụng
+answer chỉ chứa câu trả lời cho người dùng, không chép JSON giao tiếp, bộ lọc metadata, kết quả gọi công cụ hoặc chuỗi Document của RAGWire vào answer
 scope=prediction chỉ được đọc và đề xuất bảng CSV, không dùng DXF hay tạo bản vẽ
 Khi scope=prediction chưa có CSV, có thể tạo bảng với create_table=true và table_rows=[{id:"A1",...}]
 Bảng mới tối đa 100 dòng, id duy nhất, x1..x9 để trống, không điền điểm qua table_rows
@@ -196,7 +197,7 @@ def rules(document):
     return output
 
 
-def call_model(messages, config):
+def call_model(messages, config, *, response_kind='assistant'):
     base = config['ASSISTANT_URL'].rstrip('/')
     payload = {'model': config['ASSISTANT_MODEL'], 'messages': messages,
                'temperature': 0.1, 'stream': False}
@@ -212,16 +213,11 @@ def call_model(messages, config):
         headers['Authorization'] = 'Bearer ' + Path(path).read_text().strip()
     try:
         with build_opener(ProxyHandler({})).open(Request(base + '/chat/completions', data=body,
-                                                       headers=headers), timeout=150) as response:
+                                                       headers=headers), timeout=config.get('ASSISTANT_CALL_TIMEOUT', 150)) as response:
             payload = json.loads(response.read(500_001))
-        text = payload['choices'][0]['message']['content'].strip()
-        text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text)
-        result = json.loads(text)
-        if not isinstance(result, dict) or not isinstance(result.get('answer'), str):
-            raise ValueError('Invalid response')
-        if any(not isinstance(result.get(key, []), list) for key in ('sources', 'edits', 'scores', 'table_edits')):
-            raise ValueError('Invalid action lists')
-        return result
+        from .assistant_json import model_result, json_object
+        content = payload['choices'][0]['message']['content']
+        return json_object(content) if response_kind == 'filters' else model_result(content)
     except HTTPError as error:
         try:
             code = json.loads(error.read(8192)).get('error', {}).get('code')

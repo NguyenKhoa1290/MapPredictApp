@@ -71,7 +71,7 @@ def status():
                                     'availability': availability if is_argon(modes[key]['model']) else 'ready',
                                     'message': COOKIE_MESSAGE if is_argon(modes[key]['model']) and availability == 'cookie_required' else ''}
                                    for key in ('fast', 'smart')],
-                         'retrieval': 'keyword',
+                         'retrieval': 'ragwire_hybrid',
                          'model': current_app.config['ASSISTANT_MODEL'], 'apply': 'preview_required',
                          'service': current_app.config.get('ASSISTANT_ROLE', 'web'),
                          'collection': current_app.config.get('ASSISTANT_QDRANT_COLLECTION')

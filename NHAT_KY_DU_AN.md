@@ -1,5 +1,18 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-29 Tích hợp RAGWire, embedding và bộ lọc metadata
+
+- Cập nhật yêu cầu: chatbot dùng embedding cho truy xuất tài liệu, sửa hiểu nhầm trước đó về việc chỉ dùng embedding trong quản trị
+- Tích hợp RAGWire 1.6.1 theo luồng get_filter_context rồi retrieve, hybrid dense cùng BM25 trên CSDL-Datdai, dùng qwen3-embedding:0.6b đã có và trả 1024 chiều
+- Bộ lọc chỉ nhận trường cùng giá trị thực trong collection, xử lý alias x1 đến x9 và giữ bước kiểm tra nội dung vì metadata chunk có thể gộp nhiều tiêu chí
+- Nới bộ lọc nếu làm mất tiêu chí hoặc các đoạn cùng tiêu chí, giữ nguyên Qdrant ID, record_id, source_ref và các nhóm điểm trong ô gộp
+- Dùng lớp RAGWire chỉ truy xuất để bỏ bước ingestion hoặc tạo payload index khi khởi tạo, không tái lập chỉ mục hoặc thay embedding đã lưu
+- Tách schema JSON bộ lọc khỏi schema trả lời Agent, giải mã code fence, chuỗi JSON lồng, text block và wrapper, từ chối JSON bị cắt hoặc kế hoạch xung đột
+- Chỉ answer được hiển thị trong chat, chặn JSON nội bộ RAG bị dùng làm answer, CSV/DXF tiếp tục xuất từ dữ liệu đã kiểm tra và được xác nhận
+- Phụ thuộc RAGWire nằm riêng trong requirements-ai.txt và image AI, tạo build stage riêng để cập nhật code không cài lại thư viện RAG
+- Cập nhật phần Embedding trong quản trị và CI kiểm tra bộ phụ thuộc AI, điều chỉnh kiểm thử trang giới thiệu đã lỗi thời sau khi phần thành viên bị xóa
+- Thử trực tiếp x1 lấy đúng point 59929946-642c-45bb-a3a0-5b7a4e8394cd bằng hybrid retrieval, câu hỏi theo tên cao độ/đồng bằng cũng tự chọn được filter và trả đúng tiêu chí
+
 ## 2026-10-29 Kết luận kiểm chứng effort theo phản hồi Google
 
 - Kiểm tra cuối trên bản chạy đã khôi phục: Nhanh trả lời đúng trong khoảng 11,8 giây, requested_level=1, applied_level=1 và applied_model_category=1, API từ chối Nhanh/Cao ngay trước khi gọi model

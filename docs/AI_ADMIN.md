@@ -93,11 +93,11 @@ Google vẫn có thể thu hồi phiên hoặc yêu cầu đăng nhập lại, k
 Hồ sơ cookie tham khảo trên máy đã nhập thử nhưng hiện Google yêu cầu đăng nhập lại, cần nhập cookie mới
 Cookie chưa được xác thực không được gắn vào request chatbot
 
-## Embedding chỉ cho quản trị
+## Embedding và truy xuất RAGWire
 
-Theo xác nhận người dùng, chatbot không gọi embedding
-Chatbot đọc tối đa 200 point trong collection để xếp hạng từ khóa, vẫn giữ bước xác minh nguồn trước khi chấm điểm
-Hai công cụ embedding chỉ hoạt động khi có phiên quản trị hợp lệ
+Chatbot dùng embedding để truy xuất ngữ nghĩa và bộ lọc metadata với RAGWire
+Địa chỉ Ollama và model đã lưu được dùng chung cho chatbot và công cụ kiểm tra
+Các nút cấu hình, kiểm tra embedding và truy xuất trong quản trị vẫn yêu cầu phiên đăng nhập
 
 ```bash
 docker compose exec ai-embedding ollama pull qwen3-embedding:0.6b

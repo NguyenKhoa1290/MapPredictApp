@@ -1,0 +1,6 @@
+# Retrieval dependencies belong to the AI image, not the public web image.
+ragwire[fastembed]==1.6.1
+langchain-core==1.7.1
+langchain-qdrant==1.1.0
+qdrant-client==1.20.0
+fastembed==0.9.1

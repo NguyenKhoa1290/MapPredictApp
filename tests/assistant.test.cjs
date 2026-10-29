@@ -314,6 +314,17 @@ test('table operation previews describe deletions and stage an empty table with 
     } finally { f.close(); }
 });
 
+test('retrieval fallback is shown as plain status without exposing filter JSON', async () => {
+    const f = fixture();
+    try {
+        f.setActive(false);
+        f.setTableProposal({ knowledge: { mode: 'keyword_fallback', filters: { internal: 'private' } } }, {});
+        await f.submit();
+        assert.match(f.get('notice').textContent, /tìm theo từ khóa/);
+        assert.doesNotMatch(f.get('notice').textContent, /internal|private|filters/);
+    } finally { f.close(); }
+});
+
 test('chat uses project resources only when submitted and stages a signed draft', async () => {
     const f = fixture();
     try {

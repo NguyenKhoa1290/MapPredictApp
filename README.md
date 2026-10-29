@@ -41,6 +41,7 @@ Nhật ký, tài liệu thiết kế, dữ liệu GIS và pipeline đang dùng �
 ```powershell
 py -3.11 -m venv venv
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe -m pip install -r requirements-ai.txt
 .\run_python.bat
 ```
 

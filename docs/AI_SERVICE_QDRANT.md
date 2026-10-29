@@ -26,12 +26,12 @@
 Trang `/portal/admin/ai` xác thực mật khẩu tại service AI, tách khỏi khóa nội bộ
 Chatbot chỉ có Nhanh và Thông minh, Thông minh dùng 4 Argon với pool tài khoản cùng passcode do quản trị thiết lập
 Thiếu cookie hoặc cookie hết hạn phải báo lỗi, không chuyển Thông minh sang Nhanh
-Theo quyết định người dùng, chatbot chỉ tìm từ khóa trong Qdrant và không gọi embedding
+Chatbot dùng RAGWire 1.6.1, embedding và bộ lọc metadata tự động theo dự án Thuchanh
 Truy vấn x1 đến x9, số thứ tự tiếng Việt và tên tiêu chí được ánh xạ theo nội dung thực của đoạn
 Chunk được tách theo tiêu đề tiêu chí trước khi chọn nguồn, không dùng nhãn metadata của cả chunk để lọc mọi nội dung bên trong
 Giữ phần tiêu đề thang điểm đi kèm, gộp các phân nhóm thuộc cùng point và giữ nguyên Qdrant ID cùng source_ref
 Lọc đúng phiên bản sửa ngày 1509 trước khi xếp hạng, không để bản cũ chiếm kết quả
-Dense retrieval mô tả bên dưới chỉ dành cho công cụ quản trị đã đăng nhập
+Chatbot dùng hybrid retrieval, công cụ quản trị vẫn có kiểm tra embedding và dense retrieval riêng
 Ollama chạy trong service ai-embedding, model được yêu cầu giải phóng sau mỗi lượt
 Cookie Google được kiểm tra định kỳ trong gemini-session, có thể nhập lại qua quản trị
 Xem [Quản trị AI](AI_ADMIN.md) cho cấu hình và giới hạn thực tế
@@ -56,8 +56,8 @@ Không nạp pandas và scikit-learn trong tiến trình AI chỉ để đọc C
 ## Truy xuất tài liệu
 
 1. Đọc thông số collection có sẵn, không tạo hoặc ghi lại collection
-2. Chatbot đọc tối đa 200 point bằng scroll, nhận diện tiêu chí và xếp hạng từ khóa trên đoạn nội dung thực
-3. Riêng công cụ quản trị gửi câu hỏi tới Ollama `/api/embed` bằng model đã lưu, kiểm tra số chiều rồi gọi Qdrant `/points/query`, lấy tối đa 5 point
+2. RAGWire đọc metadata hiện có, chạy get_filter_context, kiểm tra bộ lọc theo trường và giá trị thực rồi gọi retrieve
+3. Truy vấn embedding dùng model đã lưu trong quản trị, cùng vector dense và sparse BM25 của collection, mặc định lấy 5 point bằng hybrid search
 4. Giữ ID point, record_id và ô nguồn từ nội dung thực, không đưa đường dẫn temp của máy nguồn ra giao diện
 5. Đưa các đoạn vào prompt và xây danh mục quy tắc chấm điểm từ chính nội dung đã truy xuất
 6. Nguồn Qdrant chứng minh ngưỡng chấm điểm, không thay thế bằng chứng hiện trạng từng ô đất
@@ -66,11 +66,22 @@ Metadata của một chunk có thể chỉ mô tả một trong nhiều tiêu ch
 Vì vậy không lọc cứng theo metadata tiêu chí khi điều đó làm mất phần nội dung khác của cùng chunk
 Parser giữ điểm nhóm và hỗ trợ cả bảng Markdown lẫn nhãn điểm ở từng đoạn văn như tiêu chí GPMB
 
-Công cụ quản trị dùng dense retrieval, chatbot dùng truy xuất từ khóa theo cấu hình đã chốt, không dùng bộ sparse/hybrid của dự án tham khảo
-Nếu công cụ quản trị chưa có embedding hoặc sai số chiều, dùng dự phòng xếp hạng từ khóa trên tối đa 200 point đọc bằng scroll
+RAGWire được khởi tạo ở chế độ chỉ truy xuất, bỏ bước ingestion và tạo index của constructor mặc định
+Các alias x1 đến x9 được mở rộng tên tiêu chí trước khi tìm ngữ nghĩa, bộ lọc không khớp dữ liệu thực sẽ bị loại
+Khi metadata của chunk gộp làm mất tiêu chí cần tìm, hệ thống nới bộ lọc và kiểm tra lại nội dung trước khi dùng làm nguồn
+Nếu embedding hoặc RAGWire chưa sẵn sàng, API báo rõ chế độ dự phòng từ khóa trên cùng collection
 API trả rõ chế độ truy xuất, không thay model và không tái lập chỉ mục
 Nếu đã cấu hình Qdrant nhưng không đọc được collection thì báo lỗi, không âm thầm đổi sang bản local
 Khi không cấu hình URL Qdrant, chế độ tài liệu local vẫn được giữ để chạy app độc lập
+
+## Tách JSON khỏi nội dung và file xuất
+
+- JSON chọn bộ lọc chỉ dùng nội bộ, không đưa Document hoặc metadata thô vào tin nhắn
+- Bộ giải mã xử lý JSON chuẩn, code fence, phần giải thích bao quanh và JSON bị mã hóa hai lần
+- Chỉ phần answer hiển thị trong chat, đề xuất sửa vẫn qua whitelist, chữ ký và bước xác nhận
+- Phản hồi bị cắt, nhiều kế hoạch mâu thuẫn hoặc schema sai bị từ chối, không cố ghép lại thành thao tác
+- CSV lấy từ bảng đã kiểm tra, DXF lấy từ đối tượng ezdxf đã áp dụng đề xuất, không xuất nguyên phản hồi model
+- requirements-ai.txt chỉ được cài vào image AI, image web giữ bộ phụ thuộc hiện có
 
 ## Prompt có thể sửa
 

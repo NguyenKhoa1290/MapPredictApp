@@ -126,6 +126,21 @@ class AssistantTests(unittest.TestCase):
                     assistant.call_model([], {**self.app.config, 'ASSISTANT_MODEL': model})
             self.assertEqual(result.exception.code, 'EFFORT_NOT_APPLIED')
 
+    def test_metadata_json_is_accepted_only_by_the_internal_filter_response_path(self):
+        from backend.map_predict.services.prediction import PredictionError
+        remote = Mock()
+        remote.__enter__ = Mock(return_value=remote)
+        remote.__exit__ = Mock(return_value=False)
+        remote.read.return_value = json.dumps({'choices': [{'message': {'content':
+            '```json\n{"so_tieu_chi":1,"phan_nhom":"đồng bằng"}\n```'}}]}).encode()
+        opener = Mock()
+        opener.open.return_value = remote
+        with patch.object(assistant, 'build_opener', return_value=opener):
+            result = assistant.call_model([], self.app.config, response_kind='filters')
+            self.assertEqual(result, {'so_tieu_chi': 1, 'phan_nhom': 'đồng bằng'})
+            with self.assertRaises(PredictionError):
+                assistant.call_model([], self.app.config)
+
     def test_edit_requires_preview_and_apply_only_returns_a_copy(self):
         original = self.dxf
         preview = self.plan(edits=[{'handle': self.handle, 'operation': 'color', 'value': 1}])

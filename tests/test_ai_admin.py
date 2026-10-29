@@ -51,7 +51,7 @@ class AiAdminTests(unittest.TestCase):
         with patch('backend.map_predict.api.v1.ai_admin.gemini_request', return_value={'state': 'ready'}):
             state = self.client.get('/api/v1/ai-admin/state', headers=self.headers)
         self.assertEqual(state.status_code, 200)
-        self.assertEqual(state.json['data']['chatbot_retrieval'], 'keyword')
+        self.assertEqual(state.json['data']['chatbot_retrieval'], 'ragwire_hybrid')
         self.assertNotIn('api_key', state.json['data']['settings']['models']['fast'])
 
     def test_csrf_logout_revocation_and_password_change(self):
@@ -111,17 +111,14 @@ class AiAdminTests(unittest.TestCase):
         self.assertEqual(call.call_args.args[1]['keep_alive'], '0s')
         self.assertNotIn('embeddings', response.json['data'])
 
-    def test_chatbot_modes_are_allowlisted_and_cannot_use_embedding(self):
+    def test_chatbot_modes_are_allowlisted_and_use_saved_embedding_for_ragwire(self):
         from backend.map_predict.services.prediction import PredictionError
         with self.assertRaises(PredictionError):
             ai_settings.model_config(self.app.config, 'https://untrusted.test')
         config = ai_settings.model_config(self.app.config, 'smart')
-        config.update(ASSISTANT_QDRANT_URL='http://qdrant:6333', ASSISTANT_QDRANT_COLLECTION='test')
-        info = {'result': {'config': {'params': {'vectors': {'size': 1024}}}, 'points_count': 0}}
-        with patch.object(knowledge, 'json_request', side_effect=[info, {'result': {'points': [], 'next_page_offset': None}}]) as calls:
-            result = knowledge.retrieve('test', config)
-        self.assertEqual(result['mode'], 'keyword')
-        self.assertTrue(all('/api/embed' not in call.args[0] for call in calls.call_args_list))
+        self.assertEqual(config['ASSISTANT_RETRIEVAL_MODE'], 'ragwire')
+        self.assertEqual(config['ASSISTANT_EMBEDDING_MODEL'], ai_settings.load(self.app.config)['embedding']['model'])
+        self.assertEqual(config['ASSISTANT_EMBEDDING_URL'], ai_settings.load(self.app.config)['embedding']['url'])
 
     def test_external_model_does_not_receive_internal_service_secret(self):
         settings = ai_settings.defaults(self.app.config)

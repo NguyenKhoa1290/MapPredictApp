@@ -218,10 +218,10 @@ export function AiAdmin() {
       </div>
       <div role="tabpanel" id="admin-panel-embedding" aria-labelledby="admin-tab-embedding" hidden={tab !== 'embedding'}>
       <form onSubmit={event => { event.preventDefault(); action(() => saveSettings('embedding')); }}>
-        <section className="admin-card"><h2>Embedding cho quản trị</h2><p>Chatbot không gọi embedding, chỉ dùng tìm kiếm từ khóa trong Qdrant</p>
+        <section className="admin-card"><h2>Embedding và truy xuất tài liệu</h2><p>Chatbot dùng RAGWire để tìm kiếm ngữ nghĩa và tự chọn bộ lọc metadata từ Qdrant</p>
           <div className="admin-models"><label>Địa chỉ Ollama<input type="url" required value={settings.embedding.url} disabled={busy} onChange={event => setSettings({ ...settings, embedding: { ...settings.embedding, url: event.target.value } })} /></label>
           <label>Model embedding<input required value={settings.embedding.model} disabled={busy} onChange={event => setSettings({ ...settings, embedding: { ...settings.embedding, model: event.target.value } })} /></label></div>
-          <p className="admin-help">Mô hình chỉ nạp khi dùng công cụ quản trị, gửi yêu cầu giải phóng model sau mỗi lượt</p>
+          <p className="admin-help">Mô hình được nạp khi truy xuất tài liệu hoặc chạy công cụ kiểm tra, gửi yêu cầu giải phóng sau mỗi lượt</p>
           <button className="button primary" disabled={busy}>Lưu cấu hình embedding</button>
         </section>
       </form>

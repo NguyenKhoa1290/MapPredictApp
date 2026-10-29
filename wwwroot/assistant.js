@@ -221,7 +221,8 @@
             showPreview(result, files);
             if (pending) await applyPreview(applyButton());
             notice.textContent = (pending?.staged ? 'Bản sửa nháp đã hiển thị, hãy kiểm tra rồi Xác nhận hoặc Bỏ bản nháp\n' : '')
-                + result.scope + (result.rejected.length ? '\nĐã giữ lại ' + result.rejected.length + ' đề xuất chưa đủ điều kiện, không áp dụng' : '');
+                + result.scope + (result.rejected.length ? '\nĐã giữ lại ' + result.rejected.length + ' đề xuất chưa đủ điều kiện, không áp dụng' : '')
+                + (result.knowledge?.mode === 'keyword_fallback' ? '\nĐang tìm theo từ khóa vì tìm kiếm ngữ nghĩa chưa sẵn sàng' : '');
         } catch (error) { notice.textContent = error.name === 'AbortError' ? 'Đã dừng chờ phản hồi' : error.message; }
         finally { setBusy(false); controller = null; }
     });

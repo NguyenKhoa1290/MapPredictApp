@@ -143,6 +143,14 @@ def retrieve(query, config):
     base = config.get('ASSISTANT_QDRANT_URL', '').rstrip('/')
     if not base:
         return {'mode': 'local_document', 'records': [], 'message': 'Dùng tài liệu tiêu chí local'}
+    if config.get('ASSISTANT_RETRIEVAL_MODE') == 'ragwire':
+        try:
+            from .ragwire_search import retrieve as ragwire_retrieve
+            return ragwire_retrieve(query, config)
+        except Exception:
+            result = retrieve(query, {**config, 'ASSISTANT_RETRIEVAL_MODE': 'keyword'})
+            return {**result, 'mode': 'keyword_fallback',
+                    'message': 'Truy xuất ngữ nghĩa chưa sẵn sàng, đang dùng từ khóa trên cùng collection Qdrant'}
     collection = config['ASSISTANT_QDRANT_COLLECTION']
     url = base + '/collections/' + quote(collection, safe='')
     kwargs = {'key': config.get('ASSISTANT_QDRANT_KEY', '')}

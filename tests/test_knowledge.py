@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from backend.map_predict.services import knowledge, assistant
 from backend.map_predict.services.prediction import PredictionError
@@ -102,6 +102,19 @@ class KnowledgeTests(unittest.TestCase):
             with self.assertRaises(PredictionError) as error:
                 knowledge.retrieve('độ dốc', self.config)
         self.assertEqual(error.exception.code, 'KNOWLEDGE_UNAVAILABLE')
+
+    def test_ragwire_failure_reports_keyword_fallback_without_leaking_internal_json(self):
+        import sys
+        from types import SimpleNamespace
+        adapter = SimpleNamespace(retrieve=Mock(side_effect=ValueError('internal JSON /private/path')))
+        replies = [{'result': {'config': {'params': {'vectors': {'size': 1024}}}, 'points_count': 1}},
+                   {'result': {'points': [POINT], 'next_page_offset': None}}]
+        with patch.dict(sys.modules, {'backend.map_predict.services.ragwire_search': adapter}), \
+                patch.object(knowledge, 'json_request', side_effect=replies):
+            result = knowledge.retrieve('x4', {**self.config, 'ASSISTANT_RETRIEVAL_MODE': 'ragwire'})
+        self.assertEqual(result['mode'], 'keyword_fallback')
+        self.assertEqual(result['records'][0]['id'], 'point-1')
+        self.assertNotIn('internal JSON', str(result))
 
     def test_paragraph_score_rules_do_not_become_wrong_criteria_from_table_points(self):
         text = '### sửa ngày 1509 | 7 Chi phí GPMB\n#### sửa ngày 1509 | 7 Chi phí GPMB | Nhãn điểm hàng 1: 9\n'

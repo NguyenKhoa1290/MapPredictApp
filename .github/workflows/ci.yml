@@ -94,7 +94,7 @@ jobs:
         run: |
           python3 -c "from pathlib import Path; import os,secrets; p=Path(os.environ['RUNNER_TEMP'],'assistant-ci-key'); p.write_text(secrets.token_hex(32)); p.chmod(0o644)"
           docker network create map-predict-ci-network
-          docker run -d --name map-predict-ai-ci --network map-predict-ci-network --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" -e MAP_PREDICT_ASSISTANT_SECRET_FILE=/run/secrets/assistant_key map-predict-ai-ci
+          docker run -d --name map-predict-ai-ci --network map-predict-ci-network --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" -v "${{ github.workspace }}/tests:/app/tests:ro" -e MAP_PREDICT_ASSISTANT_SECRET_FILE=/run/secrets/assistant_key map-predict-ai-ci
       - name: Start image without host credentials
         run: >-
           docker run -d --name map-predict-ci
@@ -122,6 +122,8 @@ jobs:
         run: |
           curl --fail --silent http://127.0.0.1:8766/api/v1/assistant/status > /dev/null
           docker exec map-predict-ai-ci python -c "from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8001/health').status==200"
+      - name: Test RAGWire retrieval and JSON boundaries in AI image
+        run: docker exec map-predict-ai-ci python -B -m unittest discover -s tests -p 'test_ragwire_retrieval.py'
       - name: Verify private Gemini adapter without account cookies
         run: |
           docker run -d --name map-predict-gemini-ci --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" -v "${{ github.workspace }}/tests:/app/tests:ro" map-predict-gemini-ci
