@@ -12,6 +12,9 @@
 - Phụ thuộc RAGWire nằm riêng trong requirements-ai.txt và image AI, tạo build stage riêng để cập nhật code không cài lại thư viện RAG
 - Cập nhật phần Embedding trong quản trị và CI kiểm tra bộ phụ thuộc AI, điều chỉnh kiểm thử trang giới thiệu đã lỗi thời sau khi phần thành viên bị xóa
 - Thử trực tiếp x1 lấy đúng point 59929946-642c-45bb-a3a0-5b7a4e8394cd bằng hybrid retrieval, câu hỏi theo tên cao độ/đồng bằng cũng tự chọn được filter và trả đúng tiêu chí
+- 183 kiểm thử Python, 54 kiểm thử JavaScript và 43 kiểm thử frontend đã đạt, image AI kiểm tra phụ thuộc không xung đột
+- Đã cập nhật Docker và thử API chatbot qua gateway, câu hỏi cao độ đồng bằng trả đúng ba nhóm điểm và ô D3:F3, G3:J3, K3:M3 trong 22,8 giây, dùng filter ten_tieu_chi và phan_nhom, không hiện JSON nội bộ
+- So sánh SHA-256 payload và vector trước, sau xác nhận cả 6 collection với 807 point giữ nguyên
 
 ## 2026-10-29 Kết luận kiểm chứng effort theo phản hồi Google
 
