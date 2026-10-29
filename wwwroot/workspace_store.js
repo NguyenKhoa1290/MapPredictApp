@@ -98,17 +98,18 @@
                     : { ...value, columns: value.columns || [...new Set(value.rows.flatMap(row => Object.keys(row)))] }
                     : value instanceof Blob ? [value.size, value.type] : value])]);
         }
-        export() { return this.persisted ||= { version: 1, past: this.past, future: this.future }; }
+        export() { return this.persisted ||= { version: 1, past: this.past, future: this.future, pending: this.pending }; }
         import(value) {
             if (!value) { this.changed(); return; }
             if (value.version !== 1 || !Array.isArray(value.past) || !Array.isArray(value.future)
                 || value.past.length + value.future.length > this.limit
-                || [...value.past, ...value.future].some(item => !item?.before?.state || !item?.after?.state
+                || [...value.past, ...value.future, ...(value.pending ? [value.pending] : [])].some(item => !item?.before?.state || !item?.after?.state
                     || Object.prototype.toString.call(item.before.assets) !== '[object Map]'
                     || Object.prototype.toString.call(item.after.assets) !== '[object Map]')) {
                 throw new Error('Lịch sử chỉnh sửa đã lưu không hợp lệ');
             }
-            this.past = value.past; this.future = value.future; this.persisted = value; this.changed();
+            this.past = value.past; this.future = value.future; this.pending = value.pending || null;
+            this.persisted = value; this.changed();
         }
         assertCurrent(snapshot) {
             if (this.key(this.capture()) !== this.key(snapshot)) {
@@ -125,20 +126,24 @@
                 await action();
                 const after = this.capture();
                 this.pending = { before, after };
+                this.persisted = null;
+                // Save the displayed draft and its review state together before returning.
+                await this.resume();
             } catch (error) {
+                this.pending = null; this.persisted = null;
                 if (before) await this.restore(before);
-                if (paused) this.resume();
+                if (paused) await this.resume();
                 throw error;
             } finally { this.busy = false; this.changed(); }
         }
-        confirm() {
+        async confirm() {
             if (this.busy || !this.pending) return;
             this.assertCurrent(this.pending.after);
             this.past.push(this.pending);
             if (this.past.length > this.limit) this.past.shift();
             this.future = []; this.pending = null;
             this.persisted = null;
-            this.resume(); this.changed();
+            this.changed(); await this.resume();
         }
         async travel(direction) {
             if (this.busy) return;
@@ -155,7 +160,7 @@
                 if (discard) this.pending = null;
                 else { from.pop(); to.push(item); }
                 this.persisted = null;
-                this.resume();
+                await this.resume();
             } finally { this.busy = false; this.changed(); }
         }
     }

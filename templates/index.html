@@ -55,6 +55,7 @@
                             <h2>Dữ liệu đầu vào</h2>
                             <label for="csv-file">File dữ liệu (.csv)</label>
                             <input id="csv-file" name="csv" type="file" accept=".csv" required>
+                            <button type="button" class="cad-action" data-remove-csv="csv-file" hidden>Xóa CSV</button>
                             <p class="field-note" data-file-label="csv-file" data-default-label="Chọn CSV để xem trước dữ liệu.">Chọn CSV để xem trước dữ liệu.</p>
                             <p class="field-note">Các cột đầu vào: x1 đến x9.</p>
                             <h2>Mô hình dự đoán</h2>
@@ -123,6 +124,8 @@
                                 </div>
                                 <label for="result-file">Kết quả (.csv), nếu chưa chạy dự đoán</label>
                                 <input id="result-file" name="result" type="file" accept=".csv">
+                                <p class="field-note" data-file-label="result-file" data-default-label="Chưa chọn file">Chưa chọn file</p>
+                                <button type="button" class="cad-action" data-remove-csv="result-file" hidden>Xóa CSV kết quả</button>
                                 <div id="join-controls" hidden>
                                     <div id="common-layer-join">
                                         <label for="gpkg-join">Cột ghép trong lưới dự đoán</label>

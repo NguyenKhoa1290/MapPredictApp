@@ -80,6 +80,8 @@
         clearTimeout(timer);
         if (!ready || blocked || previewPaused) return Promise.resolve(false);
         if (saving) return saving;
+        // A clean flush must not leave a resolved promise blocking every later save.
+        if (!dirty) return Promise.resolve(true);
         // Start the transaction synchronously when the page is being hidden.
         saving = (async () => {
             try {
@@ -216,7 +218,11 @@
             if (!ready || blocked || !await flush()) throw new Error('Chưa lưu được dữ liệu trước khi xem bản nháp');
             previewPaused = true;
         },
-        resumePreview() { previewPaused = false; schedule(); },
+        async resumePreview() {
+            previewPaused = false;
+            schedule();
+            if (!await flush()) throw new Error('Chưa lưu được thay đổi, hãy giữ trang mở và thử lại');
+        },
         restoreCheckpoint(snapshot) {
             // Undo data without moving the user's viewport or changing the active tab.
             const current = capture().state;

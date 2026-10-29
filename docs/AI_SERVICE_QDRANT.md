@@ -10,11 +10,12 @@
 - Không có DXF được bật vẫn trò chuyện bình thường, không cấp quyền sửa, vẽ hoặc tạo file DXF
 - Cho phép đổi màu, layer, chữ, dịch đối tượng, thêm thuộc tính XDATA và vẽ LINE, LWPOLYLINE, CIRCLE, TEXT trong file có sẵn
 - Thuộc tính riêng được ghi vào XDATA MAP_PREDICT và hiển thị với tiền tố attr: trong thông tin đối tượng
-- Đề xuất hợp lệ được dựng thành bản nháp ngay trên bản đồ và bảng dữ liệu, chưa tự lưu cho đến khi xác nhận
+- Đề xuất hợp lệ được dựng thành bản nháp ngay trên bản đồ và bảng dữ liệu, tự lưu cùng trạng thái chờ xác nhận
 - Xác nhận thay đổi, Bỏ bản nháp, Hoàn tác và Làm lại nằm trong cửa sổ chat
 - Hoàn tác và Làm lại khôi phục cả DXF, bảng CSV, kết quả dự đoán và layer hiển thị của cùng một lần sửa AI
 - Lịch sử tối đa 10 lần sửa cùng trước và sau được lưu nguyên tử với workspace trong IndexedDB, localStorage lưu vị trí lịch sử
-- Tải lại trang vẫn có thể Hoàn tác và Làm lại để so sánh, bản nháp chưa xác nhận không được lưu
+- Tải lại trang vẫn có thể Hoàn tác và Làm lại để so sánh, bản nháp được khôi phục với nút Xác nhận hoặc Bỏ bản nháp
+- CSV đầu vào và CSV kết quả có nút xóa riêng, thao tác xóa cũng được tự lưu trên trình duyệt
 - Sửa điểm làm mất hiệu lực Y cũ và CSV kết quả cũ, cần chạy lại mô hình để tính kết quả mới
 - Nếu không dựng được bản đồ, khôi phục cả bảng và DXF trước lần sửa, không giữ nửa thay đổi
 - File gốc trên máy không bị ghi đè, DXF sửa tự thay vào tài nguyên cùng tên và hiện trên bản đồ

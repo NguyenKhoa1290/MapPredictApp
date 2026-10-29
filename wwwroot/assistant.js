@@ -140,7 +140,32 @@
         }
         return payload.data;
     }
-    function clearPreview() { pending = null; preview.hidden = true; preview.replaceChildren(); }
+    function clearPreview() { pending = null; preview.hidden = true; preview.replaceChildren(); delete preview.dataset.restored; }
+    function restoreDraftReview() {
+        if (pending) return;
+        if (!window.assistantWorkspace.hasDraft()) {
+            if (preview.dataset.restored) clearPreview();
+            return;
+        }
+        if (!preview.dataset.restored) {
+            preview.dataset.restored = 'true';
+            preview.hidden = false;
+            preview.append(element('strong', 'Bản nháp đã khôi phục'),
+                element('p', 'Dữ liệu đã sửa đang hiển thị, hãy xác nhận hoặc bỏ bản nháp'));
+            for (const [action, label] of [['confirm', 'Xác nhận thay đổi'], ['discard', 'Bỏ bản nháp']]) {
+                const button = element('button', label);
+                button.type = 'button'; button.dataset.review = action;
+                button.addEventListener('click', async () => {
+                    try {
+                        await window.assistantWorkspace[action]();
+                        notice.textContent = action === 'confirm' ? 'Đã xác nhận và tự lưu' : 'Đã khôi phục dữ liệu trước bản nháp';
+                    } catch (error) { notice.textContent = error.message; }
+                });
+                preview.append(button);
+            }
+        }
+        for (const button of preview.querySelectorAll('button')) button.disabled = !!window.assistantWorkspace.historyState?.().busy;
+    }
     function setBusy(value) {
         busy = value;
         get('form').querySelector('[type="submit"]').disabled = value || window.assistantWorkspace.hasDraft();
@@ -178,8 +203,8 @@
         preview.append(list);
         const apply = element('button', 'Xác nhận' + (count ? ' ' + count + ' thay đổi' : ' tạo bảng'));
         apply.disabled = true;
-        apply.type = 'button'; apply.addEventListener('click', () => {
-            try { window.assistantWorkspace.confirm(); notice.textContent = 'Đã xác nhận và tự lưu, dùng Hoàn tác và Làm lại để so sánh trước và sau'; }
+        apply.type = 'button'; apply.addEventListener('click', async () => {
+            try { await window.assistantWorkspace.confirm(); notice.textContent = 'Đã xác nhận và tự lưu, dùng Hoàn tác và Làm lại để so sánh trước và sau'; }
             catch (error) { notice.textContent = error.message; }
         });
         const cancel = element('button', 'Bỏ bản nháp'); cancel.type = 'button'; cancel.disabled = true;
@@ -264,8 +289,10 @@
         if (pending?.staged && !window.assistantWorkspace.hasDraft()) {
             clearPreview();
         }
+        restoreDraftReview();
         get('form').querySelector('[type="submit"]').disabled = busy || window.assistantWorkspace.hasDraft();
     });
+    restoreDraftReview();
     fetch('/api/v1/assistant/status').then(response => response.json()).then(payload => {
         if (!payload.data?.enabled) notice.textContent = 'Chatbot chưa được bật trên máy chủ';
         if (Array.isArray(payload.data?.modes)) {

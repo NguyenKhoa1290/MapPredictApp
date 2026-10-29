@@ -1,5 +1,13 @@
 # Nhật ký dự án MapPredictApp
 
+## 2026-10-29 Lưu CSV và DXF sau khi AI sửa
+
+- Sửa hàng đợi tự lưu bị giữ promise đã hoàn thành khi flush không có dữ liệu thay đổi, khiến các lần lưu sau không chạy
+- Lưu bản nháp AI cùng dữ liệu trước và sau trong IndexedDB, khôi phục nút xác nhận hoặc bỏ bản nháp khi reload
+- Chờ ghi dữ liệu khi dựng bản nháp, xác nhận, hoàn tác và làm lại, giữ bản sửa chưa duyệt ở trạng thái chờ xác nhận
+- Thêm nút Xóa CSV cho đầu vào và CSV kết quả, cập nhật bảng, cột ghép và tự lưu thao tác xóa
+- 54 kiểm thử JavaScript đạt, kiểm tra Chrome với CSV và DXF thực xác nhận khôi phục bản nháp, xác nhận, hoàn tác, làm lại, layer và xóa file qua nhiều lần reload, không có lỗi JavaScript
+
 ## 2026-10-29 Tích hợp RAGWire, embedding và bộ lọc metadata
 
 - Cập nhật yêu cầu: chatbot dùng embedding cho truy xuất tài liệu, sửa hiểu nhầm trước đó về việc chỉ dùng embedding trong quản trị

@@ -378,6 +378,7 @@ function resultsCsvFile(rows, columns = [...new Set(rows.flatMap((row) => Object
 
 function renderPredictionTable(rows, isResult, total = rows.length, columns = [...new Set(rows.flatMap((row) => Object.keys(row)))]) {
     predictionView = columns.length ? { rows, isResult, total, columns } : { rows, isResult, total };
+    updateCsvControls();
     window.workspacePersistence?.schedule();
     const hasData = rows.length > 0 || columns.length > 0;
     $("prediction-empty").hidden = hasData;
@@ -567,8 +568,42 @@ function renderMap(layers, savedLayers = null, restoring = false) {
     window.workspacePersistence?.schedule();
 }
 
+function updateCsvControls() {
+    const history = window.assistantWorkspace?.historyState?.();
+    for (const button of document.querySelectorAll('[data-remove-csv]')) {
+        const input = $(button.dataset.removeCsv);
+        button.hidden = !input.files.length;
+        button.disabled = $('predict-button').disabled || !!history?.pending || !!history?.busy;
+        const label = document.querySelector(`[data-file-label="${input.id}"]`);
+        if (label) label.textContent = input.files[0]?.name || label.dataset.defaultLabel || 'Chưa chọn file';
+    }
+}
+for (const button of document.querySelectorAll('[data-remove-csv]')) {
+    button.addEventListener('click', async () => {
+        const history = window.assistantWorkspace?.historyState?.();
+        if ($('predict-button').disabled || history?.pending || history?.busy) return;
+        const id = button.dataset.removeCsv;
+        $(id).files = new DataTransfer().files;
+        if (id === 'csv-file') {
+            ++predictionTableVersion;
+            renderResults([], false);
+            renderPredictionTable([], false);
+            showStatus('predict-message', 'Đã xóa file CSV và bảng dữ liệu');
+        } else if (!$('csv-file').files.length && !predictionView.isResult) {
+            ++predictionTableVersion;
+            renderPredictionTable([], false);
+        }
+        invalidateMapPreview();
+        $('result-file').dispatchEvent(new Event('change', { bubbles: true }));
+        updateCsvControls();
+        window.workspacePersistence?.schedule();
+        await window.workspacePersistence?.flush();
+    });
+}
+
 for (const input of document.querySelectorAll('input[type="file"]')) {
     input.addEventListener("change", () => {
+        updateCsvControls();
         const label = document.querySelector(`[data-file-label="${input.id}"]`);
         if (label) label.textContent = input.files[0]?.name || label.dataset.defaultLabel || "Chưa chọn file";
         if (input.id === "cad-file") {
@@ -642,6 +677,7 @@ $("predict-form").addEventListener("submit", async (event) => {
         button.disabled = false;
         button.textContent = "Bắt đầu dự đoán";
         inputs.forEach((input) => { input.disabled = false; });
+        updateCsvControls();
         $("prediction-result").removeAttribute("aria-busy");
     }
 });
@@ -921,6 +957,7 @@ function updateAssistantHistory() {
     document.querySelectorAll('.map-sidebar, .workspace-crs, #layer-inspector .style-editor')
         .forEach(node => { node.inert = busy || !!pending; });
     window.dispatchEvent(new Event('assistant-workspace-change'));
+    updateCsvControls();
 }
 Object.assign(window.assistantWorkspace, {
     stage: change => assistantHistory.stage(() => window.assistantWorkspace.commit(change)),
@@ -937,7 +974,7 @@ historyBar.addEventListener('click', async event => {
     const action = event.target.closest('button')?.dataset.action;
     if (!action) return;
     try {
-        if (action === 'confirm') assistantHistory.confirm();
+        if (action === 'confirm') await assistantHistory.confirm();
         else await assistantHistory.travel(action);
     } catch (error) {
         historyBar.querySelector('[role="status"]').textContent = error.message;

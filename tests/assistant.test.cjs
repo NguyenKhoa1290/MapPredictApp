@@ -96,6 +96,8 @@ test('real workspace restores DXF, empty CSV input and table across confirm undo
         w.eval(code);
         for (let i = 0; i < 40 && !w.workspacePersistence.ready; i++) await tick();
         assert.equal(w.workspacePersistence.ready, true);
+        assert.equal(await w.workspacePersistence.flush(), true);
+        assert.equal(await w.workspacePersistence.flush(), true);
         w.eval(script);
         const historySlot = w.document.querySelector('.assistant-actions .assistant-history-slot');
         assert.equal(historySlot.nextElementSibling.type, 'submit');
@@ -111,9 +113,10 @@ test('real workspace restores DXF, empty CSV input and table across confirm undo
             dxf: new w.File(['new DXF'], 'base_edited.dxf'), rows: [{ id: '1', x1: 5 }] });
         assert.equal(w.inspectResources().table.rows[0].x1, 5);
         assert.equal(w.inspectResources().name, 'base_edited.dxf');
-        assert.equal(w.savedWorkspace.state.inputs['csv-file'], undefined);
+        assert.equal(w.savedWorkspace.state.inputs['csv-file'].name, 'TieuChi.csv');
+        assert.ok(w.savedWorkspace.assets.get('history:assistant').pending);
         assert.equal(w.document.querySelector('.map-sidebar').inert, true);
-        w.assistantWorkspace.confirm();
+        await w.assistantWorkspace.confirm();
         await w.workspacePersistence.flush();
         assert.equal(w.savedWorkspace.assets.get('table:view').rows[0].x1, 5);
         const savedHistory = w.savedWorkspace.assets.get('history:assistant');
@@ -141,7 +144,7 @@ test('real workspace restores DXF, empty CSV input and table across confirm undo
         assert.equal(w.document.querySelector('#prediction-export').hidden, false);
         const emptyCsv = await w.inspectResources().csv.arrayBuffer();
         assert.match(new TextDecoder().decode(emptyCsv), /"id","x1"/);
-        w.assistantWorkspace.confirm();
+        await w.assistantWorkspace.confirm();
         await w.workspacePersistence.flush();
         const emptyHistory = w.structuredClone(w.savedWorkspace.assets.get('history:assistant'));
         await w.assistantWorkspace.travel('undo');
@@ -171,9 +174,10 @@ test('DXF and CSV draft confirm, undo and redo as one transaction without regene
     const f = historyFixture();
     await f.history.stage(f.edit);
     assert.equal(f.value.assets.get('rows')[0].x1, 5);
-    assert.equal(f.saved.assets.get('rows')[0].x1, 0);
-    assert.equal(f.paused, true);
-    f.history.confirm();
+    assert.equal(f.saved.assets.get('rows')[0].x1, 5);
+    assert.equal(f.paused, false);
+    assert.ok(f.history.export().pending);
+    await f.history.confirm();
     assert.equal(f.saved.assets.get('rows')[0].x1, 5);
     // Panning and zooming must not prevent undo.
     f.value.state.view.zoom = 17;
