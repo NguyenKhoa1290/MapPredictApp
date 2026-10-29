@@ -733,3 +733,16 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Bước chọn bộ lọc metadata dùng effort thấp, mức effort người dùng chọn vẫn áp dụng cho câu trả lời cuối
 - Giới hạn ngân sách toàn bộ lượt preview, dành thời gian xử lý còn lại cho câu trả lời sau truy xuất
 
+## 2026-10-29 Kết quả điều tra giao thức Gemini
+
+- 194 kiểm thử đạt, đã triển khai sửa thời gian chờ và trả busy ngay lên VPS, website cùng các service vẫn healthy
+- Lượt preview đầy đủ trả MODEL_UNAVAILABLE sau khoảng 140 giây, chưa khôi phục chat thực tế
+- Cookie mới khớp tài khoản thứ nhất, cập nhật đúng tài khoản và giữ nguyên tổng số hai tài khoản, không ghi cookie vào Git
+- Cả hai tài khoản xác thực được, RPC kiểm tra hạn chế không trả cờ abuse, không đủ bằng chứng kết luận chặn IP
+- Quan sát phiên Chrome thử riêng với cookie mới, chọn 3.8 Flash bằng menu Google, giao diện vẫn báo lỗi trong khi người dùng xác nhận Chrome gốc chat được
+- Network của giao diện Google dùng geminiweb-pa.clients6.google.com/v1/processSession, không dùng StreamGenerate cho lượt gửi đang quan sát
+- Đối chiếu issue 110 của Sophomoresty/gemini-web2api và nghiên cứu transport của stevensuna/gemini-web-mcp-cli, payload mới truyền model trong protobuf và yêu cầu phiên WebChannel cùng token trình duyệt
+- Đính chính kết luận trước: category 1 và applied_level khớp chưa đủ xác minh model 3.8 Flash, không coi kết quả đó là nghiệm thu model
+- Đã thử riêng các cờ payload, f.sid và HTTP transport khác trong tiến trình tạm, chưa nhận kết quả hợp lệ, không triển khai các phép thử này vào service
+- Việc còn lại là thay adapter bằng transport processSession và xác minh model hash từ phản hồi thực tế, chưa hoàn tất, không chuyển sang Flash-Lite hoặc phiên ẩn danh
+
