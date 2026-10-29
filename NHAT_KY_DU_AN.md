@@ -762,4 +762,7 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Theo yêu cầu mới nhất của người dùng, giữ 3.5 Flash-Lite và bỏ phụ thuộc cookie cho chế độ Nhanh
 - Mỗi lượt Nhanh xóa cookie, AuthUser, XSRF và header định tuyến tài khoản trong phạm vi xử lý, khôi phục đủ trạng thái khi hoàn tất hoặc có lỗi
 - Trạng thái Nhanh không bị khóa khi cookie Thông minh hết hạn, Thông minh tiếp tục giữ pool tài khoản và passcode
+- 197 kiểm thử đạt, bao gồm kiểm tra không gửi thông tin đăng nhập khi chạy ẩn danh và khôi phục trạng thái Thông minh cả khi có lỗi
+- Đã triển khai lên VPS, thử qua API website tạo bảng A1 và áp dụng bản nháp thành công, x1 đến x9 vẫn trống, RAGWire hybrid
+- Lượt kiểm tra đầy đủ mất 124,76 giây, lượt gọi trực tiếp giới hạn 20 giây có timeout, chưa coi là tối ưu độ trễ
 
