@@ -13,6 +13,7 @@ from .google_session import write_json, GoogleSession, UsageAuthError, maintenan
 from .quota_guard import QuotaGuard, QuotaRejected
 
 ARGON = 'gemini-4-argon'
+FLASH = 'gemini-3.8-flash'
 SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models')
 
 
@@ -164,3 +165,36 @@ class AccountPool:
                                 status=503, code='quota_unverified')
         finally:
             self.lock.release()
+
+    def run_flash(self, generate):
+        """Use only account-discovered 3.8 Flash routes, never anonymous Flash."""
+        with self.lock:
+            entries = self.store.registry()['accounts']
+            login_failures = 0
+            for entry in entries:
+                try:
+                    path = self.store.path(entry['id'])
+                    settings = json.loads(path.read_text(encoding='utf-8'))
+                    if (FLASH not in settings.get('extra_models', {}) or
+                            time.time() - settings.get('model_checked_at', 0) > 3600):
+                        self.store.discover(entry['id'])
+                    session = GoogleSession(path)
+                    session.maintain()
+                    session.refresh()
+                    settings = json.loads(path.read_text(encoding='utf-8'))
+                    route = settings.get('extra_models', {}).get(FLASH)
+                    if not route or str(route['mode']) not in settings.get('model_headers', {}) or not settings.get('xsrf_token'):
+                        continue
+                    with self.profile(settings):
+                        result = generate(route['mode'], route.get('think', 1))
+                    if not isinstance(result, str) or not result.strip():
+                        continue
+                    return result
+                except UsageAuthError:
+                    login_failures += 1
+                    self.rows[entry['id']] = {'status': 'needs_login', 'usage': None}
+                except Exception:
+                    continue
+            if not entries or login_failures == len(entries):
+                raise QuotaRejected('Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị', status=503, code='cookie_required')
+            raise QuotaRejected('Không có tài khoản 3.8 Flash khả dụng, không dùng phiên ẩn danh hoặc model khác', status=503, code='model_unavailable')

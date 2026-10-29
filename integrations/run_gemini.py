@@ -8,7 +8,7 @@ import uuid
 from gemini_web2api.config import CONFIG
 from gemini_web2api.server import GeminiHandler, ThreadedServer
 from gemini_web2api.session_manager import SessionManager
-from gemini_web2api.account_pool import AccountPool, ARGON
+from gemini_web2api.account_pool import AccountPool, ARGON, FLASH
 from gemini_web2api.quota_guard import QuotaRejected
 from gemini_web2api.gemini import generate
 from gemini_web2api.tools import messages_to_prompt
@@ -74,8 +74,9 @@ class ManagedGeminiHandler(GeminiHandler):
 
     def _handle_chat(self, body):
         request = self._parse_body(body)
-        if not isinstance(request, dict) or request.get('model') != ARGON:
+        if not isinstance(request, dict) or request.get('model') not in (ARGON, FLASH):
             return super()._handle_chat(body)
+        model = request['model']
         try:
             thinking_depth(request.get('reasoning_effort'), 1)
         except ValueError as error:
@@ -93,12 +94,12 @@ class ManagedGeminiHandler(GeminiHandler):
             level = thinking_depth(request.get('reasoning_effort'), 1)
             def generate_argon(mode, think):
                 text = generate(prompt, mode, level, metadata=reasoning)
-                if reasoning.get('applied_level', level) != level:
+                if reasoning.get('applied_level', None if model == FLASH else level) != level:
                     raise ValueError('Argon thinking level was not honored')
                 return text
-            text = pool.run(generate_argon)
+            text = pool.run_flash(generate_argon) if model == FLASH else pool.run(generate_argon)
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
-                            'created': int(time.time()), 'model': ARGON,
+                            'created': int(time.time()), 'model': model,
                             'reasoning': reasoning,
                             'choices': [{'index': 0, 'message': {'role': 'assistant', 'content': text}, 'finish_reason': 'stop'}]})
         except QuotaRejected as error:

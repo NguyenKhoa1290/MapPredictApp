@@ -14,6 +14,7 @@ from .prediction import PredictionError
 
 LOCK = threading.RLock()
 ARGON = 'gemini-4-argon'
+FLASH = 'gemini-3.8-flash'
 
 
 def is_argon(model):
@@ -78,18 +79,18 @@ def argon_availability(config):
 
 
 def require_argon_cookie(config):
-    if not is_argon(config['ASSISTANT_MODEL']):
+    if not is_argon(config['ASSISTANT_MODEL']) and config['ASSISTANT_MODEL'] != FLASH:
         return
     state = argon_availability(config)
     if state == 'cookie_required':
-        raise PredictionError('COOKIE_REQUIRED', COOKIE_MESSAGE, 503)
+        raise PredictionError('COOKIE_REQUIRED', COOKIE_MESSAGE if is_argon(config['ASSISTANT_MODEL']) else 'Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị', 503)
     if state != 'ready':
         raise PredictionError('COOKIE_UNVERIFIED', 'Chưa xác minh được cookie cho Thông minh, không chuyển sang Nhanh', 503)
 
 
 def defaults(config):
     return {'models': {
-        'fast': {'label': 'Nhanh', 'provider': 'gemini', 'model': config['ASSISTANT_MODEL'],
+        'fast': {'label': 'Nhanh', 'provider': 'gemini', 'model': FLASH,
                  'url': '', 'api_key': ''},
         'smart': {'label': 'Thông minh', 'provider': 'gemini', 'model': ARGON, 'url': '', 'api_key': ''}},
         'embedding': {'url': config.get('ASSISTANT_EMBEDDING_URL') or 'http://ai-embedding:11434',
@@ -104,6 +105,8 @@ def load(config):
             saved = json.loads(Path(path).read_text(encoding='utf-8'))
             if 'fast' in saved.get('models', {}):
                 result['models']['fast'].update(saved['models']['fast'])
+                if result['models']['fast']['provider'] == 'gemini' and result['models']['fast']['model'] in ('gemini-3.6-flash', 'gemini-3.7-flash'):
+                    result['models']['fast']['model'] = FLASH
             # Smart replaces the former separate Pro option, retaining its strict route.
             # Never restore the legacy thinking/Flash model or a third client option.
             result['embedding'].update(saved.get('embedding', {}))
@@ -177,7 +180,7 @@ def save(config, incoming):
 def supported_efforts(row):
     # Gemini Web's legacy Flash route reports Low for every supplied level.
     # Only Argon has been verified with upstream applied_level=1/4/2.
-    return ['auto', 'low'] if row['provider'] == 'gemini' and not is_argon(row['model']) else ['auto', 'low', 'medium', 'high']
+    return ['auto', 'low'] if row['provider'] == 'gemini' and not is_argon(row['model']) and row['model'] != FLASH else ['auto', 'low', 'medium', 'high']
 
 
 def model_config(config, mode='fast'):

@@ -104,7 +104,7 @@ class AccountStore:
         path = self.path(account_id)
         session = GoogleSession(path)
         bodies = rpc_bodies(session.request_rpc('otAQ7b', source='/app'), 'otAQ7b')
-        routes = None
+        routes, headers = {}, {}
         for body in bodies:
             if not isinstance(body, list) or len(body) <= 17 or not isinstance(body[15], list):
                 continue
@@ -127,24 +127,25 @@ class AccountStore:
                     return model[index] if len(model) > index else None
                 category = value(1) or value(10) or ''
                 display = value(11) or value(19) or category
-                if 'argon' not in (str(category) + ' ' + str(display)).casefold():
+                identity = (str(category) + ' ' + str(display)).casefold()
+                name = 'gemini-4-argon' if 'argon' in identity else 'gemini-3.8-flash' if re.search(r'\b3\.8\s+flash\b', str(display), re.I) else None
+                if not name:
                     continue
                 number = value(17) if type(value(17)) is int else value(9)
                 if type(number) is not int or not isinstance(value(0), str):
                     continue
                 header = [1, None, None, None, value(0), None, None, 0, [4,5,6,8], None, None, None, None, None, number]
                 header[field - 1] = capacity
-                headers = {str(number): {'x-goog-ext-525001261-jspb': json.dumps(header),
-                                        'x-goog-ext-73010989-jspb': '[0]', 'x-goog-ext-73010990-jspb': '[0,0,0]'}}
-                routes = ({'gemini-4-argon': {'mode': number, 'think': 1, 'desc': str(display)}}, headers)
+                headers[str(number)] = {'x-goog-ext-525001261-jspb': json.dumps(header),
+                                        'x-goog-ext-73010989-jspb': '[0]', 'x-goog-ext-73010990-jspb': '[0,0,0]'}
+                routes[name] = {'mode': number, 'think': 1, 'desc': str(display)}
         with private_lock(path.with_suffix('.lock')):
             config = json.loads(path.read_text(encoding='utf-8'))
-            config['model_available'] = routes is not None
+            config['model_available'] = 'gemini-4-argon' in routes
             config['model_checked_at'] = time.time()
-            if routes:
-                config['extra_models'], config['model_headers'] = routes
+            config['extra_models'], config['model_headers'] = routes, headers
             write_json(path, config)
-        return routes is not None
+        return 'gemini-4-argon' in routes
 
     def scan_one(self, entry, discover=False):
         account_id = entry['id']

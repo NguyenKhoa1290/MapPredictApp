@@ -139,6 +139,51 @@ class ArgonRoutingTests(unittest.TestCase):
         from gemini_web2api.models import resolve_model
         self.assertIsNotNone(resolve_model('unknown-pro-model')[3])
         self.assertIsNotNone(resolve_model('gemini-4-argon')[3])
+        self.assertIsNotNone(resolve_model('gemini-3.8-flash')[3])
+
+    def test_discovery_keeps_flash_and_argon_routes_separate(self):
+        models = []
+        for display, category, number, identifier in [('3.8 Flash', 'Flash', 1, 'flash-id'), ('4 Argon', 'Argon', 8, 'argon-id')]:
+            model = [None] * 20
+            model[0], model[1], model[11], model[17] = identifier, category, display, number
+            models.append(model)
+        body = [None] * 18
+        body[15], body[16], body[17] = models, [8], []
+        rpc = json.dumps([['wrb.fr', 'otAQ7b', json.dumps(body)]])
+        with patch('gemini_web2api.accounts.GoogleSession') as session:
+            session.return_value.request_rpc.return_value = rpc
+            self.assertTrue(self.pool.store.discover('a' * 32))
+        settings = json.loads(self.pool.store.path('a' * 32).read_text())
+        self.assertEqual(set(settings['extra_models']), {'gemini-3.8-flash', 'gemini-4-argon'})
+        header = json.loads(settings['model_headers']['1']['x-goog-ext-525001261-jspb'])
+        self.assertEqual(header[4], 'flash-id')
+
+    def test_flash_uses_second_signed_in_account_without_argon_quota(self):
+        from gemini_web2api.google_session import UsageAuthError
+        from gemini_web2api.config import CONFIG
+        for entry in self.pool.store.registry()['accounts']:
+            path = self.pool.store.path(entry['id'])
+            data = json.loads(path.read_text())
+            data['extra_models']['gemini-3.8-flash'] = {'mode': 1, 'think': 1}
+            data['model_headers']['1'] = {'x-goog-ext-525001261-jspb': '[1]'}
+            path.write_text(json.dumps(data))
+        seen = []
+        with patch('gemini_web2api.account_pool.GoogleSession') as session, patch('gemini_web2api.account_pool.QuotaGuard.check') as guard:
+            session.return_value.refresh.side_effect = [UsageAuthError('expired'), None]
+            result = self.pool.run_flash(lambda mode, think: seen.append((mode, CONFIG['cookie_file'])) or 'signed in')
+            guard.assert_not_called()
+        self.assertEqual(result, 'signed in')
+        self.assertEqual(seen, [(1, 'private-cookie-1')])
+
+    def test_flash_revoked_cookies_never_generate_anonymous_response(self):
+        from gemini_web2api.google_session import UsageAuthError
+        from gemini_web2api.quota_guard import QuotaRejected
+        generate = Mock()
+        with patch.object(self.pool.store, 'discover', side_effect=UsageAuthError('expired')):
+            with self.assertRaises(QuotaRejected) as result:
+                self.pool.run_flash(generate)
+        self.assertEqual(result.exception.code, 'cookie_required')
+        generate.assert_not_called()
 
     def test_chat_effort_reaches_generation_for_both_routes_without_downgrade(self):
         import importlib.util
@@ -151,19 +196,23 @@ class ArgonRoutingTests(unittest.TestCase):
                 patch('gemini_web2api.account_pool.AccountPool'):
             spec.loader.exec_module(runner)
         runner.pool.run.side_effect = lambda callback: callback(71, 4)
+        runner.pool.run_flash.side_effect = lambda callback: callback(1, 1)
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
-        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71)):
+        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-3.8-flash', 1)):
             for effort, depth in ((None, 1), ('low', 1), ('medium', 4), ('high', 2)):
                 with self.subTest(model=model, effort=effort):
                     handler.send_json.reset_mock()
                     body = {'model': model, 'messages': [{'role': 'user', 'content': 'hello'}]}
                     if effort is not None:
                         body['reasoning_effort'] = effort
+                    def verified(prompt, mode, level, metadata):
+                        metadata['applied_level'] = level
+                        return 'verified response'
                     with patch('gemini_web2api.server.generate', return_value='fast') as fast, \
-                            patch.object(runner, 'generate', return_value='smart') as smart:
+                            patch.object(runner, 'generate', side_effect=verified) as smart:
                         handler._handle_chat(json.dumps(body).encode())
-                    called, untouched = (smart, fast) if model == 'gemini-4-argon' else (fast, smart)
+                    called, untouched = (fast, smart) if model == 'gemini-3.6-flash' else (smart, fast)
                     self.assertEqual(called.call_args.args[1:3], (mode, depth))
                     untouched.assert_not_called()
                     self.assertEqual(handler.send_json.call_args.args[0]['model'], model)

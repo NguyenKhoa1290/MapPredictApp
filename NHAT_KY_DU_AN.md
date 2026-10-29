@@ -715,3 +715,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Giữ chu kỳ kiểm tra 30 giây và khoảng chờ phục hồi lỗi 5 phút
 - Cookie đã bị Google từ chối vẫn cần cập nhật thủ công tại trang quản trị
 
+# 2026-10-29 Nhanh dùng 3.8 Flash có tài khoản
+
+- Đối chiếu model-discovery.json trong code tham khảo và tài liệu Gemini 3.8 Flash chính thức
+- Khám phá riêng route 3.8 Flash và 4 Argon của từng tài khoản, không ghi đè route giữa hai model
+- Nhanh dùng pool tài khoản Gemini, thử tài khoản tiếp theo khi tài khoản trước không khả dụng, không gọi Flash ẩn danh
+- Mở effort thấp, trung bình và cao cho 3.8 Flash, đối chiếu applied_level từ phản hồi upstream trước khi nhận kết quả
+- Giữ passcode riêng của Thông minh và chu kỳ gia hạn cookie 10 phút
+

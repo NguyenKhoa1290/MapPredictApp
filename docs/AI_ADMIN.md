@@ -31,7 +31,8 @@ Thay mật khẩu làm phiên cũ mất hiệu lực
 
 ## Các chế độ chatbot
 
-- Nhanh mặc định dùng gemini-3.6-flash theo tên adapter được cung cấp
+- Nhanh dùng gemini-3.8-flash qua pool tài khoản đã đăng nhập, không dùng phiên ẩn danh
+- Route 3.8 Flash được khám phá riêng từ tài khoản, hỗ trợ effort thấp, trung bình và cao, chỉ trả kết quả khi metadata upstream xác nhận đúng mức đã chọn
 - Thông minh cố định dùng gemini-4-argon, mã định tuyến và header lấy từ tài khoản Google đã xác minh
 - Chỉ có hai lựa chọn Nhanh và Thông minh, không còn lựa chọn Pro riêng
 - Nhanh có thể đổi sang API tương thích OpenAI, nhập URL gồm /v1, model và khóa riêng
