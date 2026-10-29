@@ -73,6 +73,7 @@ x-ai: &ai_worker
     AI_SETTINGS_FILE: /var/lib/map-predict-ai/settings.json
     AI_ADMIN_PASSWORD_FILE: /run/secrets/ai_admin_password
     AI_EMBEDDING_URL: '${AI_EMBEDDING_URL:-http://ai-embedding:11434}'
+    AI_EMBEDDING_ENABLED: '${AI_EMBEDDING_ENABLED:-0}'
     AI_EMBEDDING_MODEL: '${AI_EMBEDDING_MODEL:-qwen3-embedding:0.6b}'
   secrets: [assistant_key, ai_admin_password]
   volumes:
@@ -130,6 +131,7 @@ services:
       gemini-session:
         condition: service_healthy
   ai-embedding:
+    profiles: [embedding-admin]
     image: ollama/ollama@sha256:20d1bbfbabe1c97ba4b16301f08a20d8484bcf77047742a3cb71c613d8e12d0b
     restart: unless-stopped
     environment:

@@ -766,3 +766,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Đã triển khai lên VPS, thử qua API website tạo bảng A1 và áp dụng bản nháp thành công, x1 đến x9 vẫn trống, RAGWire hybrid
 - Lượt kiểm tra đầy đủ mất 124,76 giây, lượt gọi trực tiếp giới hạn 20 giây có timeout, chưa coi là tối ưu độ trễ
 
+## 2026-10-29 Bỏ embedding khỏi triển khai mặc định
+
+- Người dùng yêu cầu chỉ dùng Qdrant cho tra cứu, bỏ model embedding trên VPS
+- Chuyển chatbot và công cụ kiểm tra tài liệu sang đọc payload Qdrant rồi chọn tiêu chí, xếp hạng từ khóa, không gọi embedding hoặc LLM tạo bộ lọc
+- Giữ nguyên dữ liệu và vector, thêm phân trang đầy đủ thay giới hạn 200 đoạn đầu, giới hạn bộ nhớ khi đọc collection lớn
+- Chuyển ai-embedding vào profile tùy chọn embedding-admin, mặc định tắt AI_EMBEDDING_ENABLED và bỏ service khỏi lệnh triển khai CI/CD
+- Đổi tab quản trị thành Kho tri thức, ẩn công cụ vector khi embedding tắt
+

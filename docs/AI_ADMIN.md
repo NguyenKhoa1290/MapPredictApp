@@ -12,9 +12,9 @@ Web chỉ chuyển tiếp yêu cầu, service ai-assistant xác thực mật kh�
 - Model cấu hình Nhanh và xem cấu hình Thông minh
 - Tài khoản Thông minh quản lý passcode, cookie tài khoản và quota
 - Phiên Gemini xem trạng thái và gia hạn các phiên đã lưu
-- Embedding cấu hình Ollama, kiểm tra vector và truy xuất tài liệu
+- Kho tri thức kiểm tra tìm tài liệu trực tiếp trong Qdrant
 
-Đổi tab giữ nguyên nội dung đang nhập, lưu Model và Embedding độc lập
+Đổi tab giữ nguyên nội dung đang nhập
 Tab hỗ trợ phím trái, phải, Home và End, màn hình nhỏ cuộn ngang thanh tab
 
 ## Mật khẩu
@@ -98,25 +98,17 @@ Google vẫn có thể thu hồi phiên hoặc yêu cầu đăng nhập lại, k
 Hồ sơ cookie tham khảo trên máy đã nhập thử nhưng hiện Google yêu cầu đăng nhập lại, cần nhập cookie mới
 Cookie chưa được xác thực không được gắn vào request chatbot
 
-## Embedding và truy xuất RAGWire
+## Truy xuất trực tiếp Qdrant
 
-Chatbot dùng embedding để truy xuất ngữ nghĩa và bộ lọc metadata với RAGWire
-Địa chỉ Ollama và model đã lưu được dùng chung cho chatbot và công cụ kiểm tra
-Các nút cấu hình, kiểm tra embedding và truy xuất trong quản trị vẫn yêu cầu phiên đăng nhập
+Chatbot tìm theo mã tiêu chí, tên tiêu chí và xếp hạng từ khóa trên payload Qdrant
+Không gọi embedding hoặc LLM để tạo bộ lọc, không dùng tìm kiếm vector ngữ nghĩa trong triển khai mặc định
+Giữ nguyên collection, vector và nội dung đã có, không nhập lại hay sửa dữ liệu
+Đọc qua các trang thay vì chỉ xét 200 đoạn đầu, giới hạn an toàn 10000 point và 20 triệu ký tự nội dung
+Kho tri thức trong quản trị có nút tìm tài liệu, chỉ đọc và vẫn yêu cầu đăng nhập
 
-```bash
-docker compose exec ai-embedding ollama pull qwen3-embedding:0.6b
-```
+Service ai-embedding thuộc profile tùy chọn embedding-admin, không tự chạy khi khởi động hoặc CI/CD
+AI_EMBEDDING_ENABLED mặc định bằng 0, công cụ vector bị tắt và không gọi Ollama
+Volume embedding_models được giữ để tránh mất model cũ
 
-Model được lưu trong volume embedding_models, không nạp sẵn vào RAM khi khởi động
-Chỉ chạy một yêu cầu công cụ mỗi lần, gửi keep_alive bằng 0 sau yêu cầu embedding
-Công cụ kiểm tra vector chỉ trả số chiều, công cụ tìm tài liệu chỉ đọc Qdrant
-Không tự ghi lại vector, thay collection hay đổi model nhúng của dữ liệu cũ
-Nên giữ qwen3-embedding:0.6b cùng dữ liệu 1024 chiều hiện tại
-Cấu hình URL có thể trỏ tới Ollama máy khác, không cần sửa code
-
-Service embedding không mở cổng ra host và không mount Docker socket
-Giới hạn RAM 1 GB và RAM cộng swap 2 GB chỉ là giới hạn container, không tự tạo swap trên host
-Chưa xác nhận toàn bộ cụm phù hợp VPS 1 GB RAM, cần đo tải khi có VPS
-
-Nguồn kỹ thuật [Ollama embed](https://docs.ollama.com/api/embed), [Docker memory và swap](https://docs.docker.com/engine/containers/resource_constraints/)
+Nếu cần công cụ vector của quản trị về sau, bật AI_EMBEDDING_ENABLED=1 và profile embedding-admin trong .env rồi khởi động lại service
+Việc bật công cụ vector không đổi chatbot khỏi chế độ tìm trực tiếp Qdrant

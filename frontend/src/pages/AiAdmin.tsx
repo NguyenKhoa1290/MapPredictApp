@@ -5,14 +5,14 @@ type Model = { label: string; provider: 'gemini' | 'compatible'; model: string; 
 type Settings = { models: Record<'fast' | 'smart', Model>; embedding: { url: string; model: string } };
 type Pool = { accounts: { id: string; label: string; email?: string | null; checked_at?: number; rotated_at?: number; refresh_attempt_at?: number; status: string; usage?: { current_5h?: { used_percent: number | null; reset_at?: string }; weekly?: { used_percent: number | null; reset_at?: string } } }[]; unavailable?: boolean;
   maintenance?: { poll_interval_seconds: number; rotate_interval_seconds: number; repair_cooldown_seconds: number } };
-type State = { csrf: string; settings: Settings; gemini: { state: string; checked_at?: number; rotated_at?: number }; account_pool?: Pool; pro_access?: { configured: boolean }; services: string[] };
+type State = { csrf: string; settings: Settings; gemini: { state: string; checked_at?: number; rotated_at?: number }; account_pool?: Pool; pro_access?: { configured: boolean }; services: string[]; embedding_enabled?: boolean };
 const accountLabels: Record<string, string> = { ready: 'Còn quota', exhausted: 'Hết quota', not_checked: 'Chưa kiểm tra', needs_login: 'Cần đăng nhập lại', needs_attention: 'Cần kiểm tra cookie và quyền Argon', unavailable: 'Chưa xác minh được quota', model_unavailable: 'Chưa xác minh quyền dùng Argon' };
 const date = (value?: number) => value ? new Date(value * 1000).toLocaleString('vi-VN') : 'Chưa có';
 const adminTabs = [
   { id: 'models', label: 'Model' },
   { id: 'accounts', label: 'Tài khoản Thông minh' },
   { id: 'session', label: 'Phiên Gemini' },
-  { id: 'embedding', label: 'Embedding' },
+  { id: 'embedding', label: 'Kho tri thức' },
 ] as const;
 type AdminTab = typeof adminTabs[number]['id'];
 
@@ -116,7 +116,7 @@ export function AiAdmin() {
   }
   if (loading) return <section className="container inner-page" role="status">Đang kết nối trang quản trị</section>;
   return <section className="container inner-page ai-admin" aria-busy={busy}>
-    <div className="admin-heading"><div><p className="eyebrow">CẤU HÌNH HỆ THỐNG</p><h1>Quản trị AI</h1><p>Quản lý model, phiên Gemini và công cụ embedding</p></div>
+    <div className="admin-heading"><div><p className="eyebrow">CẤU HÌNH HỆ THỐNG</p><h1>Quản trị AI</h1><p>Quản lý model, phiên Gemini và tra cứu tài liệu trong Qdrant</p></div>
       {state ? <button className="button" disabled={busy} onClick={() => action(async () => { await api('logout', {}); clearSession(); })}>Đăng xuất</button> : null}</div>
     {notice ? <p className="admin-notice" role="alert">{notice}</p> : null}
     {!state || !settings ? <form className="admin-login admin-card" onSubmit={event => { event.preventDefault(); action(async () => {
@@ -217,17 +217,18 @@ export function AiAdmin() {
       </section>
       </div>
       <div role="tabpanel" id="admin-panel-embedding" aria-labelledby="admin-tab-embedding" hidden={tab !== 'embedding'}>
-      <form onSubmit={event => { event.preventDefault(); action(() => saveSettings('embedding')); }}>
-        <section className="admin-card"><h2>Embedding và truy xuất tài liệu</h2><p>Chatbot dùng RAGWire để tìm kiếm ngữ nghĩa và tự chọn bộ lọc metadata từ Qdrant</p>
+      <p className="admin-help">Chatbot tra cứu trực tiếp nội dung Qdrant theo mã tiêu chí, tên tiêu chí và từ khóa</p>
+      {state.embedding_enabled && <form onSubmit={event => { event.preventDefault(); action(() => saveSettings('embedding')); }}>
+        <section className="admin-card"><h2>Cấu hình embedding tùy chọn</h2>
           <div className="admin-models"><label>Địa chỉ Ollama<input type="url" required value={settings.embedding.url} disabled={busy} onChange={event => setSettings({ ...settings, embedding: { ...settings.embedding, url: event.target.value } })} /></label>
           <label>Model embedding<input required value={settings.embedding.model} disabled={busy} onChange={event => setSettings({ ...settings, embedding: { ...settings.embedding, model: event.target.value } })} /></label></div>
-          <p className="admin-help">Mô hình được nạp khi truy xuất tài liệu hoặc chạy công cụ kiểm tra, gửi yêu cầu giải phóng sau mỗi lượt</p>
+          <p className="admin-help">Chỉ dùng cho công cụ kiểm tra vector của quản trị</p>
           <button className="button primary" disabled={busy}>Lưu cấu hình embedding</button>
         </section>
-      </form>
-      <section className="admin-card"><h2>Công cụ embedding</h2><label>Nội dung kiểm tra<textarea rows={3} maxLength={2000} value={text} onChange={event => setText(event.target.value)} disabled={busy} /></label>
-        <div className="admin-actions"><button className="button" disabled={busy || !text.trim()} onClick={() => action(() => tool('embedding-test', { text }))}>Kiểm tra vector</button>
-          <button className="button" disabled={busy || !text.trim()} onClick={() => action(() => tool('retrieval-test', { text }))}>Tìm tài liệu bằng embedding</button></div>
+      </form>}
+      <section className="admin-card"><h2>Công cụ tra cứu</h2><label>Nội dung kiểm tra<textarea rows={3} maxLength={2000} value={text} onChange={event => setText(event.target.value)} disabled={busy} /></label>
+        <div className="admin-actions">{state.embedding_enabled && <button className="button" disabled={busy || !text.trim()} onClick={() => action(() => tool('embedding-test', { text }))}>Kiểm tra vector</button>}
+          <button className="button" disabled={busy || !text.trim()} onClick={() => action(() => tool('retrieval-test', { text }))}>Tìm tài liệu trong Qdrant</button></div>
         <p className="admin-help">Dùng cấu hình đã lưu, chỉ đọc Qdrant, không ghi lại vector hay thay đổi dữ liệu</p>
       </section>
       </div>

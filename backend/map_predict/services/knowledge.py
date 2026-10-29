@@ -139,6 +139,29 @@ def select_sources(points, query):
     return list(grouped.values())
 
 
+def keyword_pool(url, kwargs):
+    """Read payloads only, across pages, without truncating the criteria at 200."""
+    pool, offset, seen, characters = [], None, set(), 0
+    for _ in range(200):
+        body = {'limit': 50, 'with_payload': True, 'with_vector': False}
+        if offset is not None:
+            body['offset'] = offset
+        result = json_request(url + '/points/scroll', body, **kwargs)['result']
+        page = result['points']
+        characters += sum(len(str((point.get('payload') or {}).get('page_content', ''))) for point in page)
+        pool.extend(page)
+        if len(pool) > 10000 or characters > 20000000:
+            raise ValueError('Collection exceeds direct retrieval capacity')
+        offset = result.get('next_page_offset')
+        if offset is None:
+            return pool
+        marker = json.dumps(offset, sort_keys=True)
+        if marker in seen:
+            raise ValueError('Qdrant scroll repeated an offset')
+        seen.add(marker)
+    raise ValueError('Collection exceeds direct retrieval capacity')
+
+
 def retrieve(query, config):
     base = config.get('ASSISTANT_QDRANT_URL', '').rstrip('/')
     if not base:
@@ -156,14 +179,14 @@ def retrieve(query, config):
     kwargs = {'key': config.get('ASSISTANT_QDRANT_KEY', '')}
     try:
         info = json_request(url, **kwargs)['result']
-        vectors = info['config']['params']['vectors']
+        vectors = info.get('config', {}).get('params', {}).get('vectors') or {}
         vector_name = config.get('ASSISTANT_VECTOR_NAME', '')
-        dimensions = vectors.get('size') if not vector_name else vectors[vector_name]['size']
+        dimensions = vectors.get('size') if not vector_name else vectors.get(vector_name, {}).get('size')
         mode, points, note, scanned = 'dense', [], '', None
         embedding_url = config.get('ASSISTANT_EMBEDDING_URL', '').rstrip('/')
         try:
             if config.get('ASSISTANT_RETRIEVAL_MODE') == 'keyword':
-                raise ValueError('Embedding is reserved for administration')
+                raise ValueError('Direct Qdrant retrieval selected')
             if not embedding_url:
                 raise ValueError('Embedding service is not configured')
             vector = json_request(embedding_url + '/api/embed', {
@@ -182,20 +205,9 @@ def retrieve(query, config):
             if config.get('ASSISTANT_RETRIEVAL_MODE') == 'keyword':
                 mode = 'keyword'
                 note = 'Tìm tài liệu theo từ khóa, chatbot không sử dụng embedding'
-            pool, offset = [], None
-            for _ in range(4):
-                body = {'limit': 50, 'with_payload': True, 'with_vector': False}
-                if offset is not None:
-                    body['offset'] = offset
-                result = json_request(url + '/points/scroll', body, **kwargs)['result']
-                pool.extend(result['points'])
-                offset = result.get('next_page_offset')
-                if offset is None:
-                    break
+            pool = keyword_pool(url, kwargs)
             points = select_sources(pool, query)
             scanned = len(pool)
-            if offset is not None:
-                note += ', chỉ xét 200 đoạn đầu do giới hạn dự phòng'
         if mode == 'dense':
             points = select_sources(points, query)
         records, used = [], 0

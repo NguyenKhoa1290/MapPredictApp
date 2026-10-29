@@ -2,6 +2,14 @@
 
 Checkout tại `/opt/map-predict`, chạy bằng tài khoản `admin` có quyền Docker
 
+## Cấu hình hiện tại không chạy embedding
+
+Theo yêu cầu ngày 29/10/2026, chatbot tìm trực tiếp payload Qdrant theo mã tiêu chí, tên và từ khóa
+Không gọi embedding hoặc LLM tách bộ lọc, không thay collection hay vector đã lưu
+Cụm mặc định gồm sáu service, ai-embedding chuyển vào profile tùy chọn embedding-admin và không được tác vụ CI/CD tự khởi động
+AI_EMBEDDING_ENABLED=0, tab Kho tri thức chỉ có công cụ tìm Qdrant
+Các mục đo bộ nhớ và chạy model embedding phía dưới là ghi chép cấu hình trước thay đổi này
+
 ## Dữ liệu riêng
 
 - `.env` và `.secrets` được chuyển qua SSH, không đưa lên GitHub

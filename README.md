@@ -2,6 +2,7 @@
 
 Trợ lý GIS dạng cửa sổ nổi trong Đánh giá quỹ đất hỗ trợ đọc/sửa DXF và đề xuất điểm có căn cứ, xem trước rồi áp dụng, xem [hướng dẫn chatbot](docs/CV26_27_CHATBOT.md)
 AI đã tách thành service riêng, kết nối Qdrant hiện có và có nút xuất DXF từ bản xem trước, xem [cấu hình RAG và service AI](docs/AI_SERVICE_QDRANT.md)
+Chatbot hiện tìm trực tiếp nội dung Qdrant, không chạy embedding, cụm Docker mặc định gồm sáu service
 
 Đã có Docker Compose một bản chạy cho mỗi service cùng Cloudflare Tunnel tại [danhgiaquyhoach.top](https://danhgiaquyhoach.top)
 Cổng local vẫn là 8765, cập nhật bằng `tools/deploy_docker.ps1`, xem [hướng dẫn Docker](docs/DOCKER_DEPLOYMENT.md)

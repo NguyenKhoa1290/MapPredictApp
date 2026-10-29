@@ -6,19 +6,18 @@ Khi cập nhật có thể gián đoạn ngắn, chưa yêu cầu cơ chế prod
 
 ## Cụm Docker
 
-Cùng Compose project `map-predict` gồm bảy service
+Cùng Compose project `map-predict` gồm sáu service chạy mặc định
 
 - `web-portal` là backend Flask và frontend tĩnh
 - `ai-assistant` xử lý chat, quản trị và chỉnh DXF
 - `gemini-session` là adapter model và duy trì phiên Google
-- `ai-embedding` là Ollama dành cho công cụ quản trị
 - `qdrant` giữ dữ liệu trong volume `map-predict_qdrant_data`
 - `web-gateway` là Nginx, giữ cổng local 127.0.0.1:8765
 - `cloudflare-tunnel` giữ kết nối tên miền hiện có
 
 Qdrant dùng đúng image 1.19.1 đã có trên máy, cổng quản trị chỉ bind 127.0.0.1:6333
 AI truy cập Qdrant tại http://qdrant:6333, không khởi động container ngoài project
-Ollama embedding chạy trong ai-embedding, có thể đổi URL trong quản trị để dùng máy khác
+Ollama ai-embedding đã tắt mặc định, chỉ còn ở profile embedding-admin nếu bật lại công cụ vector cho quản trị
 Chatbot chỉ tìm từ khóa trong Qdrant, không gọi embedding theo lựa chọn của người dùng
 Xem [Quản trị AI](AI_ADMIN.md) để thiết lập mật khẩu, cookie và model
 

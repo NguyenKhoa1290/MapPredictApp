@@ -51,7 +51,9 @@ class AiAdminTests(unittest.TestCase):
         with patch('backend.map_predict.api.v1.ai_admin.gemini_request', return_value={'state': 'ready'}):
             state = self.client.get('/api/v1/ai-admin/state', headers=self.headers)
         self.assertEqual(state.status_code, 200)
-        self.assertEqual(state.json['data']['chatbot_retrieval'], 'ragwire_hybrid')
+        self.assertEqual(state.json['data']['chatbot_retrieval'], 'qdrant_keyword')
+        self.assertFalse(state.json['data']['embedding_enabled'])
+        self.assertNotIn('ai-embedding', state.json['data']['services'])
         self.assertNotIn('api_key', state.json['data']['settings']['models']['fast'])
 
     def test_csrf_logout_revocation_and_password_change(self):
@@ -105,18 +107,27 @@ class AiAdminTests(unittest.TestCase):
     def test_embedding_tools_require_session_and_unload_after_request(self):
         self.assertEqual(self.client.post('/api/v1/ai-admin/tools/embedding-test', json={'text': 'test'}, headers=self.headers).status_code, 401)
         self.login()
+        self.app.config['ASSISTANT_EMBEDDING_ENABLED'] = True
         with patch('backend.map_predict.api.v1.ai_admin.json_request', return_value={'embeddings': [[.1] * 1024]}) as call:
             response = self.post('tools/embedding-test', {'text': 'test'})
         self.assertEqual(response.json['data']['dimensions'], 1024)
         self.assertEqual(call.call_args.args[1]['keep_alive'], '0s')
         self.assertNotIn('embeddings', response.json['data'])
 
-    def test_chatbot_modes_are_allowlisted_and_use_saved_embedding_for_ragwire(self):
+    def test_disabled_embedding_never_calls_ollama(self):
+        self.login()
+        with patch('backend.map_predict.api.v1.ai_admin.json_request') as call:
+            response = self.post('tools/embedding-test', {'text': 'test'})
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json['error']['code'], 'EMBEDDING_DISABLED')
+        call.assert_not_called()
+
+    def test_chatbot_modes_are_allowlisted_and_use_direct_qdrant(self):
         from backend.map_predict.services.prediction import PredictionError
         with self.assertRaises(PredictionError):
             ai_settings.model_config(self.app.config, 'https://untrusted.test')
         config = ai_settings.model_config(self.app.config, 'smart')
-        self.assertEqual(config['ASSISTANT_RETRIEVAL_MODE'], 'ragwire')
+        self.assertEqual(config['ASSISTANT_RETRIEVAL_MODE'], 'keyword')
         self.assertEqual(config['ASSISTANT_EMBEDDING_MODEL'], ai_settings.load(self.app.config)['embedding']['model'])
         self.assertEqual(config['ASSISTANT_EMBEDDING_URL'], ai_settings.load(self.app.config)['embedding']['url'])
 

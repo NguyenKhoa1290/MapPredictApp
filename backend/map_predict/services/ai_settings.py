@@ -190,7 +190,7 @@ def model_config(config, mode='fast'):
     row = settings['models'][mode]
     result = dict(config)
     result.update(ASSISTANT_MODEL=row['model'], ASSISTANT_PROVIDER=row['provider'],
-                  ASSISTANT_API_KEY=row.get('api_key', ''), ASSISTANT_RETRIEVAL_MODE='ragwire',
+                  ASSISTANT_API_KEY=row.get('api_key', ''), ASSISTANT_RETRIEVAL_MODE='keyword',
                   ASSISTANT_EMBEDDING_URL=settings['embedding']['url'],
                   ASSISTANT_EMBEDDING_MODEL=settings['embedding']['model'],
                   ASSISTANT_SUPPORTED_EFFORTS=supported_efforts(row))

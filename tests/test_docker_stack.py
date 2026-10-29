@@ -69,6 +69,7 @@ class PortableDeploymentTests(unittest.TestCase):
         self.assertNotIn('active', state)
         self.assertTrue(any(call[:4] == ('exec', '-T', 'web-portal', 'python') for call in events))
         self.assertFalse(any(call[0] in ('rm', 'stop', 'down') for call in events))
+        self.assertFalse(any('ai-embedding' in call for call in events))
 
     def test_start_uses_one_compose_project_with_dependencies(self):
         with patch.object(docker_stack, 'compose', return_value='') as calls:

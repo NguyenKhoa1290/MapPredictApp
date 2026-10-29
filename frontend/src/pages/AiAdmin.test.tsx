@@ -8,7 +8,7 @@ it('requires service authentication and never stores the password in browser sto
   vi.stubGlobal('fetch', fetch);
   render(<AiAdmin />);
   await screen.findByRole('heading', { name: 'Đăng nhập quản trị' });
-  expect(screen.queryByText('Công cụ embedding')).toBeNull();
+  expect(screen.queryByText('Công cụ tra cứu')).toBeNull();
   fetch.mockResolvedValueOnce({ status: 401, ok: false, json: async () => ({ error: { message: 'Mật khẩu không đúng' } }) });
   fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'wrong-password' } });
   fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
@@ -24,8 +24,10 @@ it('shows authenticated settings, then logs out through the service with CSRF', 
   vi.stubGlobal('fetch', fetch);
   render(<AiAdmin />);
   await screen.findByRole('tab', { name: 'Model' });
-  fireEvent.click(screen.getByRole('tab', { name: 'Embedding' }));
-  expect(screen.getByRole('heading', { name: 'Công cụ embedding' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('tab', { name: 'Kho tri thức' }));
+  expect(screen.getByRole('heading', { name: 'Công cụ tra cứu' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Kiểm tra vector' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Tìm tài liệu trong Qdrant' })).toBeTruthy();
   fetch.mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data: { logged_out: true } }) });
   fireEvent.click(screen.getByRole('button', { name: 'Đăng xuất' }));
   await screen.findByRole('heading', { name: 'Đăng nhập quản trị' });
@@ -59,7 +61,7 @@ it('sets a separate Pro passcode only through the authenticated service', async 
 it('navigates tabs by keyboard, preserves drafts and saves only the active configuration group', async () => {
   const model = { label: 'Nhanh', model: 'test-fast', provider: 'gemini', url: '', has_api_key: false };
   const data = { csrf: 'admin-csrf', settings: { models: { fast: model, smart: { ...model, label: 'Thông minh', model: 'gemini-4-argon' } },
-    embedding: { url: 'http://ai-embedding:11434', model: 'saved-embedding' } }, gemini: { state: 'ready' }, services: ['ai-assistant'] };
+    embedding: { url: 'http://ai-embedding:11434', model: 'saved-embedding' } }, gemini: { state: 'ready' }, services: ['ai-assistant'], embedding_enabled: true };
   const fetch = vi.fn().mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data }) });
   vi.stubGlobal('fetch', fetch);
   render(<AiAdmin />);
@@ -70,7 +72,7 @@ it('navigates tabs by keyboard, preserves drafts and saves only the active confi
   expect(screen.getByRole('tab', { name: 'Tài khoản Thông minh' }).getAttribute('aria-selected')).toBe('true');
   fireEvent.keyDown(screen.getByRole('tab', { name: 'Tài khoản Thông minh' }), { key: 'Home' });
   fireEvent.change(screen.getAllByLabelText('Tên model')[0], { target: { value: 'draft-fast' } });
-  fireEvent.click(screen.getByRole('tab', { name: 'Embedding' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'Kho tri thức' }));
   fireEvent.change(screen.getByLabelText('Model embedding'), { target: { value: 'draft-embedding' } });
   fireEvent.click(models);
   expect((screen.getAllByLabelText('Tên model')[0] as HTMLInputElement).value).toBe('draft-fast');
@@ -82,7 +84,7 @@ it('navigates tabs by keyboard, preserves drafts and saves only the active confi
   const body = JSON.parse(fetch.mock.calls.at(-1)![1].body);
   expect(body.models.fast.model).toBe('draft-fast');
   expect(body.embedding.model).toBe('saved-embedding');
-  fireEvent.click(screen.getByRole('tab', { name: 'Embedding' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'Kho tri thức' }));
   expect((screen.getByLabelText('Model embedding') as HTMLInputElement).value).toBe('draft-embedding');
 });
 

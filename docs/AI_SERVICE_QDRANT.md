@@ -27,13 +27,13 @@
 Trang `/portal/admin/ai` xác thực mật khẩu tại service AI, tách khỏi khóa nội bộ
 Chatbot chỉ có Nhanh và Thông minh, Thông minh dùng 4 Argon với pool tài khoản cùng passcode do quản trị thiết lập
 Thiếu cookie hoặc cookie hết hạn phải báo lỗi, không chuyển Thông minh sang Nhanh
-Chatbot dùng RAGWire 1.6.1, embedding và bộ lọc metadata tự động theo dự án Thuchanh
+Chatbot tra cứu trực tiếp payload Qdrant, nhận diện tiêu chí và xếp hạng từ khóa, không gọi embedding hoặc LLM tạo bộ lọc
 Truy vấn x1 đến x9, số thứ tự tiếng Việt và tên tiêu chí được ánh xạ theo nội dung thực của đoạn
 Chunk được tách theo tiêu đề tiêu chí trước khi chọn nguồn, không dùng nhãn metadata của cả chunk để lọc mọi nội dung bên trong
 Giữ phần tiêu đề thang điểm đi kèm, gộp các phân nhóm thuộc cùng point và giữ nguyên Qdrant ID cùng source_ref
 Lọc đúng phiên bản sửa ngày 1509 trước khi xếp hạng, không để bản cũ chiếm kết quả
-Chatbot dùng hybrid retrieval, công cụ quản trị vẫn có kiểm tra embedding và dense retrieval riêng
-Ollama chạy trong service ai-embedding, model được yêu cầu giải phóng sau mỗi lượt
+Công cụ quản trị dùng cùng phương thức tìm Qdrant, embedding bị tắt mặc định
+Service ai-embedding chỉ còn trong profile tùy chọn embedding-admin, không chạy cùng cụm mặc định
 Cookie Google được kiểm tra định kỳ trong gemini-session, có thể nhập lại qua quản trị
 Xem [Quản trị AI](AI_ADMIN.md) cho cấu hình và giới hạn thực tế
 

@@ -137,7 +137,7 @@ def deploy(pull: bool = False) -> None:
         raise RuntimeError('Cannot identify deployed revision')
     # Build before restarting, keep a single container per service.
     compose('build', 'web-portal', 'ai-assistant', 'gemini-session')
-    compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'qdrant', 'gemini-session', 'ai-embedding')
+    compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'qdrant', 'gemini-session')
     compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', 'ai-assistant', 'web-portal')
     compose('exec', '-T', 'web-portal', 'python', '-', input=PROBE)
     (ROOT / 'deploy/local/nginx/active.conf').write_text(configuration(), encoding='utf-8')

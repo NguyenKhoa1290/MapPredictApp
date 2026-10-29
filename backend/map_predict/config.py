@@ -31,6 +31,7 @@ class Config:
     ASSISTANT_QDRANT_KEY = os.environ.get('AI_QDRANT_API_KEY', '')
     ASSISTANT_VECTOR_NAME = os.environ.get('AI_QDRANT_VECTOR_NAME', '')
     ASSISTANT_EMBEDDING_URL = os.environ.get('AI_EMBEDDING_URL', '')
+    ASSISTANT_EMBEDDING_ENABLED = os.environ.get('AI_EMBEDDING_ENABLED', '0') == '1'
     ASSISTANT_EMBEDDING_MODEL = os.environ.get('AI_EMBEDDING_MODEL', 'qwen3-embedding:0.6b')
     AI_SETTINGS_FILE = os.environ.get('AI_SETTINGS_FILE')
     AI_ADMIN_PASSWORD_FILE = os.environ.get('AI_ADMIN_PASSWORD_FILE')

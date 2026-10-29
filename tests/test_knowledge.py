@@ -61,6 +61,25 @@ class KnowledgeTests(unittest.TestCase):
             self.assertEqual(set(parsed), {'L11'})
             self.assertEqual(parsed['L11']['column'], 'x6')
 
+    def test_direct_lookup_reaches_criteria_after_the_first_200_points_without_embedding(self):
+        pages = [{'result': {'points': [{'id': str(i), 'payload': {}} for i in range(n, n + 50)],
+                             'next_page_offset': str(n + 50)}} for n in range(0, 200, 50)]
+        pages.append({'result': {'points': [self.mixed_point()], 'next_page_offset': None}})
+        info = {'result': {'points_count': 201}}
+        with patch.object(knowledge, 'json_request', side_effect=[info, *pages]) as call:
+            result = knowledge.retrieve('x1', {**self.config, 'ASSISTANT_RETRIEVAL_MODE': 'keyword'})
+        self.assertEqual(result['mode'], 'keyword')
+        self.assertEqual(result['scanned_points'], 201)
+        self.assertEqual(result['records'][0]['id'], self.mixed_point()['id'])
+        self.assertTrue(all('/api/embed' not in item.args[0] for item in call.call_args_list))
+        self.assertTrue(all(item.args[1]['with_vector'] is False for item in call.call_args_list[1:]))
+
+    def test_repeated_scroll_offset_fails_instead_of_returning_incomplete_criteria(self):
+        page = {'result': {'points': [], 'next_page_offset': 'repeat'}}
+        with patch.object(knowledge, 'json_request', side_effect=[{'result': {}}, page, page]):
+            with self.assertRaises(PredictionError):
+                knowledge.retrieve('x1', {**self.config, 'ASSISTANT_RETRIEVAL_MODE': 'keyword'})
+
     def test_comparison_queries_keep_requested_criteria_and_exclude_other_thresholds(self):
         result = self.keyword('So sánh x1 và x6', [self.mixed_point()])
         parsed = assistant.rules(result['records'][0]['content'])

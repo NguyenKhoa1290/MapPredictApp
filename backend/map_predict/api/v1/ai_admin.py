@@ -149,8 +149,10 @@ def state():
     except Exception:
         accounts = {'accounts': [], 'unavailable': True}
     return jsonify(data={'csrf': g.admin_session['csrf'], 'settings': ai_settings.public(ai_settings.load(current_app.config)),
-                         'gemini': session, 'account_pool': accounts, 'pro_access': {'configured': ai_settings.has_passcode(current_app.config)}, 'chatbot_retrieval': 'ragwire_hybrid',
-                         'services': ['web-portal', 'ai-assistant', 'gemini-session', 'ai-embedding', 'qdrant', 'web-gateway', 'cloudflare-tunnel']})
+                         'gemini': session, 'account_pool': accounts, 'pro_access': {'configured': ai_settings.has_passcode(current_app.config)}, 'chatbot_retrieval': 'qdrant_keyword',
+                         'embedding_enabled': current_app.config.get('ASSISTANT_EMBEDDING_ENABLED', False),
+                         'services': ['web-portal', 'ai-assistant', 'gemini-session', 'qdrant', 'web-gateway', 'cloudflare-tunnel']
+                         + (['ai-embedding'] if current_app.config.get('ASSISTANT_EMBEDDING_ENABLED') else [])})
 
 
 @admin_api.post('/settings')
@@ -191,6 +193,8 @@ def tools(action):
                 raise PredictionError('INVALID_INPUT', 'Nhập nội dung từ 1 đến 2000 ký tự', 400)
             embedding = ai_settings.load(current_app.config)['embedding']
             if action == 'embedding-test':
+                if not current_app.config.get('ASSISTANT_EMBEDDING_ENABLED'):
+                    raise PredictionError('EMBEDDING_DISABLED', 'Embedding đã tắt trong triển khai này, chatbot tra cứu trực tiếp Qdrant', 503)
                 reply = json_request(embedding['url'] + '/api/embed', {'model': embedding['model'],
                                      'input': text, 'keep_alive': '0s', 'options': {'num_ctx': 2048}}, timeout=120)
                 vector = reply['embeddings'][0]
@@ -198,8 +202,7 @@ def tools(action):
                     raise ValueError('Invalid embedding')
                 result = {'dimensions': len(vector), 'model': embedding['model'], 'unload_requested': True}
             else:
-                config = dict(current_app.config, ASSISTANT_EMBEDDING_URL=embedding['url'],
-                              ASSISTANT_EMBEDDING_MODEL=embedding['model'], ASSISTANT_RETRIEVAL_MODE='dense')
+                config = dict(current_app.config, ASSISTANT_RETRIEVAL_MODE='keyword')
                 result = retrieve(text, config)
         return jsonify(data=result)
     except PredictionError:
