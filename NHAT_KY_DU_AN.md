@@ -701,3 +701,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Không bật embedding cho chatbot, không ghi, chia lại chunk hoặc tái tạo Qdrant
 - Kiểm tra trên collection đang chạy cho cả x1 đến x9 đều lấy đúng tiêu chí, x1 giữ đủ bốn phân nhóm
 - 155 kiểm thử Python đã đạt
+# 2026-10-29 Kiểm tra nút xác nhận bản nháp chatbot
+
+- Thử trên website bằng phiên trình duyệt riêng, tạo CSV từ chat và xác nhận ngay thành công, chưa tái hiện được trạng thái khóa trong ảnh của người dùng
+- Đồng bộ hai nút duyệt bản nháp với trạng thái bận của workspace, hiển thị rõ bước đang dựng và lưu trên trình duyệt
+- Giao dịch IndexedDB bị treo quá 30 giây sẽ được hủy và báo lỗi, không giữ bước tự lưu chờ vô hạn
+- 26 kiểm thử chatbot đạt, bổ sung kiểm thử giao dịch treo và mở lại nút khi workspace sẵn sàng
+- Bổ sung kiểm thử trình duyệt cho luồng tạo bảng từ chat rồi xác nhận ngay, không cần reload
+

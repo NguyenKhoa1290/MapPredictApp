@@ -5,9 +5,28 @@ const { JSDOM } = require('../frontend/node_modules/jsdom');
 const script = fs.readFileSync(require('node:path').join(__dirname, '../wwwroot/assistant.js'), 'utf8');
 const tick = () => new Promise(resolve => setTimeout(resolve, 5));
 const vm = require('node:vm');
-const historyContext = vm.createContext({ Blob, structuredClone });
+const historyContext = vm.createContext({ Blob, structuredClone, setTimeout, clearTimeout });
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../wwwroot/workspace_store.js'), 'utf8'), historyContext);
 const WorkspaceHistory = historyContext.WorkspaceHistory;
+
+test('stalled browser save aborts instead of locking draft review indefinitely', async () => {
+    let expire, cleared = false, aborted = false;
+    const context = vm.createContext({ Blob, structuredClone,
+        setTimeout(callback, ms) { assert.equal(ms, 30000); expire = callback; return 1; },
+        clearTimeout() { cleared = true; } });
+    vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../wwwroot/workspace_store.js'), 'utf8'), context);
+    const store = new context.WorkspaceStore();
+    const tx = { objectStore: () => ({ get: () => ({}) }),
+        abort() { aborted = true; this.onabort(); } };
+    store.db = { transaction: () => tx };
+    const saved = store.write({}, new Map());
+    const rejected = assert.rejects(saved, /quá thời gian/);
+    expire();
+    await rejected;
+    assert.equal(aborted, true);
+    assert.equal(cleared, true);
+    assert.equal(store.revision, 0);
+});
 
 test('joined parcel clicks show a safe name popup without zoom while base layer clicks still zoom', () => {
     const path = require('node:path');
@@ -395,6 +414,23 @@ test('confirmation accepts the already rendered draft without generating it twic
         assert.equal(f.get('preview').hidden, true);
         assert.equal(f.window.assistantWorkspace.hasDraft(), false);
         assert.equal(f.get('exports'), null);
+    } finally { f.close(); }
+});
+
+test('draft review buttons follow workspace busy state and unlock when ready', async () => {
+    const f = fixture();
+    try {
+        await f.submit();
+        let busy = true;
+        f.window.assistantWorkspace.historyState = () => ({ busy });
+        f.window.dispatchEvent(new f.window.Event('assistant-workspace-change'));
+        assert.equal(f.get('preview').querySelector('button').disabled, true);
+        busy = false;
+        f.window.dispatchEvent(new f.window.Event('assistant-workspace-change'));
+        assert.equal(f.get('preview').querySelector('button').disabled, false);
+        f.get('preview').querySelector('button').click();
+        await tick();
+        assert.equal(f.window.assistantWorkspace.hasDraft(), false);
     } finally { f.close(); }
 });
 

@@ -142,7 +142,11 @@
     }
     function clearPreview() { pending = null; preview.hidden = true; preview.replaceChildren(); delete preview.dataset.restored; }
     function restoreDraftReview() {
-        if (pending) return;
+        if (pending) {
+            const locked = !pending.staged || !!window.assistantWorkspace.historyState?.().busy;
+            for (const button of preview.querySelectorAll('button')) button.disabled = locked;
+            return;
+        }
         if (!window.assistantWorkspace.hasDraft()) {
             if (preview.dataset.restored) clearPreview();
             return;
@@ -272,9 +276,10 @@
             if (plan.files.scope === 'map' && result.rows || plan.files.scope === 'prediction' && (dxfs.length || result.dxf)) {
                 throw new Error('Kết quả AI vượt phạm vi tab đang mở');
             }
+            notice.textContent = 'Đang dựng và lưu bản nháp trên trình duyệt, chờ hoàn tất để xác nhận';
             await window.assistantWorkspace.stage({ dxfs, rows: result.rows, columns: result.columns, csvId: plan.files.csvId });
             plan.staged = true;
-            for (const control of preview.querySelectorAll('button')) control.disabled = false;
+            restoreDraftReview();
             notice.textContent = 'Bản sửa nháp đã hiển thị, hãy kiểm tra rồi Xác nhận hoặc Bỏ bản nháp';
         } catch (error) { clearPreview(); notice.textContent = error.message; throw error; }
         finally { setBusy(false); }

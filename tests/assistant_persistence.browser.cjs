@@ -102,5 +102,20 @@ const textOf = (page, id) => page.evaluate(async id => $(id).files[0]?.text(), i
         assert.equal(await page.evaluate(() => $('result-file').files.length), 0);
         assert.deepEqual(errors, []);
         console.log('PASS CSV removal survives reload, no browser JavaScript errors');
+        await page.click('#predict-tab');
+        await page.route('**/api/v1/assistant/preview', route => route.fulfill({ json: { data: {
+            answer: 'Tạo bảng YB1', sources: [], edits: [], scores: [], table_edits: [],
+            token: 'browser-test', create_table: true, row_count: 1, rejected: [], scope: 'prediction',
+        } } }));
+        await page.route('**/api/v1/assistant/apply', route => route.fulfill({ json: { data: {
+            dxfs: [], rows: [{ id: 'YB1', x1: '' }], columns: ['id', 'x1'],
+        } } }));
+        await page.click('.assistant-launcher');
+        await page.fill('#assistant-question', 'Tạo bảng YB1');
+        await page.press('#assistant-question', 'Enter');
+        await page.waitForFunction(() => assistantWorkspace.hasDraft() && !assistantWorkspace.historyState().busy);
+        await page.locator('.assistant-preview button').first().click({ timeout: 10000 });
+        await page.waitForFunction(() => !assistantWorkspace.hasDraft());
+        console.log('PASS chat-created CSV draft can be confirmed immediately without reload');
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

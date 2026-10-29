@@ -55,6 +55,11 @@
                 const savedAt = Date.now();
                 const keys = [...assets.keys()];
                 let failure = null;
+                // A stalled browser transaction must not lock draft review forever.
+                const timeout = setTimeout(() => {
+                    failure = new Error('Lưu trên trình duyệt quá thời gian, hãy thử lại');
+                    try { tx.abort(); } catch { /* Already completed. */ }
+                }, 30000);
                 const request = tx.objectStore("state").get("workspace");
                 request.onsuccess = () => {
                     if ((request.result?.revision || 0) !== this.revision) {
@@ -73,12 +78,16 @@
                     } catch (error) { failure = error; tx.abort(); }
                 };
                 tx.oncomplete = () => {
+                    clearTimeout(timeout);
                     this.revision = revision;
                     this.assetKeys = keys;
                     this.references = new Map(assets);
                     resolve({ revision, savedAt });
                 };
-                tx.onabort = () => reject(failure || tx.error || new Error("Cannot save workspace"));
+                tx.onabort = () => {
+                    clearTimeout(timeout);
+                    reject(failure || tx.error || new Error("Cannot save workspace"));
+                };
             });
         }
     }
