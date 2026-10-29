@@ -773,4 +773,9 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Giữ nguyên dữ liệu và vector, thêm phân trang đầy đủ thay giới hạn 200 đoạn đầu, giới hạn bộ nhớ khi đọc collection lớn
 - Chuyển ai-embedding vào profile tùy chọn embedding-admin, mặc định tắt AI_EMBEDDING_ENABLED và bỏ service khỏi lệnh triển khai CI/CD
 - Đổi tab quản trị thành Kho tri thức, ẩn công cụ vector khi embedding tắt
+- Đã triển khai lên VPS, còn 6 service hoạt động, container embedding đã được gỡ và bộ cập nhật tự động vẫn chạy
+- Kiểm tra trực tiếp x1 đến x9 trả về nguồn ở chế độ keyword, lần đầu 0,30 giây, các lần sau 0,005 đến 0,011 giây
+- Giữ nguyên 6 collection và 807 điểm trong Qdrant, không tạo lại vector
+- Kiểm tra API website tạo bảng A1 trả HTTP 200 sau 51,35 giây, thời gian này gồm phản hồi Gemini, không còn bước embedding
+- Xác minh 200 kiểm thử Python, 5 kiểm thử giao diện quản trị và bản build frontend đều đạt
 
