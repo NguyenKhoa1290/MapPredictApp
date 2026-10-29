@@ -7,6 +7,7 @@ AI đã tách thành service riêng, kết nối Qdrant hiện có và có nút 
 Cổng local vẫn là 8765, cập nhật bằng `tools/deploy_docker.ps1`, xem [hướng dẫn Docker](docs/DOCKER_DEPLOYMENT.md)
 Khởi động bằng `tools/start_docker.ps1`, chạy một backend cùng Nginx, tunnel và adapter Gemini khi bật chatbot, frontend là file tĩnh
 Windows và VPS Linux dùng chung `python tools/docker_stack.py start` và `deploy`, tự cập nhật sau CI bằng tác vụ hệ điều hành, xem hướng dẫn Docker để cài một lần trên VPS
+VPS ít RAM dùng cấu hình và các thiết lập đã kiểm tra trong [hướng dẫn Linux](docs/VPS_LINUX.md)
 Máy hiện tại tự kiểm tra bản main đã qua CI mỗi năm phút bằng Windows Task Scheduler, không thêm container, xem [cách vận hành](docs/GITHUB_ACTIONS.md)
 
 [![CI and delivery](https://github.com/NguyenKhoa1290/MapPredictApp/actions/workflows/ci.yml/badge.svg)](https://github.com/NguyenKhoa1290/MapPredictApp/actions/workflows/ci.yml)

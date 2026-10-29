@@ -100,8 +100,11 @@ Sau khi sửa cấu hình swap và giới hạn embedding, thử riêng vector v
 RAGWire hybrid lấy đúng point 59929946-642c-45bb-a3a0-5b7a4e8394cd, trả đúng nhóm điểm cùng ô nguồn, không tự chọn điểm trong ô gộp
 Đăng nhập quản trị qua tên miền đã kiểm tra thành công
 Đã thử gia hạn hai tài khoản Gemini nhưng đều needs_login, Thông minh vẫn cookie_required và cần người dùng cập nhật cookie qua trang admin, Nhanh đã trả lời thật thành công
-Trong lúc áp dụng cấu hình cuối, embedding còn ở profile chẩn đoán thủ công và timer cập nhật tạm dừng
-Các gói trung chuyển riêng cần dọn sau khi xác nhận triển khai ổn định
+Đã bỏ profile chẩn đoán, bật lại cả 7 service với cấu hình đã kiểm tra, embedding tự khởi động và giữ model unload khi không dùng
+Timer cập nhật và service khởi động đã bật lại, chạy kiểm tra cập nhật thành công
+Đã kiểm tra lại đủ 6 collection và 807 point sau RAG, checksum vẫn khớp
+Đã dọn gói trung chuyển trên VPS, giữ nguyên các volume bền vững và dữ liệu local
+Cloudflare xác nhận một connector từ VPS, cả 7 container local vẫn dừng và AutoDeploy Windows bị vô hiệu hóa
 
 Nếu cần tạm ngừng stack để kiểm tra qua Console/VNC, dừng cả timer để nó không tự bật Docker lại
 

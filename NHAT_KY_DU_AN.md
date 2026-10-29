@@ -12,6 +12,9 @@
 - Trang chính và admin đều mở được, đăng nhập admin qua Chrome thành công, local tiếp tục dừng cả stack và AutoDeploy
 - Gia hạn hai tài khoản Gemini vẫn needs_login, Thông minh giữ cookie_required, không chuyển xuống Nhanh
 - Bổ sung tùy chọn --low-memory cho cài đặt Linux, yêu cầu swap và sửa chính sách có sẵn, cấu hình Compose và 7 kiểm thử triển khai đạt
+- Đã áp dụng cấu hình cuối lên đủ 7 service, bỏ profile thử nghiệm, bật lại startup systemd và timer cập nhật, chạy auto_deploy kiểm tra thành công
+- Kiểm tra lại đủ 6 collection với 807 point sau lượt RAG, checksum khớp, đã dọn các gói trung chuyển trên VPS và giữ nguyên volume
+- Cloudflare chỉ còn một connector từ 47.236.146.89, các container local đều exited và Scheduled Task AutoDeploy vẫn Disabled
 
 ## 2026-10-29 Chuyển stack sang VPS sau khi khởi động lại
 
