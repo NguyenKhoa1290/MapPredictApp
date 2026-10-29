@@ -185,6 +185,19 @@ class ArgonRoutingTests(unittest.TestCase):
         self.assertEqual(result.exception.code, 'cookie_required')
         generate.assert_not_called()
 
+    def test_streaming_heartbeat_timeout_discards_partial_answer_and_closes_response(self):
+        from gemini_web2api import gemini
+        response = Mock()
+        def timer(seconds, callback):
+            value = Mock()
+            value.start.side_effect = callback
+            return value
+        with patch.object(gemini.threading, 'Timer', side_effect=timer):
+            with self.assertRaises(TimeoutError):
+                gemini.read_response(response, gemini.time.monotonic() + 10)
+        response.fp.raw._sock.shutdown.assert_called_once()
+        response.close.assert_called_once()
+
     def test_chat_effort_reaches_generation_for_both_routes_without_downgrade(self):
         import importlib.util
         import gemini_web2api

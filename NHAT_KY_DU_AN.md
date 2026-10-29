@@ -722,4 +722,6 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Nhanh dùng pool tài khoản Gemini, thử tài khoản tiếp theo khi tài khoản trước không khả dụng, không gọi Flash ẩn danh
 - Mở effort thấp, trung bình và cao cho 3.8 Flash, đối chiếu applied_level từ phản hồi upstream trước khi nhận kết quả
 - Giữ passcode riêng của Thông minh và chu kỳ gia hạn cookie 10 phút
+- Kiểm tra thực tế trên VPS xác nhận cả hai tài khoản có route 3.8 Flash và Argon, mức thấp và trung bình trả đúng applied_level
+- Mức cao gặp timeout upstream trong hai lần thử, chưa xác nhận thành công, thêm giới hạn tổng thời gian 120 giây để kết nối giữ sống không khóa service vô hạn
 

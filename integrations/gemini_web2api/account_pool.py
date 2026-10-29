@@ -171,7 +171,10 @@ class AccountPool:
         with self.lock:
             entries = self.store.registry()['accounts']
             login_failures = 0
+            deadline = time.monotonic() + 120
             for entry in entries:
+                if time.monotonic() >= deadline:
+                    break
                 try:
                     path = self.store.path(entry['id'])
                     settings = json.loads(path.read_text(encoding='utf-8'))
@@ -186,7 +189,15 @@ class AccountPool:
                     if not route or str(route['mode']) not in settings.get('model_headers', {}) or not settings.get('xsrf_token'):
                         continue
                     with self.profile(settings):
-                        result = generate(route['mode'], route.get('think', 1))
+                        previous = CONFIG.get('generation_deadline')
+                        CONFIG['generation_deadline'] = deadline
+                        try:
+                            result = generate(route['mode'], route.get('think', 1))
+                        finally:
+                            if previous is None:
+                                CONFIG.pop('generation_deadline', None)
+                            else:
+                                CONFIG['generation_deadline'] = previous
                     if not isinstance(result, str) or not result.strip():
                         continue
                     return result

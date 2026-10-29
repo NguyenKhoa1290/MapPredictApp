@@ -8,6 +8,8 @@ import urllib.parse
 import ssl
 import os
 import hashlib
+import threading
+import socket
 
 try:
     import httpx
@@ -220,6 +222,34 @@ def extract_response_text(raw: str) -> str:
     return clean_text(last_text)
 
 
+def read_response(response, deadline=None):
+    """Bound an account request even when the upstream keeps streaming heartbeats."""
+    if deadline is None:
+        return response.read()
+    expired = threading.Event()
+    def abort():
+        expired.set()
+        try:
+            response.fp.raw._sock.shutdown(socket.SHUT_RDWR)
+        except (AttributeError, OSError):
+            pass
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        response.close()
+        raise TimeoutError('Account generation deadline exceeded')
+    timer = threading.Timer(remaining, abort)
+    timer.daemon = True
+    timer.start()
+    try:
+        data = response.read()
+        if expired.is_set():
+            raise TimeoutError('Account generation deadline exceeded')
+        return data
+    finally:
+        timer.cancel()
+        response.close()
+
+
 def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None, extra_fields: dict = None, *, metadata=None) -> str:
     """Non-streaming generation with retry."""
     body = _build_payload(prompt, model_id, think_mode, file_refs, extra_fields).encode()
@@ -231,16 +261,22 @@ def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None
     last_err = None
     for attempt in range(CONFIG["retry_attempts"]):
         try:
+            deadline = CONFIG.get('generation_deadline')
+            timeout = CONFIG['request_timeout_sec']
+            if deadline is not None:
+                timeout = min(timeout, deadline - time.monotonic())
+                if timeout <= 0:
+                    raise TimeoutError('Account generation deadline exceeded')
             req = urllib.request.Request(url, data=body, headers=headers, method="POST")
             if proxy:
                 opener = urllib.request.build_opener(
                     urllib.request.ProxyHandler({"http": proxy, "https": proxy}),
                     urllib.request.HTTPSHandler(context=ctx)
                 )
-                resp = opener.open(req, timeout=CONFIG["request_timeout_sec"])
+                resp = opener.open(req, timeout=timeout)
             else:
-                resp = urllib.request.urlopen(req, context=ctx, timeout=CONFIG["request_timeout_sec"])
-            raw = resp.read().decode("utf-8", errors="replace")
+                resp = urllib.request.urlopen(req, context=ctx, timeout=timeout)
+            raw = read_response(resp, deadline).decode("utf-8", errors="replace")
             if metadata is not None:
                 metadata.clear()
                 metadata['requested_level'] = think_mode
