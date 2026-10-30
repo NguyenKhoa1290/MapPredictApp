@@ -118,6 +118,7 @@ class AssistantFileTests(unittest.TestCase):
         self.assertEqual(followup.status_code, 200, followup.json)
         self.assertEqual(followup.json['data']['timings']['summary_cache_hits'], 1)
         context = json.loads(model.call_args.args[0][-1]['content'].split('\n', 1)[1].split('\nYÊU CẦU\n')[0])
+        self.assertIn('handle_prefix', model.call_args.args[0][0]['content'])
         self.assertEqual(context['dxf']['files'][0]['handle_prefix'], '0~')
         self.assertEqual(context['dxf']['entities'][0]['handle'], '0~' + handle)
         self.assertEqual(context['dxf']['entities'][0]['color'], 7)
@@ -135,3 +136,30 @@ class AssistantFileTests(unittest.TestCase):
         with patch.object(entity, 'get_points', side_effect=AssertionError('Full vertex list is unnecessary')):
             result = assistant.describe(doc)
         self.assertEqual(result['entities'][0]['vertices_xy_bulge'][15], [15, 30, 0.5])
+
+    def test_mixed_cached_and_uploaded_files_cannot_swap_edit_targets(self):
+        first, handle = self.drawing()
+        document = ezdxf.new()
+        second_entity = document.modelspace().add_text('B2', dxfattribs={'color': 7})
+        stream = io.StringIO()
+        document.write(stream)
+        second = stream.getvalue().encode()
+        ref = assistant_files.store(self.resource(first), self.config)
+        client = create_app(self.config).test_client()
+        with patch.object(assistant, 'call_model', return_value={'answer': 'Change second file',
+                'edits': [{'handle': '1~' + second_entity.dxf.handle, 'operation': 'color', 'value': 4}]}):
+            response = client.post('/api/v1/assistant/preview', data={'scope': 'map',
+                'resource_ids': '["file-a","file-b"]', 'resource_tokens': json.dumps([ref['token'], None]),
+                'dxf': (io.BytesIO(second), 'second.dxf'), 'message': 'Change second file', 'web': 'false'})
+        self.assertEqual(response.status_code, 200, response.json)
+        proposal = response.json['data']
+        self.assertEqual(proposal['edits'][0]['source_id'], 'file-b')
+        references = {item['source_id']: item['token'] for item in proposal['resource_cache']}
+        result = client.post('/api/v1/assistant/apply', data={'scope': 'map',
+            'resource_ids': '["file-a","file-b"]',
+            'resource_tokens': json.dumps([references['file-a'], references['file-b']]), 'token': proposal['token']})
+        self.assertEqual(result.status_code, 200, result.json)
+        self.assertEqual([item['source_id'] for item in result.json['data']['dxfs']], ['file-b'])
+        output = ezdxf.read(io.StringIO(base64.b64decode(result.json['data']['dxfs'][0]['dxf']).decode()))
+        self.assertEqual(output.entitydb[second_entity.dxf.handle].dxf.color, 4)
+        self.assertEqual(assistant_files.resolve(ref['token'], 'file-a', self.config)['data'], first)

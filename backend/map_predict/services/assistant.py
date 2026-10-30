@@ -407,6 +407,7 @@ def preview(path, dxf, csv, options, config, resources=None):
     prompt_file = config.get('ASSISTANT_PROMPT')
     instructions = Path(prompt_file).read_text(encoding='utf-8-sig') if prompt_file else PROMPT
     system = instructions + '\nTÀI LIỆU THAM KHẢO\n' + rubric
+    system += '\nDXF: đối chiếu handle_prefix trong dxf.files để biết handle thuộc source_id nào, giữ nguyên handle có tiền tố file khi đề xuất sửa.'
     system += '\nKẾT THÚC TÀI LIỆU. Trả JSON đúng schema, row_index và điểm/màu value là số nguyên, rule là mã ô như L9, không phải cả mô tả. Chưa áp dụng bất kỳ thay đổi nào.'
     system += '\nTách nguồn tiêu chí và hiện trạng: rule lấy từ Qdrant, còn evidence=USER/DXF/WEB cùng quote nguyên văn phải chứng minh hiện trạng của ô đất. Không dùng mô tả ngưỡng Qdrant làm bằng chứng hiện trạng. Nếu người dùng cung cấp hiện trạng thì evidence=USER và quote là một đoạn nguyên văn trong yêu cầu của họ.'
     request_context = json.dumps(context, ensure_ascii=False, separators=(',', ':'))
