@@ -149,7 +149,10 @@ class SessionAuditTests(unittest.TestCase):
         self.assertNotIn('private@example.test', self.log.read_text())
 
     def test_sidcc_update_is_logged_as_not_renewed_even_when_page_still_authenticates(self):
-        import httpx
+        try:
+            import httpx
+        except ImportError:
+            self.skipTest('HTTP session dependency is installed in Gemini image')
         def handle(request):
             if request.url.path == '/RotateCookies':
                 return httpx.Response(200, headers={'Set-Cookie': 'SIDCC=PRIVATE_CC; Domain=.google.com; Path=/; Secure'})
