@@ -152,7 +152,7 @@
         restoredResults = predictionRows.length > 0;
         renderResults(predictionRows, false);
         const view = assets.get("table:view");
-        if (view) renderPredictionTable(view.rows, view.isResult, view.total, view.columns);
+        if (view) renderPredictionTable(view.rows, view.isResult, view.total, view.columns, view.page);
         else renderPredictionTable([], false);
         fillSelect($("csv-join"), state.joins.csvColumns);
         $("csv-join").value = state.joins.csv;
@@ -208,6 +208,24 @@
             surfaces.forEach((element) => { element.inert = false; });
         }
         if (ready && predictionFiles.some((entry) => !entry.columns)) await readPredictionSources();
+        // Older saved input previews contained only the first 200 rows.
+        const oldView = predictionView;
+        const inputFile = $("csv-file").files[0];
+        if (ready && oldView && !oldView.isResult && oldView.rows.length < oldView.total && inputFile) {
+            const version = predictionTableVersion;
+            try {
+                const form = new FormData(); form.append("csv", inputFile);
+                const payload = await api("/api/preview-csv", { method: "POST", body: form });
+                if (payload.rows.length !== payload.count) throw new Error("Incomplete preview");
+                if (version === predictionTableVersion && predictionView === oldView && $("csv-file").files[0] === inputFile) {
+                    renderPredictionTable(payload.rows, false, payload.count, undefined, oldView.page);
+                }
+            } catch {
+                if (version === predictionTableVersion && predictionView === oldView && $("csv-file").files[0] === inputFile) {
+                    showStatus("predict-message", "Chưa tải được đầy đủ bảng đã lưu, hãy nạp lại CSV", true);
+                }
+            }
+        }
     }
     window.workspacePersistence = { schedule, flush,
         checkpoint() {

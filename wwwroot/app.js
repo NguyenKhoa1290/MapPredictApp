@@ -4,6 +4,7 @@ let predictionTableVersion = 0;
 let predictionView = null;
 let predictionViewCsv = null;
 let predictionDownloadUrl = null;
+const PREDICTION_PAGE_SIZE = 200;
 let map = null;
 let referenceLabels = null;
 let basemapLayers = null;
@@ -377,8 +378,8 @@ function resultsCsvFile(rows, columns = [...new Set(rows.flatMap((row) => Object
     return new File(["\ufeff", lines.join("\r\n")], "KetQua.csv", { type: "text/csv;charset=utf-8" });
 }
 
-function renderPredictionTable(rows, isResult, total = rows.length, columns = [...new Set(rows.flatMap((row) => Object.keys(row)))]) {
-    predictionView = columns.length ? { rows, isResult, total, columns } : { rows, isResult, total };
+function renderPredictionTable(rows, isResult, total = rows.length, columns = [...new Set(rows.flatMap((row) => Object.keys(row)))], page = 0) {
+    predictionView = { rows, isResult, total, columns, page: Math.max(0, Math.min(Number.isInteger(page) ? page : 0, Math.ceil(rows.length / PREDICTION_PAGE_SIZE) - 1)) };
     updateCsvControls();
     window.workspacePersistence?.schedule();
     const hasData = rows.length > 0 || columns.length > 0;
@@ -399,6 +400,7 @@ function renderPredictionTable(rows, isResult, total = rows.length, columns = [.
     table.replaceChildren();
     if (!hasData) {
         $("prediction-count").textContent = "Chưa có dữ liệu để hiển thị.";
+        $("prediction-pager").hidden = true;
         return;
     }
 
@@ -419,13 +421,19 @@ function renderPredictionTable(rows, isResult, total = rows.length, columns = [.
     header.append(headerRow);
     table.append(header);
 
+    renderPredictionPage();
+}
+
+function renderPredictionPage() {
+    const { rows, isResult, total, columns, page } = predictionView;
+    const start = page * PREDICTION_PAGE_SIZE;
     const body = document.createElement("tbody");
-    for (const [index, row] of rows.slice(0, 200).entries()) {
+    for (const [index, row] of rows.slice(start, start + PREDICTION_PAGE_SIZE).entries()) {
         const tr = document.createElement("tr");
         const rowNumber = document.createElement("th");
         rowNumber.className = "row-number";
         rowNumber.scope = "row";
-        rowNumber.textContent = String(index + 1);
+        rowNumber.textContent = String(start + index + 1);
         tr.append(rowNumber);
         for (const column of columns) {
             const cell = document.createElement("td");
@@ -436,12 +444,35 @@ function renderPredictionTable(rows, isResult, total = rows.length, columns = [.
         }
         body.append(tr);
     }
+    const table = $("prediction-table");
+    table.querySelector("tbody")?.remove();
     table.append(body);
-    $("prediction-count").textContent = total > 200
-        ? `Hiển thị 200/${total.toLocaleString("vi-VN")} dòng · ${columns.length} cột${isResult ? ". Xuất CSV để tải toàn bộ kết quả." : "."}`
+    const pages = Math.max(1, Math.ceil(rows.length / PREDICTION_PAGE_SIZE));
+    $("prediction-count").textContent = rows.length > PREDICTION_PAGE_SIZE
+        ? `Dòng ${(start + 1).toLocaleString("vi-VN")}–${Math.min(start + PREDICTION_PAGE_SIZE, rows.length).toLocaleString("vi-VN")} / ${total.toLocaleString("vi-VN")} · ${columns.length} cột`
         : `${total.toLocaleString("vi-VN")} dòng · ${columns.length} cột`;
+    $("prediction-pager").hidden = pages <= 1;
+    $("prediction-page-prev").disabled = page === 0;
+    $("prediction-page-next").disabled = page + 1 >= pages;
+    $("prediction-page-number").value = String(page + 1);
+    $("prediction-page-number").max = String(pages);
+    $("prediction-page-total").textContent = `/ ${pages.toLocaleString("vi-VN")}`;
     $("prediction-table-scroll").scrollTo(0, 0);
 }
+
+function selectPredictionPage(page) {
+    if (!predictionView) return;
+    const pages = Math.max(1, Math.ceil(predictionView.rows.length / PREDICTION_PAGE_SIZE));
+    predictionView = { ...predictionView, page: Math.max(0, Math.min(Number.isFinite(page) ? Math.trunc(page) : 0, pages - 1)) };
+    renderPredictionPage();
+    window.workspacePersistence?.schedule();
+}
+$("prediction-page-prev").addEventListener("click", () => selectPredictionPage(predictionView.page - 1));
+$("prediction-page-next").addEventListener("click", () => selectPredictionPage(predictionView.page + 1));
+$("prediction-page-number").addEventListener("change", (event) => selectPredictionPage(Number(event.target.value) - 1));
+$("prediction-page-number").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); selectPredictionPage(Number(event.target.value) - 1); }
+});
 
 function renderResults(rows, display = true) {
     invalidateMapPreview();

@@ -29,6 +29,18 @@ export function PredictionWorkspace({ legacyAvailable }: { legacyAvailable: bool
     return () => controller.abort();
   }, [modelAttempt]);
   useEffect(() => () => request.current?.abort(), []);
+  useEffect(() => {
+    if (!ready || !file || !preview || preview.rows.length >= preview.count) return;
+    const controller = new AbortController();
+    previewPredictionCSV(file, controller.signal).then(data => {
+      if (data.rows.length !== data.count) throw new Error('Chưa tải được đầy đủ bảng đã lưu, hãy nạp lại CSV');
+      if (!controller.signal.aborted) setState(current => current.inputFile === file && current.preview === preview
+        ? { ...current, preview: data } : current);
+    }).catch(reason => {
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Chưa tải được bảng đã lưu');
+    });
+    return () => controller.abort();
+  }, [ready, file, preview, setState]);
 
   async function selectFile(next: File | null, kind: 'input' | 'result') {
     if (!next || !ready) return;
@@ -135,7 +147,7 @@ export function PredictionWorkspace({ legacyAvailable }: { legacyAvailable: bool
       </div>
       <div id="map-panel" className="demo-map-panel" role="tabpanel" aria-labelledby="map-tab" hidden={tab !== 'map'}><div><PlanIllustration variant={1} /></div><div className="demo-map-caption">Sơ đồ minh họa bố cục, phần ghép lưới đánh giá sẽ được nối ở bước tiếp theo</div></div>
       <div id="data-panel" className="demo-data-panel" role="tabpanel" aria-labelledby="data-tab" hidden={tab !== 'data'} aria-busy={Boolean(busy)}>
-        <div className="table-toolbar"><div><h2>{view === 'result' && result ? 'Kết quả đánh giá' : 'Bảng dữ liệu'}</h2><p className="assessment-help">{dataset ? dataset.count.toLocaleString('vi-VN') + ' dòng' + (view === 'input' ? ', xem trước tối đa 200 dòng' : '') : 'Chưa có dữ liệu'}</p></div>
+        <div className="table-toolbar"><div><h2>{view === 'result' && result ? 'Kết quả đánh giá' : 'Bảng dữ liệu'}</h2><p className="assessment-help">{dataset ? dataset.count.toLocaleString('vi-VN') + ' dòng' : 'Chưa có dữ liệu'}</p></div>
           {view === 'result' && result ? <button type="button" className="button secondary" onClick={download}>Xuất CSV</button> : null}
         </div>
         {preview && result ? <div className="assessment-table-views" role="group" aria-label="Bảng đang xem"><button type="button" aria-pressed={view === 'input'} onClick={() => setState(current => ({ ...current, view: 'input', page: 0 }))}>Dữ liệu đầu vào</button><button type="button" aria-pressed={view === 'result'} onClick={() => setState(current => ({ ...current, view: 'result', page: 0 }))}>Kết quả</button></div> : null}

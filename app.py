@@ -151,14 +151,20 @@ def predict():
 
 @legacy.post("/api/preview-csv")
 def preview_csv():
+    request.max_content_length = current_app.config["PREDICTION_MAX_REQUEST_BYTES"]
     uploaded = request.files.get("csv")
     if not uploaded or not uploaded.filename or Path(uploaded.filename).suffix.lower() != ".csv":
         raise ValueError("Vui lòng chọn file dữ liệu CSV.")
     try:
-        rows = _csv_rows(uploaded.read())
+        content = uploaded.read(current_app.config["PREDICTION_MAX_CSV_BYTES"] + 1)
+        if len(content) > current_app.config["PREDICTION_MAX_CSV_BYTES"]:
+            return jsonify(error="CSV vượt giới hạn dung lượng cho phép"), 413
+        rows = _csv_rows(content)
+        if len(rows) > current_app.config["PREDICTION_MAX_ROWS"]:
+            return jsonify(error="CSV vượt giới hạn số dòng cho phép"), 413
     finally:
         uploaded.close()
-    return jsonify(rows=rows[:200], count=len(rows))
+    return jsonify(rows=rows, count=len(rows))
 
 
 @legacy.get("/api/export")

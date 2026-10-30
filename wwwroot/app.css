@@ -584,6 +584,10 @@ body.workspace-mode .workspace-panel { height: 100%; min-height: 0; }
 .prediction-table tbody tr:nth-child(even) > * { background: #f8fbf9; }
 .prediction-table tbody tr:hover > * { background: #edf6f0; }
 .prediction-table .prediction-output { color: #087b43; font-weight: 600; }
+.prediction-pager { display: flex; flex-shrink: 0; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; color: #496155; font-size: 13px; }
+.prediction-pager button, .prediction-pager input { border: 1px solid #cddbd1; border-radius: 6px; background: #fff; color: #244634; font: inherit; padding: 7px 10px; }
+.prediction-pager button:disabled { opacity: .45; cursor: default; }
+.prediction-pager input { width: 68px; text-align: center; }
 .join-preview { padding: 12px; border: 1px solid #cddbd1; border-radius: 8px; margin-block: 10px; overflow-wrap: anywhere; }
 .join-preview h3 { font-size: 15px; margin-block: 12px 6px; }
 .join-preview p, .join-preview li { font-size: 13px; line-height: 1.6; }

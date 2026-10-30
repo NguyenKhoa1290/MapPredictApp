@@ -80,6 +80,13 @@
                         <div id="prediction-table-scroll" class="prediction-table-scroll" role="region" aria-label="Dữ liệu CSV và kết quả" tabindex="0" hidden>
                             <table id="prediction-table" class="prediction-table"></table>
                         </div>
+                        <div id="prediction-pager" class="prediction-pager" aria-label="Chuyển trang bảng dữ liệu" hidden>
+                            <button id="prediction-page-prev" type="button">Trước</button>
+                            <label for="prediction-page-number">Trang</label>
+                            <input id="prediction-page-number" type="number" min="1" value="1" inputmode="numeric">
+                            <span id="prediction-page-total"></span>
+                            <button id="prediction-page-next" type="button">Sau</button>
+                        </div>
                     </div>
                 </div>
             </section>

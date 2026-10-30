@@ -907,3 +907,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - CI Windows, Linux, Docker và đóng gói đạt, bộ cập nhật tự động triển khai revision db36f7c1 lên VPS, các service healthy và tunnel hoạt động
 - Kiểm tra Chrome trên website thật ở 1440 px và 390 px xác nhận tên thương hiệu, cả hai logo, favicon, không tràn ngang hoặc lỗi JavaScript, điều hướng trang dự án và công cụ đánh giá hoạt động; hai logo tải từ tên miền có hash trùng file người dùng cung cấp
 
+## 2026-10-30 Xem đầy đủ CSV và kết quả
+
+- API xem trước trả toàn bộ dòng CSV thay vì cắt ở 200 dòng, giữ giới hạn nạp 5 MiB và 10.000 dòng như phần dự đoán
+- Bảng công cụ chia 200 dòng mỗi trang, có nút trước, sau và nhập số trang, tự lưu trang đang xem, giữ đủ CSV gốc và dữ liệu gửi trợ lý
+- Khôi phục các bản xem cũ chỉ có 200 dòng bằng cách đọc lại file đã lưu, kiểm tra dữ liệu chưa thay đổi trước khi cập nhật; trang đánh giá React cũng khôi phục bản xem cũ và dùng phân trang hiện có
+- Kiểm tra Chrome với CSV 10.000 dòng, đến được dòng cuối, tải lại giữ trang và khôi phục đủ từ bản xem cũ, không lỗi JavaScript; kiểm thử API, trợ lý, lưu phiên và build frontend đều đạt
+

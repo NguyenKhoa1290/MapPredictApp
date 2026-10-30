@@ -91,15 +91,24 @@ class PythonAppTests(unittest.TestCase):
         self.assertEqual(leaflet_asset.status_code, 200)
         leaflet_asset.close()
 
-    def test_csv_preview_is_limited_and_does_not_save_results(self):
+    def test_csv_preview_returns_all_rows_and_does_not_save_results(self):
         csv_data = ("id,x1\n" + "".join(f"lot-{index},0\n" for index in range(250))).encode()
         with io.BytesIO(csv_data) as source:
             response = self.client.post("/api/preview-csv", data={"csv": (source, "input.csv")})
         self.assertEqual(response.status_code, 200, response.json)
         self.assertEqual(response.json["count"], 250)
-        self.assertEqual(len(response.json["rows"]), 200)
+        self.assertEqual(len(response.json["rows"]), 250)
+        self.assertEqual(response.json["rows"][-1]["id"], "lot-249")
         self.assertFalse(self.result_path.exists())
         self.assertEqual(self.client.post("/api/preview-csv").status_code, 400)
+
+    def test_csv_preview_enforces_the_same_size_and_row_limits_as_prediction(self):
+        with patch.dict(python_app.app.config, {"PREDICTION_MAX_ROWS": 1}):
+            response = self.client.post("/api/preview-csv", data={"csv": (io.BytesIO(b"id,x1\na,0\nb,1\n"), "input.csv")})
+            self.assertEqual(response.status_code, 413)
+        with patch.dict(python_app.app.config, {"PREDICTION_MAX_CSV_BYTES": 5}):
+            response = self.client.post("/api/preview-csv", data={"csv": (io.BytesIO(b"id,x1\na,0\n"), "input.csv")})
+            self.assertEqual(response.status_code, 413)
 
     def test_geopackage_columns_and_prediction_layer(self):
         data = (python_app.ROOT / "layer_du_doan.gpkg").read_bytes()

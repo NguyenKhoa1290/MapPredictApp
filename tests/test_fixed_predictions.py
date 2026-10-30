@@ -51,7 +51,8 @@ class FixedPredictionTests(unittest.TestCase):
             response = self.upload('/preview', data)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['data']['count'], 250)
-            self.assertEqual(len(response.json['data']['rows']), 200)
+            self.assertEqual(len(response.json['data']['rows']), 250)
+            self.assertEqual(response.json['data']['rows'][-1]['id'], 'lot-249')
             predict.assert_not_called()
 
     def test_model_upload_and_path_overrides_are_rejected_before_execution(self):

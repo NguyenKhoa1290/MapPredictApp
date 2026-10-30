@@ -61,7 +61,7 @@ def status():
 @predictions.post("/preview")
 def preview():
     rows = uploaded_rows()
-    return response({"rows": rows[:200], "count": len(rows), "columns": list(rows[0])})
+    return response({"rows": rows, "count": len(rows), "columns": list(rows[0])})
 
 
 @predictions.post("")

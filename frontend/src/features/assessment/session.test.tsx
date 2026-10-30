@@ -40,6 +40,21 @@ async function importFile(user: ReturnType<typeof userEvent.setup>, name: string
 beforeEach(() => { saved.value = null; saved.readError = null; saved.writeError = null; saved.attempts = 0; });
 
 describe('assessment save and restore lifecycle', () => {
+  it('refreshes an older partial preview and can reach its final row', async () => {
+    const fetcher = mockAPI(); const original = fetcher.getMockImplementation()!;
+    const rows = Array.from({ length: 250 }, (_, index) => ({ id: 'lot-' + (index + 1), x1: '0' }));
+    fetcher.mockImplementation(async (input, options) => String(input).endsWith('/preview')
+      ? reply({ columns: ['id', 'x1'], rows, count: rows.length }) : original(input, options));
+    saved.value = { inputFile: file('input.csv'), resultFile: null,
+      preview: { columns: ['id', 'x1'], rows: rows.slice(0, 200), count: 250 },
+      result: null, tab: 'data', view: 'input', page: 0 };
+    const user = userEvent.setup(); render(<PredictionWorkspace legacyAvailable={false} />);
+    await waitFor(() => expect(fetcher.mock.calls.filter(([url]) => String(url).endsWith('/preview'))).toHaveLength(1));
+    await waitFor(() => expect(screen.getByText('Trang 1 / 5')).toBeTruthy());
+    for (let i = 0; i < 4; i++) await user.click(screen.getByRole('button', { name: 'Sau' }));
+    expect(screen.getByRole('cell', { name: 'lot-250' })).toBeTruthy();
+  });
+
   it('restores predicted results and the input file without any automatic POST', async () => {
     const fetcher = mockAPI(); const user = userEvent.setup(); const first = render(<PredictionWorkspace legacyAvailable={false} />);
     await screen.findByText('Mô hình có sẵn');

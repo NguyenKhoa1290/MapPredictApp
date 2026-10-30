@@ -137,6 +137,11 @@ test('chat sends the full displayed prediction result and restores it after work
         };
         await predict();
         assert.equal(w.document.querySelectorAll('#prediction-table tbody tr').length, 200);
+        w.document.getElementById('prediction-page-next').click();
+        assert.equal(w.document.querySelectorAll('#prediction-table tbody tr').length, 5);
+        assert.match(w.document.querySelector('#prediction-table tbody tr:last-child').textContent, /205.*A205/);
+        w.document.getElementById('prediction-page-prev').click();
+        assert.equal(w.document.querySelectorAll('#prediction-table tbody tr').length, 200);
         const current = w.assistantWorkspace.context();
         assert.notEqual(current.csv, original);
         assert.equal(current.csv, w.assistantWorkspace.context().csv); // Preview/apply source identity stays stable.
