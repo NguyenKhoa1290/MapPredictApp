@@ -859,4 +859,8 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Tách ngân sách ngữ cảnh CSV khỏi ngưỡng tóm tắt DXF, tăng giới hạn đọc phản hồi model và giải mã JSON, phản hồi quá lớn hoặc chưa hoàn chỉnh phải báo lỗi thay vì cắt lấy một phần
 - 226 kiểm thử backend đạt, trong đó xác nhận gửi đủ 10.000 dòng, sửa dòng cuối, áp dụng 250 điểm và 252 thao tác, từ chối file đã thay đổi, tạo bảng 501 dòng và giải mã đề xuất dài hơn 500.000 ký tự
 - Giữ nguyên các chỉnh sửa giao diện chưa commit của người dùng trong wwwroot/assistant.css và wwwroot/assistant.js, không đưa các phần đó vào thay đổi CSV
+- Kiểm tra Chrome trong context riêng với giao diện đã commit và backend thật, bảng thử 10.000 dòng gửi đủ tới ngữ cảnh model, sửa đúng dòng cuối rồi duyệt, reload, hoàn tác và làm lại đều khôi phục đúng toàn bộ CSV, không có lỗi JavaScript
+- Phép thử trình duyệt dùng phản hồi model thử để xác nhận luồng dữ liệu và lưu workspace, không dùng kết quả đó để khẳng định model thật luôn sinh đủ mọi thay đổi của bảng lớn trong một lượt
+- CI Windows, Linux, Docker và đóng gói đạt cho commit c1652b0c, bộ cập nhật tự động triển khai thành công lên VPS, các service có healthcheck đều healthy và tunnel đang chạy
+- Kiểm tra riêng trong image AI đang chạy trên VPS nhận đủ ngữ cảnh 10.000 dòng và cột Y, custom, xem trước và áp dụng sửa dòng cuối trả HTTP 200, file đổi sau xem trước bị chặn HTTP 409, lời gọi model được thay bằng phản hồi thử trong tiến trình kiểm tra riêng
 
