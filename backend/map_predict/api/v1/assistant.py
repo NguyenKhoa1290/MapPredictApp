@@ -113,10 +113,13 @@ def execute(action):
     if scope == 'map':
         files = request.files.getlist('dxf')
         try:
+            if len(options.get('resource_ids', '[]')) > 4096 or len(options.get('resource_tokens', '')) > 24576:
+                raise ValueError()
             ids = json.loads(options.get('resource_ids', '[]'))
+            if not isinstance(ids, list) or not (0 if action == 'preview' else 1) <= len(ids) <= 5:
+                raise ValueError()
             refs = json.loads(options['resource_tokens']) if 'resource_tokens' in options else [None] * len(ids)
-            if (not isinstance(ids, list) or not (0 if action == 'preview' else 1) <= len(ids) <= 5
-                    or not isinstance(refs, list) or len(refs) != len(ids) or len(set(ids)) != len(ids)
+            if (not isinstance(refs, list) or len(refs) != len(ids) or len(set(ids)) != len(ids)
                     or len(files) != sum(ref is None for ref in refs)):
                 raise ValueError()
             uploads = iter(files)

@@ -78,6 +78,15 @@ class AssistantFileTests(unittest.TestCase):
         self.assertFalse(path.exists())
         self.assertNotIn('expired', assistant_dxf.CACHE)
 
+    def test_resource_metadata_is_bounded_before_resolving_any_file(self):
+        client = create_app(self.config).test_client()
+        with patch.object(assistant_files, 'resolve') as resolve, patch.object(assistant, 'call_model') as model:
+            response = client.post('/api/v1/assistant/preview', data={'scope': 'map',
+                'resource_ids': json.dumps(['a'] * 10000), 'message': 'Describe drawing'})
+        self.assertEqual(response.status_code, 400)
+        resolve.assert_not_called()
+        model.assert_not_called()
+
     def drawing(self):
         document = ezdxf.new()
         entity = document.modelspace().add_text('A1', dxfattribs={'color': 7})
