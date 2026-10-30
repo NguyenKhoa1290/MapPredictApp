@@ -49,7 +49,7 @@ class SessionManager:
                     self.session.refresh(rotate=True)
                 else:
                     self.session.maintain()
-                    self.session.refresh()
+                    self.session.refresh(automatic=True)
                 self.activate()
                 self.details.update(state='ready', attempt_at=time.time())
             except UsageAuthError:

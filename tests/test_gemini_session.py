@@ -152,3 +152,26 @@ class GeminiSessionTests(unittest.TestCase):
                 session.request_rpc('test')
             self.assertIn('__Secure-1PSIDTS=rpc-new', cookie.read_text())
             self.assertNotIn('obsolete=', cookie.read_text())
+
+    def test_legacy_background_poll_respects_failed_rotation_cooldown(self):
+        import httpx
+        with tempfile.TemporaryDirectory() as folder:
+            manager = self.manager_type(folder)
+            manager.cookie.write_text('SID=one; SAPISID=two; __Secure-1PSID=three')
+            manager.path.write_text(json.dumps({'cookie_file': str(manager.cookie),
+                                                'session_maintenance_started_at': 1500}))
+            rotations = []
+            def handle(request):
+                if request.url.path == '/RotateCookies':
+                    rotations.append(request)
+                    return httpx.Response(403)
+                return httpx.Response(200, text='signed out')
+            @contextlib.contextmanager
+            def client(pairs):
+                with httpx.Client(transport=httpx.MockTransport(handle)) as c:
+                    yield c
+            with patch.object(manager.session, 'client', client):
+                for now in (1500, 1530, 1560):
+                    with patch('gemini_web2api.google_session.time.time', return_value=now):
+                        self.assertEqual(manager.refresh()['state'], 'needs_attention')
+            self.assertEqual(len(rotations), 1)
