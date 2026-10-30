@@ -1,0 +1,35 @@
+# Optional, single-profile pilot. Not part of the default deployment.
+# docker compose -f compose.yaml -f compose.vps.yaml -f compose.browser.yaml --profile gemini-browser up -d --build gemini-browser
+services:
+  gemini-browser:
+    profiles: [gemini-browser]
+    image: map-predict-gemini-browser:local
+    build:
+      context: .
+      dockerfile: Dockerfile.gemini-browser
+    restart: 'no'
+    init: true
+    stop_grace_period: 30s
+    ports: ['127.0.0.1:9222:9222']
+    networks: [browser-private]
+    volumes: [gemini_browser_profile:/var/lib/gemini-browser]
+    read_only: true
+    tmpfs: ['/tmp:rw,nosuid,noexec,size=33554432']
+    shm_size: 32m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    memswap_limit: 384m
+    cpus: 0.5
+    pids_limit: 192
+    logging:
+      driver: json-file
+      options:
+        max-size: 2m
+        max-file: '2'
+
+networks:
+  browser-private:
+
+volumes:
+  gemini_browser_profile:

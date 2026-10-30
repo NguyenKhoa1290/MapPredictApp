@@ -1,10 +1,12 @@
 **
 !Dockerfile
 !Dockerfile.embedding-cpu
+!Dockerfile.gemini-browser
 !integrations/
 !integrations/gemini_web2api/
 !integrations/gemini_web2api/*.py
 !integrations/run_gemini.py
+!integrations/start_gemini_browser.sh
 !integrations/GEMINI_LICENSE
 !requirements.txt
 !requirements-production.txt
