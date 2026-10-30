@@ -37,7 +37,7 @@ export function About() {
     <section className="gp-vision" aria-labelledby="vision-title"><div className="container">
       <div className="gp-section-heading"><div><p className="gp-section-overline">02 / TẦM NHÌN</p><h2 id="vision-title">Ba định hướng<br />Một góc nhìn xuyên suốt</h2></div><p><br /></p></div>
       <div className="gp-vision-grid">{content.visions.map((vision, index) => <article key={vision.title}>
-        <div className="gp-vision-top"><span>0{index + 1}</span><span aria-hidden="true">✳</span></div>
+        <div className="gp-vision-top"><span>0{index + 1}</span><span aria-hidden="true"></span></div>
         <h3>{vision.title}</h3><p>{vision.description}</p>
       </article>)}</div>
     </div></section>
