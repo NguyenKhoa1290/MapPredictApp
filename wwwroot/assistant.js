@@ -362,7 +362,7 @@
                 : mode.id === 'smart' ? ['auto', 'low', 'medium', 'high'] : ['auto', 'low']]));
             updateEfforts();
             protectedModes = new Set(payload.data.modes.filter(mode => mode.requires_passcode).map(mode => mode.id));
-            unavailableModes = new Map(payload.data.modes.filter(mode => mode.availability === 'cookie_required').map(mode => [mode.id, mode.message || 'Thông minh chưa có cookie hợp lệ, hãy cập nhật trong quản trị']));
+            unavailableModes = new Map(payload.data.modes.filter(mode => mode.availability === 'cookie_required').map(mode => [mode.id, mode.message || 'Chưa có cookie hợp lệ, hãy cập nhật trong quản trị']));
             updatePasscode();
             if (unavailableModes.has(get('mode').value)) notice.textContent = unavailableModes.get(get('mode').value);
         }
