@@ -125,3 +125,30 @@ class GeminiSessionTests(unittest.TestCase):
                 result = GoogleSession(path).persist({}, cookie, 'SID=old', client)
             self.assertIsNone(result)
             self.assertIn('SID=manual', cookie.read_text())
+
+    def test_deleted_cookie_is_not_restored_and_rpc_cookies_are_saved(self):
+        import httpx
+        from gemini_web2api.google_session import GoogleSession
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'config.json'
+            cookie = Path(folder) / 'cookie.txt'
+            cookie.write_text('SID=one; SAPISID=two; __Secure-1PSID=three; obsolete=old')
+            path.write_text(json.dumps({'cookie_file': str(cookie), 'session_rotated_at': 10**12}))
+            def handle(request):
+                if request.url.path.endswith('/app'):
+                    return httpx.Response(200, text='{"SNlM0e":"xsrf"}')
+                return httpx.Response(200, text='[]', headers=[
+                    ('Set-Cookie', 'obsolete=; Max-Age=0; Domain=.google.com; Path=/'),
+                    ('Set-Cookie', '__Secure-1PSIDTS=rpc-new; Domain=.google.com; Path=/; Secure')])
+            session = GoogleSession(path)
+            @contextlib.contextmanager
+            def client(pairs):
+                cookies = httpx.Cookies()
+                for name, value in pairs.items():
+                    cookies.set(name, value, domain='.google.com', path='/')
+                with httpx.Client(transport=httpx.MockTransport(handle), cookies=cookies) as c:
+                    yield c
+            with patch.object(session, 'client', client):
+                session.request_rpc('test')
+            self.assertIn('__Secure-1PSIDTS=rpc-new', cookie.read_text())
+            self.assertNotIn('obsolete=', cookie.read_text())
