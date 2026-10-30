@@ -883,3 +883,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Tài khoản còn lại vẫn not_renewed và đang chờ người dùng cập nhật cookie, không coi tài khoản đó đã được khôi phục
 - Sau khi người dùng báo đã cập nhật tài khoản còn lại, thử gia hạn trên đúng hồ sơ vừa nhập nhận PSIDTS mới và xác thực trang Gemini thành công, trạng thái nội bộ xác nhận cả hai tài khoản ready, renewal_state=renewed và có mốc cookie đổi thực sự, lịch tự động vẫn là 600 giây
 
+## 2026-10-30 Ảnh minh họa công cụ AI
+
+- Theo yêu cầu người dùng, tạo ảnh gốc bằng công cụ image_gen cho chủ đề đánh giá quỹ đất, GIS và AI, cảnh quan Việt Nam với lớp ô đất và các kết nối phân tích dữ liệu, tông xanh phù hợp giao diện
+- Thay đúng wwwroot/image/project-ai.jpg, định dạng JPEG thực, kích thước 1619 × 971 px, dung lượng 487.677 byte, không cần sửa tham chiếu ảnh trong code
+- Lưu prompt đầy đủ ở docs/PROJECT_AI_IMAGE_PROMPT.txt, cảnh quan và màu phân tích chỉ mang tính minh họa
+- Giữ nguyên các chỉnh sửa chưa commit của người dùng ở giao diện trợ lý và ba ảnh dự án còn lại
+

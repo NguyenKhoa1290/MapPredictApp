@@ -16,3 +16,7 @@ Nếu trình duyệt còn giữ ảnh cũ, nhấn Ctrl + F5
 Ảnh thành viên nằm trong khung vuông tối đa 220 px và hiển thị đầy đủ ảnh, không cắt chân dung
 Các ảnh hiện tại là hình nháp, không phải bản đồ dữ liệu hoặc chân dung thực
 Lưu ảnh đúng định dạng JPEG, không chỉ đổi đuôi file PNG thành JPG
+
+Ảnh project-ai.jpg được tạo bằng AI cho chủ đề đánh giá quỹ đất, GIS và quy hoạch
+Cảnh quan, ranh ô đất và màu phân tích trong ảnh là minh họa, không phải dữ liệu khảo sát thực tế
+Prompt tạo ảnh được lưu tại docs/PROJECT_AI_IMAGE_PROMPT.txt
