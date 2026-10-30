@@ -2,6 +2,17 @@
 set -eu
 umask 077
 
+# Only one managed container may own this profile, including during updates.
+exec 9>/var/lib/gemini-browser/browser-owner.lock
+flock -n 9 || { echo 'Browser profile is already owned by another worker' >&2; exit 1; }
+profile=/var/lib/gemini-browser/profile
+mkdir -p "$profile"
+# Chrome's singleton symlinks contain the previous container hostname/PID.
+# With the volume owner lock held, remove only those stale symlinks, never data.
+for name in SingletonLock SingletonCookie SingletonSocket; do
+  if [ -L "$profile/$name" ]; then rm -- "$profile/$name"; fi
+done
+
 # Chrome keeps its own debugger on loopback. socat makes it reachable through
 # the container's private network and the host's SSH-only loopback mapping.
 # No Google cookie import, credential extraction, stealth or login automation.
@@ -36,4 +47,5 @@ while kill -0 "$browser_pid" 2>/dev/null && kill -0 "$bridge_pid" 2>/dev/null; d
   sleep 2 &
   wait $! || true
 done
+echo 'Browser or debugger bridge exited, stopping pilot' >&2
 exit 1

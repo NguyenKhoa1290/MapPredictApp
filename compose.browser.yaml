@@ -4,6 +4,7 @@ services:
   gemini-browser:
     profiles: [gemini-browser]
     image: map-predict-gemini-browser:local
+    hostname: gemini-browser
     build:
       context: .
       dockerfile: Dockerfile.gemini-browser
