@@ -16,7 +16,7 @@ export function About() {
             <Link className="button primary" to="/assessment">Đi đến công cụ đánh giá <span aria-hidden="true">→</span></Link>
             <Link className="button secondary" to="/projects">Khám phá dự án</Link>
           </div>
-          <p className="gp-hero-note"><span aria-hidden="true" className="gp-note-line" /> Từ dữ liệu ô đất đến góc nhìn tổng thể</p>
+          <p className="gp-hero-note">Từ dữ liệu ô đất đến góc nhìn tổng thể</p>
         </div>
         <figure className="gp-hero-figure">
           <img src="/static/image/hero.jpg?v=7214ea63" alt="Minh họa không gian quy hoạch với sông, đô thị và các lớp dữ liệu đất đai" fetchPriority="high" />
@@ -27,7 +27,7 @@ export function About() {
     </section>
 
     <section className="container gp-intro" aria-labelledby="intro-title">
-      <div className="gp-section-label"><span>01</span><p>GIỚI THIỆU</p></div>
+      <div className="gp-section-label"><p className="gp-section-overline">01 / GIỚI THIỆU</p></div>
       <div className="gp-intro-content">
         <div><p className="gp-section-overline">DỮ LIỆU TẠO NÊN GÓC NHÌN</p><h2 id="intro-title">Một cách tiếp cận<br />quy hoạch bằng dữ liệu</h2></div>
         <div className="intro-prose">{content.intro.split(/\n\s*\n/).filter(paragraph => paragraph.trim()).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
@@ -35,7 +35,7 @@ export function About() {
     </section>
 
     <section className="gp-vision" aria-labelledby="vision-title"><div className="container">
-      <div className="gp-section-heading"><div><p className="gp-section-overline">02 / TẦM NHÌN</p><h2 id="vision-title">Ba định hướng<br />Một góc nhìn xuyên suốt</h2></div><p>Từ dữ liệu đến bản đồ<br />Từ phân tích đến ứng dụng</p></div>
+      <div className="gp-section-heading"><div><p className="gp-section-overline">02 / TẦM NHÌN</p><h2 id="vision-title">Ba định hướng<br />Một góc nhìn xuyên suốt</h2></div><p><br /></p></div>
       <div className="gp-vision-grid">{content.visions.map((vision, index) => <article key={vision.title}>
         <div className="gp-vision-top"><span>0{index + 1}</span><span aria-hidden="true">✳</span></div>
         <h3>{vision.title}</h3><p>{vision.description}</p>
