@@ -251,7 +251,7 @@ class ArgonRoutingTests(unittest.TestCase):
                 patch('gemini_web2api.account_pool.AccountPool'):
             spec.loader.exec_module(runner)
         runner.pool.run.side_effect = lambda callback: callback(71, 4)
-        runner.pool.run_anonymous.side_effect = lambda callback, **kwargs: callback(6, 1)
+        runner.pool.run_flash.side_effect = lambda callback, **kwargs: callback(6, 1)
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
         for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-3.5-flash-lite', 6)):
@@ -272,7 +272,8 @@ class ArgonRoutingTests(unittest.TestCase):
                     untouched.assert_not_called()
                     self.assertEqual(handler.send_json.call_args.args[0]['model'], model)
                     if model == 'gemini-3.5-flash-lite':
-                        self.assertEqual(runner.pool.run_anonymous.call_args.kwargs['timeout'], 120)
+                        self.assertEqual(runner.pool.run_flash.call_args.kwargs['timeout'], 120)
+                        runner.pool.run_anonymous.assert_not_called()
             with patch('gemini_web2api.server.generate') as fast, patch.object(runner, 'generate') as smart:
                 handler._handle_chat(json.dumps({'model': model, 'reasoning_effort': 'invalid'}).encode())
                 self.assertEqual(handler.send_json.call_args.args[1], 400)
