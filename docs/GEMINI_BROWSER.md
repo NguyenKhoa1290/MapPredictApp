@@ -2,6 +2,12 @@
 
 Đây là bản thử một Chromium với profile lưu lâu dài, chưa thay adapter Gemini hay tự nhập cookie từ các tài khoản đang có
 
+## Kết quả thử ngày 30/10/2026
+
+VPS có 890 MiB RAM hệ điều hành sử dụng được và 4 GiB swap. Ở mức 256 MiB RAM cộng 128 MiB swap, trình duyệt chạm trần swap, Gemini trắng và điều khiển CDP timeout. Ở mức 384 MiB RAM cộng 128 MiB swap, giao diện Gemini tải được nhưng lại chạm cả hai trần bộ nhớ, hai phép kiểm tra website liên tiếp thất bại sau 8,173 và 7,443 giây
+
+Bộ giám sát đã dừng riêng browser sau hai lần kiểm tra lỗi, website phản hồi health thành công sau khi dừng. Không ghi nhận OOM kill trong cgroup tại các mẫu đã đo. Chưa đăng nhập Google, chưa xác nhận tính ổn định khi có tài khoản. Browser đang dừng, không tự khởi động cùng VPS hoặc CI/CD mặc định, không nâng ngân sách bộ nhớ thêm trên VPS này
+
 ## Chạy thử
 
 ```sh

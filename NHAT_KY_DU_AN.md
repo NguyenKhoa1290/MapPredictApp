@@ -798,3 +798,14 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - 203 kiểm thử tổng đạt trước hai ca bổ sung cuối, sau đó 7 kiểm thử phiên và 23 kiểm thử định tuyến đều đạt, 7 kiểm thử phiên cũng đạt trong container Linux, đã thêm kiểm thử phiên vào CI image Gemini
 - Tài khoản cũ còn lại vẫn cần cập nhật cookie, chưa xác nhận độ bền phiên qua nhiều giờ, không coi gia hạn thành công một lần là bảo đảm Google không thu hồi phiên
 
+## 2026-10-30 Thử Chromium giữ phiên trên VPS
+
+- Người dùng chọn thử một trình duyệt có giới hạn RAM trên VPS, đã tạo Dockerfile.gemini-browser, compose.browser.yaml và hướng dẫn docs/GEMINI_BROWSER.md
+- Dùng một profile lưu trong volume riêng, Chromium 156.0.8078.73, cổng CDP chỉ bind localhost của VPS, mạng Docker riêng, không đưa Google cookie hoặc mật khẩu vào image hay Git
+- Bản thử chạy non-root, filesystem chỉ đọc, bỏ capabilities, tắt trình quản lý mật khẩu và Chrome sync, có khóa file bảo đảm một worker sở hữu profile
+- Mức đầu 256 MiB RAM, 128 MiB swap và 0,5 CPU đã chạm trần swap, Gemini trắng, CDP timeout, dừng riêng browser trước khi thử mức khác
+- Mức sau 384 MiB RAM, 128 MiB swap và 1 CPU tải được giao diện Gemini nhưng lại chạm trần RAM và swap, hai phép health website liên tiếp thất bại sau 8,173 và 7,443 giây
+- Bộ giám sát tự dừng browser sau hai lần health lỗi, kiểm tra website thành công sau khi dừng, tại mẫu đã đo không có OOM kill trong cgroup
+- Kết thúc thử với browser ở trạng thái dừng và restart=no, chưa đăng nhập tài khoản hay chuyển chatbot sang browser, giữ profile và cấu hình để tiếp tục khi có thêm tài nguyên
+- Đã kiểm tra cấu hình Compose hợp lệ, không thay cấu hình chạy mặc định của web, Qdrant hoặc tunnel
+
