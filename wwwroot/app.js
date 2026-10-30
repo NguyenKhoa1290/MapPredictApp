@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 let predictionRows = [];
 let predictionTableVersion = 0;
 let predictionView = null;
+let predictionViewCsv = null;
 let predictionDownloadUrl = null;
 let map = null;
 let referenceLabels = null;
@@ -386,6 +387,9 @@ function renderPredictionTable(rows, isResult, total = rows.length, columns = [.
     $("prediction-export").hidden = !hasData;
     if (predictionDownloadUrl) URL.revokeObjectURL(predictionDownloadUrl);
     const exportFile = isResult ? resultsCsvFile(rows, columns) : $('csv-file').files[0] || $('result-file').files[0] || resultsCsvFile(rows, columns);
+    // Keep one File per rendered result. Assistant preview/apply compares file
+    // identity and must receive the full result, not the uploaded input preview.
+    predictionViewCsv = isResult && hasData ? exportFile : null;
     predictionDownloadUrl = hasData ? URL.createObjectURL(exportFile) : null;
     $("prediction-export").href = predictionDownloadUrl || "#";
     $("prediction-export").download = exportFile.name;
@@ -841,7 +845,7 @@ window.assistantWorkspace = {
         const scope = $('map-panel').hidden ? 'prediction' : 'map';
         if (scope === 'prediction') {
             const csvId = $('csv-file').files[0] ? 'csv-file' : 'result-file';
-            return { scope, csvId, csv: this.csv(csvId), resources: [], version: this.version() };
+            return { scope, csvId, csv: predictionViewCsv || this.csv(csvId), resources: [], version: this.version() };
         }
         const resources = this.sources().filter(entry => overlays.some(overlay => overlay.visible
             && overlay.item.source_id === entry.id && overlay.sourceKey === entry.key

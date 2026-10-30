@@ -82,6 +82,90 @@ test('joined parcel clicks show a safe name popup without zoom while base layer 
     } finally { w.close(); }
 });
 
+test('chat sends the full displayed prediction result and restores it after workspace travel', async () => {
+    const path = require('node:path');
+    const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
+    const html = read('templates/index.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '').replace(/{%[^%]*%}/g, '');
+    const dom = new JSDOM(html, { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
+    const w = dom.window;
+    try {
+        w.structuredClone = function clone(value) {
+            if (!value || typeof value !== 'object' || value instanceof w.Blob) return value;
+            if (value instanceof w.Map) return new w.Map([...value].map(([key, item]) => [key, clone(item)]));
+            if (Array.isArray(value)) return value.map(clone);
+            return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, clone(item)]));
+        };
+        const files = new WeakMap();
+        Object.defineProperty(w.HTMLInputElement.prototype, 'files', {
+            get() { return files.get(this) || []; }, set(value) { files.set(this, value); } });
+        w.DataTransfer = class { constructor() { this.files = []; this.items = { add: file => this.files.push(file) }; } };
+        const text = file => new Promise(resolve => {
+            const reader = new w.FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(file);
+        });
+        w.File.prototype.arrayBuffer = function () {
+            return new Promise(resolve => { const reader = new w.FileReader(); reader.onload = () => resolve(reader.result); reader.readAsArrayBuffer(this); });
+        };
+        w.HTMLElement.prototype.scrollTo = () => {};
+        w.URL.createObjectURL = () => 'blob:test'; w.URL.revokeObjectURL = () => {};
+        let output = Array.from({ length: 205 }, (_, i) => ({ id: 'A' + (i + 1), x1: 6, Y: 2 }));
+        const sent = [];
+        w.fetch = async (url, options) => {
+            if (url === '/api/predict') return { ok: true, json: async () => ({ rows: output }) };
+            if (url === '/api/v1/assistant/status') return { ok: true, json: async () => ({ data: {
+                enabled: true, modes: [{ id: 'fast', efforts: ['auto', 'low'] }] } }) };
+            if (url === '/api/v1/assistant/preview') {
+                sent.push(options.body.get('csv'));
+                return { ok: true, json: async () => ({ data: { answer: 'Read current table',
+                    edits: [], scores: [], table_edits: [], rejected: [], sources: [], scope: 'prediction' } }) };
+            }
+            throw new Error('Unexpected request: ' + url);
+        };
+        w.eval([read('wwwroot/workspace_store.js'),
+            `window.WorkspaceStore = class { async read() { return null; } async write() {} };`,
+            read('wwwroot/join_preview.js'), read('wwwroot/color_adjustments.js'), read('wwwroot/app.js'),
+            read('wwwroot/layer_manager.js'), read('wwwroot/workspace.js'),
+            `window.showInputPreview = () => renderPredictionTable([{id:'OLD',x1:1}], false, 205);`].join('\n'));
+        for (let i = 0; i < 40 && !w.workspacePersistence.ready; i++) await tick();
+        assert.equal(w.workspacePersistence.ready, true);
+        w.document.getElementById('predict-tab').click();
+        const original = new w.File(['id,x1\r\nOLD,1'], 'Original.csv');
+        w.document.getElementById('csv-file').files = [original];
+        w.document.getElementById('result-file').files = [new w.File(['id,Y\r\nSTALE,0'], 'OldResults.csv')];
+        const predict = async () => {
+            w.document.getElementById('predict-form').dispatchEvent(new w.Event('submit', { cancelable: true }));
+            for (let i = 0; i < 40 && w.document.getElementById('predict-button').disabled; i++) await tick();
+        };
+        await predict();
+        assert.equal(w.document.querySelectorAll('#prediction-table tbody tr').length, 200);
+        const current = w.assistantWorkspace.context();
+        assert.notEqual(current.csv, original);
+        assert.equal(current.csv, w.assistantWorkspace.context().csv); // Preview/apply source identity stays stable.
+        const snapshot = w.workspacePersistence.checkpoint();
+        w.eval(script);
+        await tick();
+        w.document.querySelector('.assistant-form textarea').value = 'Read the prediction results';
+        w.document.querySelector('.assistant-form').dispatchEvent(new w.Event('submit', { cancelable: true }));
+        for (let i = 0; i < 40 && !sent.length; i++) await tick();
+        assert.equal(sent.length, 1);
+        const csv = await text(sent[0]);
+        assert.match(csv, /"id","x1","Y"/);
+        assert.match(csv, /"A205","6","2"/); // All rows, not just the 200 rendered in the DOM.
+        assert.doesNotMatch(csv, /OLD|STALE/);
+        assert.equal(w.document.getElementById('csv-file').files[0], original);
+        output = [{ id: 'NEW', x1: 9, Y: 1 }];
+        await predict();
+        const next = w.assistantWorkspace.context().csv;
+        assert.notEqual(next, current.csv);
+        assert.match(await text(next), /"NEW","9","1"/);
+        w.showInputPreview();
+        assert.equal(w.assistantWorkspace.context().csv, original);
+        await w.workspacePersistence.restoreCheckpoint(snapshot);
+        const restored = await text(w.assistantWorkspace.context().csv);
+        assert.match(restored, /"A205","6","2"/);
+        assert.doesNotMatch(restored, /OLD|STALE|NEW/);
+    } finally { w.close(); }
+});
+
 test('real workspace restores DXF, empty CSV input and table across confirm undo redo', async () => {
     const path = require('node:path');
     const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
