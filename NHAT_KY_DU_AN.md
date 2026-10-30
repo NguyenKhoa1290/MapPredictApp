@@ -831,3 +831,21 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Log đầu ghi nhận trang Gemini thiếu XSRF và các lần sửa phiên đang chờ cooldown, chưa đủ kết luận nguyên nhân gốc, log tiếp tục ghi cho lần xảy ra tiếp theo
 - Đã kiểm tra hai tài khoản có danh tính và bộ cookie khác nhau, không phải hai bản sao của cùng một phiên
 
+## 2026-10-30 Tối ưu gửi DXF lớn cho trợ lý
+
+- Đo đúng file người dùng cung cấp C:\Users\Khoa\Downloads\danhso_1.dxf, dung lượng 10.350.869 byte, có 359 đối tượng modelspace và 21.097 phần tử entitydb
+- Trước thay đổi, phần đọc DXF, mô tả và tra cứu trên VPS mất 2,697 giây, riêng đọc bản vẽ 2,180 giây, chuyển file thử qua SSH mất 11,64 giây, không coi số đo SSH là tốc độ HTTP qua Cloudflare
+- Thêm cache file riêng trên volume AI, tối đa 64 MiB và 16 file, hết hạn sau 15 phút, quyền thư mục 700 và file 600, healthcheck dọn dữ liệu hết hạn, không tạo snapshot
+- Tham chiếu có chữ ký gắn với source_id, tên và SHA-256 bản gốc, trình duyệt chỉ giữ theo đối tượng File hiện tại, tự gửi lại một lần khi tham chiếu hết hạn hoặc bị dọn
+- Lỗi model vẫn trả tham chiếu file của chính yêu cầu đó để lần thử tiếp không tải lại bản vẽ, không tự thử lại lời gọi model
+- Cache tóm tắt tối đa 2 MiB và 16 mục, giải phóng Drawing trước khi chờ LLM, chỉ đọc lại đầy đủ khi kiểm tra đề xuất sửa hoặc áp dụng
+- Giữ nguyên giới hạn tóm tắt 300 đối tượng và lấy mẫu 16 đỉnh, giữ bulge của polyline, viết JSON gọn và ánh xạ tiền tố handle theo file, JSON ngữ cảnh cùng source_id UUID giảm từ 69.463 xuống 48.755 ký tự
+- Phép đo API trên VPS với file thật và Qdrant thật, thay lời gọi model bằng phản hồi thử, lượt đầu 3,401 giây và lượt dùng lại 0,158 giây, đây là thời gian xử lý API không bao gồm tải HTTP hay Gemini sinh câu trả lời
+- Nén gzip ở trình duyệt khi server xác nhận hỗ trợ, có phương án gửi file gốc nếu không hỗ trợ nén, server chặn gzip hỏng và dữ liệu giải nén vượt 12 MiB, hash và mọi thao tác sửa dùng byte gốc
+- Kiểm tra Chrome local với giao diện thật và API riêng, body HTTP thực nhận của file trên là 2.878.067 byte ở lượt đầu và 1.563 byte ở lượt tiếp theo, giảm khoảng 72,2 phần trăm lượt tải đầu so với body chưa nén 10.352.105 byte, vẫn tóm tắt 300 trong 359 đối tượng
+- Ghi timings DXF, tra cứu, model và tổng thời gian vào log cùng số byte truyền và số file dùng lại, không ghi nội dung file, token tham chiếu, câu hỏi hoặc câu trả lời
+- 11 kiểm thử cache, nguồn và gzip cùng 32 kiểm thử trợ lý Node đạt, CI Windows, Linux, Docker và đóng gói đều đạt cho revision 45486e98
+- Bộ cập nhật tự động đã triển khai revision 45486e98 lên VPS, website health và assistant status trả HTTP 200, các service có healthcheck đều healthy, tunnel đang chạy
+- Chrome kiểm tra trên tên miền thật đã nhận JavaScript mới có gzip và tham chiếu, kiểm tra riêng trong image AI đang triển khai trả HTTP 200 cho lượt gzip và lượt dùng lại, xác nhận byte gốc không đổi và summary_cache_hits=1
+- Các phép đo hiệu năng dùng phản hồi model thử để tách thời gian xử lý, không gửi bản vẽ người dùng cho Gemini trong quá trình đo, thời gian model thật và mạng của người dùng vẫn ảnh hưởng thời gian chờ tổng
+

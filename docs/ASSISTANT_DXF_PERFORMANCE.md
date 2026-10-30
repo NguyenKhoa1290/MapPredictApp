@@ -27,3 +27,11 @@ Giữ nguyên giới hạn 300 đối tượng và 16 đỉnh lấy mẫu. Khôn
 Preview trả thêm timings với dxf_ms, retrieval_ms, model_ms, total_ms, summary_cache_hits và input_chars. AI service ghi request_id, action, tổng byte DXF, số file tái sử dụng và timings vào log container, không ghi nội dung bản vẽ, tên file, token tham chiếu, câu hỏi hoặc câu trả lời
 
 Lần tải file đầu tiên và thời gian Gemini sinh câu trả lời vẫn còn. Số đo phần chuẩn bị dữ liệu không được coi là thời gian phản hồi toàn bộ chatbot
+
+## Kiểm tra sau thay đổi
+
+Đo cùng file trên VPS, gọi API bằng test client trong tiến trình riêng và thay lời gọi LLM bằng phản hồi thử, lượt đầu mất 3,401 giây và lượt dùng lại file mất 0,158 giây. Phần DXF tương ứng là 2.786,3 ms và 30,7 ms, tra cứu Qdrant thật là 405,7 ms và 19,7 ms. Đây là phép đo trước khi bổ sung nén đường truyền, không bao gồm tải file qua HTTP hoặc sinh câu trả lời Gemini
+
+Kiểm tra Chrome trên máy local với file gốc, giao diện thật và API Flask riêng, thay LLM và tra cứu bằng phản hồi thử. Body HTTP thực nhận ở server là 2.878.067 byte cho lượt đầu có gzip và 1.563 byte cho lượt tiếp theo dùng tham chiếu. Cùng cấu hình khi chưa nén có body đầu 10.352.105 byte. Phạm vi tóm tắt vẫn là 300 trong 359 đối tượng, lượt thứ hai có summary_cache_hits=1. Thời gian chuẩn bị tương ứng trong phép thử gzip là 2.766 ms và 78 ms
+
+Kiểm thử bao gồm ràng buộc chữ ký với nguồn, hash và tên file, tham chiếu hết hạn, ngân sách và dọn cache, sửa đúng file khi trộn file đã lưu với file mới, trả lại tham chiếu khi model lỗi, nén và giải nén, từ chối gzip hỏng hoặc nở vượt giới hạn. Kiểm thử trình duyệt xác nhận khóa nút gửi trước khi nén bất đồng bộ, giữ model đã chọn và không xóa phần người dùng vừa gõ tiếp
