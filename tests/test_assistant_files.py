@@ -1,4 +1,5 @@
 import base64
+import gzip
 import io
 import json
 import os
@@ -181,3 +182,26 @@ class AssistantFileTests(unittest.TestCase):
                 data={'scope': 'map', 'resource_ids': '[]', 'message': 'Hello', 'web': 'false'})
         self.assertEqual(empty.status_code, 200)
         self.assertFalse(empty.json['data'].get('resource_cache'))
+
+    def test_gzip_upload_uses_original_bytes_for_source_binding(self):
+        raw, _ = self.drawing()
+        client = create_app(self.config).test_client()
+        self.assertIn('dxf_gzip', client.get('/api/v1/assistant/status').json['data']['features'])
+        with patch.object(assistant, 'call_model', return_value={'answer': 'Compressed drawing'}):
+            response = client.post('/api/v1/assistant/preview', data={'scope': 'map', 'resource_ids': '["file-a"]',
+                'resource_encodings': '["gzip"]', 'dxf': (io.BytesIO(gzip.compress(raw)), 'drawing.dxf'),
+                'message': 'Describe drawing', 'web': 'false'})
+        self.assertEqual(response.status_code, 200, response.json)
+        ref = response.json['data']['resource_cache'][0]['token']
+        self.assertEqual(assistant_files.resolve(ref, 'file-a', self.config)['data'], raw)
+
+    def test_gzip_errors_and_inflated_files_are_rejected_before_model_or_cache(self):
+        client = create_app(self.config).test_client()
+        for data in (b'invalid gzip', gzip.compress(b'x' * (assistant.MAX_FILE + 1), compresslevel=1)):
+            RATES.clear()
+            with patch.object(assistant, 'call_model') as model, patch.object(assistant_files, 'store') as store:
+                response = client.post('/api/v1/assistant/preview', data={'scope': 'map', 'resource_ids': '["file-a"]',
+                    'resource_encodings': '["gzip"]', 'dxf': (io.BytesIO(data), 'drawing.dxf'), 'message': 'Read'})
+            self.assertEqual(response.status_code, 400, response.json)
+            model.assert_not_called()
+            store.assert_not_called()

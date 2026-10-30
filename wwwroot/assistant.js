@@ -121,19 +121,39 @@
             && current.resources.length === before.resources.length
             && current.resources.every((item, index) => item.id === before.resources[index].id && item.file === before.resources[index].file);
     }
-    const resourceCache = new WeakMap(), formSources = new WeakMap();
-    function formData(files) {
+    const resourceCache = new WeakMap(), formSources = new WeakMap(), compressedFiles = new WeakMap();
+    let gzipSupported = false;
+    async function uploadFile(file) {
+        if (!gzipSupported || typeof CompressionStream !== 'function' || !file.stream
+            || file.size < 512 * 1024 || file.size > 12 * 1024 * 1024) return { file, encoding: 'identity' };
+        if (!compressedFiles.has(file)) compressedFiles.set(file, (async () => {
+            try {
+                const compressed = await new Response(file.stream().pipeThrough(new CompressionStream('gzip'))).blob();
+                if (compressed.size < file.size * 0.9) return { file: compressed, encoding: 'gzip' };
+            } catch { /* Raw upload remains compatible when compression is unavailable. */ }
+            return { file, encoding: 'identity' };
+        })());
+        return compressedFiles.get(file);
+    }
+    async function formData(files, signal) {
         const form = new FormData();
-        const references = files.resources.map(item => {
+        const references = [], encodings = [];
+        for (const item of files.resources) {
             const cached = resourceCache.get(item.file);
-            if (cached?.source_id === item.id && cached.until > Date.now() + 30000) return cached.token;
-            form.append('dxf', item.file);
-            return null;
-        });
+            if (cached?.source_id === item.id && cached.until > Date.now() + 30000) {
+                references.push(cached.token); encodings.push('identity'); continue;
+            }
+            if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+            const upload = await uploadFile(item.file);
+            form.append('dxf', upload.file, item.file.name);
+            references.push(null); encodings.push(upload.encoding);
+        }
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
         form.append('scope', files.scope);
         if (files.scope === 'map') {
             form.append('resource_ids', JSON.stringify(files.resources.map(item => item.id)));
             form.append('resource_tokens', JSON.stringify(references));
+            form.append('resource_encodings', JSON.stringify(encodings));
         }
         if (files.csv) form.append('csv', files.csv);
         formSources.set(form, files);
@@ -155,9 +175,9 @@
                 const files = formSources.get(form);
                 if (files && sameFiles(files) && !signal?.aborted) {
                     for (const item of files.resources) resourceCache.delete(item.file);
-                    const fresh = formData(files);
+                    const fresh = await formData(files, signal);
                     for (const [name, value] of form.entries()) {
-                        if (!['dxf', 'csv', 'scope', 'resource_ids', 'resource_tokens'].includes(name)) fresh.append(name, value);
+                        if (!['dxf', 'csv', 'scope', 'resource_ids', 'resource_tokens', 'resource_encodings'].includes(name)) fresh.append(name, value);
                     }
                     return request(action, fresh, signal, false);
                 }
@@ -253,25 +273,29 @@
         if (busy || window.assistantWorkspace.hasDraft()) return;
         const textarea = get('form').querySelector('textarea'), question = textarea.value.trim();
         if (!question) return;
+        const mode = get('mode').value, effort = get('effort').value, passcode = verifiedPasscode;
         const files = snapshot();
         if (files.resources.length > 5) {
             notice.textContent = 'Mỗi lượt sửa tối đa 5 DXF, hãy tắt bớt file trên bản đồ';
             return;
         }
-        const form = formData(files);
-        if (unavailableModes.has(get('mode').value)) { notice.textContent = unavailableModes.get(get('mode').value); return; }
-        if (protectedModes.has(get('mode').value)) {
-            if (!verifiedPasscode) { notice.textContent = 'Nhập passcode rồi bấm Xác nhận hoặc Enter'; updatePasscode(); get('passcode').focus(); return; }
-            form.append('passcode', verifiedPasscode);
+        if (unavailableModes.has(mode)) { notice.textContent = unavailableModes.get(mode); return; }
+        if (protectedModes.has(mode)) {
+            if (!passcode) { notice.textContent = 'Nhập passcode rồi bấm Xác nhận hoặc Enter'; updatePasscode(); get('passcode').focus(); return; }
         }
-        form.append('message', question); form.append('history', JSON.stringify(history.slice(-6)));
-        form.append('mode', get('mode').value);
-        form.append('effort', get('effort').value);
-        form.append('start', '1');
-        form.append('web', 'true'); form.append('crs', window.assistantWorkspace.crs() || '');
+        const priorHistory = JSON.stringify(history.slice(-6));
         clearPreview(); message('user', question); textarea.value = '';
-        controller = new AbortController(); setBusy(true); notice.textContent = 'Hệ thống đang phân tích dữ liệu và đối chiếu nguồn';
+        controller = new AbortController(); setBusy(true);
+        notice.textContent = 'Đang chuẩn bị dữ liệu để gửi';
         try {
+            const form = await formData(files, controller.signal);
+            if (!sameFiles(files)) throw new Error('Dữ liệu đã thay đổi, hãy gửi lại yêu cầu');
+            if (protectedModes.has(mode)) form.append('passcode', passcode);
+            form.append('message', question); form.append('history', priorHistory);
+            form.append('mode', mode); form.append('effort', effort);
+            form.append('start', '1');
+            form.append('web', 'true'); form.append('crs', window.assistantWorkspace.crs() || '');
+            notice.textContent = 'Hệ thống đang phân tích dữ liệu và đối chiếu nguồn';
             const result = await request('preview', form, controller.signal);
             const item = message('assistant', result.answer, true, result.sources);
             showSources(item, result.sources);
@@ -291,10 +315,13 @@
     async function applyPreview(button) {
         if (!pending) return;
         if (!sameFiles(pending.files)) { clearPreview(); notice.textContent = 'File hoặc bảng đã thay đổi, cần tạo lại bản xem trước'; return; }
-        const plan = pending, form = formData(plan.files);
-        form.append('token', plan.token); setBusy(true); button.disabled = true;
+        const plan = pending;
+        setBusy(true); button.disabled = true;
         get('stop').hidden = true;
         try {
+            const form = await formData(plan.files);
+            if (!sameFiles(plan.files)) throw new Error('Dữ liệu đã thay đổi, hãy tạo lại đề xuất');
+            form.append('token', plan.token);
             const result = await request('apply', form);
             if (!sameFiles(plan.files)) throw new Error('Dữ liệu vừa thay đổi, chưa đưa kết quả vào workspace');
             const dxfs = (result.dxfs || []).map(item => {
@@ -329,6 +356,7 @@
     restoreDraftReview();
     fetch('/api/v1/assistant/status').then(response => response.json()).then(payload => {
         if (!payload.data?.enabled) notice.textContent = 'Chatbot chưa được bật trên máy chủ';
+        gzipSupported = Array.isArray(payload.data?.features) && payload.data.features.includes('dxf_gzip');
         if (Array.isArray(payload.data?.modes)) {
             effortModes = new Map(payload.data.modes.map(mode => [mode.id, Array.isArray(mode.efforts) ? mode.efforts
                 : mode.id === 'smart' ? ['auto', 'low', 'medium', 'high'] : ['auto', 'low']]));

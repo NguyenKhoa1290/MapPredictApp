@@ -398,8 +398,36 @@ function fixture(status = { enabled: true }) {
     return { window, get, calls, commits, submit, close: () => window.close(),
         setScope: value => { scope = value; }, setActive: value => { active = value; }, clearCsv: () => { currentCsv = null; },
         setTableProposal: (value, result) => { proposal = { ...proposal, ...value }; tableResult = result; },
+        setFile: file => { sourceFile = file; },
         changeFile: () => { sourceFile = new window.File(['CHANGED'], 'test.dxf'); } };
 }
+
+test('compression locks submission and preserves the selected model and newly typed draft', async () => {
+    const f = fixture({ enabled: true, features: ['dxf_gzip'] });
+    try {
+        let finish;
+        f.window.CompressionStream = class {};
+        f.window.Response = class { blob() { return new Promise(resolve => { finish = resolve; }); } };
+        const file = new f.window.File(['x'.repeat(600000)], 'large.dxf');
+        file.stream = () => ({ pipeThrough: () => ({}) });
+        f.setFile(file);
+        f.setTableProposal({ edits: [] }, {});
+        await tick();
+        await f.submit();
+        assert.equal(f.get('form').querySelector('[type="submit"]').disabled, true);
+        f.get('mode').value = 'smart';
+        f.get('form').querySelector('textarea').value = 'Next draft';
+        f.get('form').dispatchEvent(new f.window.Event('submit', { cancelable: true }));
+        finish(new f.window.Blob(['compressed']));
+        await tick();
+        const previews = f.calls.filter(call => call.url.endsWith('/preview'));
+        assert.equal(previews.length, 1);
+        assert.equal(previews[0].options.body.get('mode'), 'fast');
+        assert.equal(previews[0].options.body.get('passcode'), null);
+        assert.deepEqual(JSON.parse(previews[0].options.body.get('resource_encodings')), ['gzip']);
+        assert.equal(f.get('form').querySelector('textarea').value, 'Next draft');
+    } finally { f.close(); }
+});
 
 test('cached DXF is reused for apply and a changed File is uploaded again', async () => {
     const f = fixture();

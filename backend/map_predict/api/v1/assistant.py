@@ -1,12 +1,14 @@
 """Anonymous, bounded assistant API, all uploads remain request-scoped."""
 from collections import defaultdict, deque
 import base64
+import gzip
 import io
 import json
 from pathlib import Path
 import tempfile
 import threading
 import time
+import zlib
 from urllib.parse import urlsplit
 
 from flask import Blueprint, current_app, jsonify, request, g, send_file
@@ -80,6 +82,7 @@ def status():
                                     'message': COOKIE_MESSAGE if availability == 'cookie_required' and is_argon(modes[key]['model']) else ''}
                                    for key in ('fast', 'smart')],
                          'retrieval': 'qdrant_keyword',
+                         'features': ['dxf_references', 'dxf_gzip'],
                          'model': current_app.config['ASSISTANT_MODEL'], 'apply': 'preview_required',
                          'service': current_app.config.get('ASSISTANT_ROLE', 'web'),
                          'collection': current_app.config.get('ASSISTANT_QDRANT_COLLECTION')
@@ -126,15 +129,20 @@ def execute(action):
             if not isinstance(ids, list) or not (0 if action == 'preview' else 1) <= len(ids) <= 5:
                 raise ValueError()
             refs = json.loads(options['resource_tokens']) if 'resource_tokens' in options else [None] * len(ids)
+            if len(options.get('resource_encodings', '')) > 256:
+                raise ValueError()
+            encodings = json.loads(options['resource_encodings']) if 'resource_encodings' in options else ['identity'] * len(ids)
             if (not isinstance(refs, list) or len(refs) != len(ids) or len(set(ids)) != len(ids)
-                    or len(files) != sum(ref is None for ref in refs)):
+                    or len(files) != sum(ref is None for ref in refs)
+                    or not isinstance(encodings, list) or len(encodings) != len(ids)
+                    or any(encoding not in ('identity', 'gzip') for encoding in encodings)):
                 raise ValueError()
             uploads = iter(files)
-            for source_id, ref in zip(ids, refs):
+            for source_id, ref, encoding in zip(ids, refs, encodings):
                 if not isinstance(source_id, str) or not 1 <= len(source_id) <= 100:
                     raise ValueError()
                 if ref is not None:
-                    if not isinstance(ref, str) or len(ref) > 4096:
+                    if not isinstance(ref, str) or len(ref) > 4096 or encoding != 'identity':
                         raise ValueError()
                     resources.append(assistant_files.resolve(ref, source_id, current_app.config))
                     continue
@@ -142,6 +150,12 @@ def execute(action):
                 if Path(item.filename or '').suffix.lower() != '.dxf':
                     raise ValueError()
                 content = item.read(assistant.MAX_FILE + 1)
+                if encoding == 'gzip' and len(content) <= assistant.MAX_FILE:
+                    try:
+                        with gzip.GzipFile(fileobj=io.BytesIO(content)) as stream:
+                            content = stream.read(assistant.MAX_FILE + 1)
+                    except (OSError, EOFError, zlib.error):
+                        raise ValueError('Invalid compressed DXF') from None
                 if not content or len(content) > assistant.MAX_FILE:
                     raise ValueError()
                 resources.append({'id': source_id, 'name': Path(item.filename).name, 'data': content})
@@ -204,6 +218,7 @@ def execute(action):
         current_app.logger.info('assistant_request %s', json.dumps({
             'request_id': g.request_id, 'action': action,
             'dxf_bytes': sum(len(resource['data']) for resource in resources) if resources else len(dxf),
+            'transport_bytes': request.content_length,
             'cached_files': sum('cache' in resource for resource in resources),
             'timings': result.get('timings', {})}, separators=(',', ':')))
         if action == 'export':
