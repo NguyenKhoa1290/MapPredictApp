@@ -46,6 +46,12 @@ describe('React portal shell', () => {
   it('loads the introduction through read-only APIs with three main destinations', async () => {
     const fetcher = mockAPI(); mount();
     expect(await screen.findByRole('heading', { name: /Hiểu không gian/ })).toBeTruthy();
+    const header = screen.getByRole('banner');
+    const footer = screen.getByRole('contentinfo');
+    expect(within(header).getByRole('link', { name: 'GeoPlan AI | Trang giới thiệu' }).textContent).toContain('GeoPlan AI');
+    expect(header.querySelector('.brand-mark img')?.getAttribute('src')).toBe('/static/image/logo%201.png');
+    expect(footer.querySelector('.brand-mark img')?.getAttribute('src')).toBe('/static/image/logo%202.png');
+    expect(document.title).toBe('Giới thiệu | GeoPlan AI');
     const nav = screen.getByRole('navigation', { name: 'Điều hướng chính' });
     expect(within(nav).getAllByRole('link')).toHaveLength(3);
     expect(within(nav).getByRole('link', { name: 'Giới thiệu' }).getAttribute('aria-current')).toBe('page');

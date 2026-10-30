@@ -38,7 +38,7 @@ export function Layout() {
     };
   }, [hideChrome]);
   useEffect(() => {
-    document.title = `${pathname.startsWith('/admin') ? 'Quản trị AI' : pathname.includes('/projects') ? 'Dự án' : pathname.startsWith('/assessment') ? 'Đánh giá quỹ đất' : 'Giới thiệu'} | Quỹ đất`;
+    document.title = `${pathname.startsWith('/admin') ? 'Quản trị AI' : pathname.includes('/projects') ? 'Dự án' : pathname.startsWith('/assessment') ? 'Đánh giá quỹ đất' : 'Giới thiệu'} | GeoPlan AI`;
     if (initial.current) { initial.current = false; return; }
     window.scrollTo({ top: 0, behavior: 'instant' });
     main.current?.focus({ preventScroll: true });
@@ -46,9 +46,9 @@ export function Layout() {
   return <>
     <a className="skip-link" href="#main">Đến nội dung chính</a>
     {!hideChrome ? <header className="site-header" ref={header}>
-      <Link className="brand" to={publicPath('/')} reloadDocument={adminHost} aria-label="Quỹ đất | Trang giới thiệu">
-        <svg width="35" height="35" viewBox="0 0 36 36" aria-hidden="true"><path d="m18 2 15 8.5v15L18 34 3 25.5v-15Z" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="m3 10.5 15 9 15-9M18 19.5V34M10.5 6.25l15 9v14M3 18l15 9 15-9" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
-        <span>{content?.brand || 'Quỹ đất'}<small>NGHIÊN CỨU & ỨNG DỤNG</small></span>
+      <Link className="brand" to={publicPath('/')} reloadDocument={adminHost} aria-label="GeoPlan AI | Trang giới thiệu">
+        <span className="brand-mark" aria-hidden="true"><img src="/static/image/logo%201.png" alt="" /></span>
+        <span>{content?.brand || 'GeoPlan AI'}<small>QUY HOẠCH & DỮ LIỆU KHÔNG GIAN</small></span>
       </Link>
       <nav aria-label="Điều hướng chính"><NavLink to={publicPath('/')} reloadDocument={adminHost} end>Giới thiệu</NavLink><NavLink to={publicPath('/projects')} reloadDocument={adminHost}>Dự án</NavLink><NavLink to={publicPath('/assessment')} reloadDocument={adminHost}>Đánh giá quỹ đất <span aria-hidden="true">↗</span></NavLink></nav>
     </header> : null}
@@ -60,6 +60,6 @@ export function Layout() {
           {!isAssessment ? <Outlet /> : null}
         </>}
     </main>
-    {!hideChrome ? <footer className="site-footer"><div className="container footer-content"><Link className="footer-brand" to={publicPath('/')} reloadDocument={adminHost}>Quỹ đất<span>NGHIÊN CỨU & ỨNG DỤNG</span></Link><Link className="text-link" to={publicPath('/')} reloadDocument={adminHost}><span aria-hidden="true">←</span> Về trang giới thiệu</Link></div></footer> : null}
+    {!hideChrome ? <footer className="site-footer"><div className="container footer-content"><Link className="footer-brand" to={publicPath('/')} reloadDocument={adminHost} aria-label="GeoPlan AI | Trang giới thiệu"><span className="brand-mark brand-mark--dark" aria-hidden="true"><img src="/static/image/logo%202.png" alt="" /></span><span className="footer-brand-copy">{content?.brand || 'GeoPlan AI'}<small>QUY HOẠCH & DỮ LIỆU KHÔNG GIAN</small></span></Link><Link className="text-link" to={publicPath('/')} reloadDocument={adminHost}><span aria-hidden="true">←</span> Về trang giới thiệu</Link></div></footer> : null}
   </>;
 }

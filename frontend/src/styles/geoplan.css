@@ -1,0 +1,109 @@
+/* GeoPlan AI identity and introduction page */
+.site-header { height: 88px; border-color: #e5ece8; }
+.brand { color: #103250; gap: 10px; font-size: 21px; line-height: 1.1; }
+.brand small { color: #6f827f; font-size: 9px; letter-spacing: .04em; margin-top: 6px; }
+.brand-mark { position: relative; display: inline-block; flex: 0 0 48px; width: 48px; height: 48px; overflow: hidden; }
+.brand-mark img { position: absolute; width: 122%; height: 122%; left: -11%; top: -11%; max-width: none; object-fit: contain; }
+.brand-mark--dark img { width: 150%; height: 150%; left: -25%; top: -25%; }
+.site-header nav a { color: #4f6464; }
+.site-header nav a[aria-current=page] { background: #e9f5f0; color: #118b6f; }
+
+.gp-hero { position: relative; overflow: hidden; background: #f3f7f4; }
+.gp-hero::before { content: ''; position: absolute; inset: 0 0 0 58%; pointer-events: none; opacity: .24; background-image: linear-gradient(#b5d0c3 1px, transparent 1px), linear-gradient(90deg, #b5d0c3 1px, transparent 1px); background-size: 48px 48px; mask-image: linear-gradient(90deg, transparent, #000); }
+.gp-hero-grid { position: relative; display: grid; grid-template-columns: .95fr 1.05fr; align-items: center; gap: clamp(40px, 5vw, 76px); padding-top: clamp(70px, 7vw, 108px); padding-bottom: 70px; }
+.gp-kicker, .gp-section-overline, .gp-section-label, .gp-hero-bottom { color: #178a6f; font-size: 11px; font-weight: 700; letter-spacing: .08em; line-height: 1.5; }
+.gp-kicker { display: flex; align-items: center; gap: 10px; }
+.gp-kicker > span:first-child { width: 7px; height: 7px; border-radius: 50%; background: #18a080; }
+.gp-kicker .gp-kicker-divider { width: 18px; height: 1px; background: #94b9aa; }
+.gp-hero h1 { margin-top: 24px; color: #102f49; font-size: clamp(42px, 4vw, 58px); letter-spacing: -.025em; line-height: 1.22; }
+.gp-hero h1 em { color: #148c70; }
+.gp-hero-description { margin-top: 23px; max-width: 430px; color: #536969; font-size: 16px; line-height: 1.8; }
+.gp-hero-actions { margin-top: 30px; }
+.gp-hero-actions .button { min-height: 52px; padding-inline: 20px; font-weight: 600; }
+.gp-hero-actions .primary { background: #138d70; }
+.gp-hero-actions .primary:hover { background: #08765c; }
+.gp-hero-actions .secondary { border-color: #bccfc5; background: transparent; color: #173c3c; }
+.gp-hero-actions .secondary:hover { background: #fff; }
+.gp-hero-note { display: flex; align-items: center; gap: 12px; margin-top: 34px; color: #78908a; font-size: 12px; }
+.gp-note-line { width: 24px; height: 1px; background: #8cb2a4; }
+.gp-hero-figure { position: relative; min-width: 0; margin: 0; aspect-ratio: 5 / 3; overflow: hidden; border: 1px solid #d2dfd6; border-radius: 12px; background: #d8e7dd; box-shadow: 0 22px 60px #153b3220; }
+.gp-hero-figure img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.gp-hero-figure figcaption { position: absolute; inset: auto 0 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 27px 21px 17px; background: linear-gradient(transparent, #0d263bd9); color: #fff; font-size: 10px; font-weight: 600; letter-spacing: .07em; }
+.gp-hero-figure figcaption span:first-child { display: flex; align-items: center; gap: 8px; }
+.gp-hero-figure figcaption span:last-child { color: #d9e9e4; }
+.gp-hero-figure figcaption i { width: 7px; height: 7px; border-radius: 50%; background: #45dbad; }
+.gp-hero-bottom { position: relative; display: flex; align-items: center; gap: 28px; min-height: 58px; border-top: 1px solid #dbe8df; color: #627d73; font-size: 10px; }
+.gp-bottom-caption { margin-left: auto; color: #83968e; font-size: 11px; font-weight: 400; letter-spacing: 0; }
+
+.gp-intro { padding-block: 95px; }
+.gp-section-label { display: flex; align-items: center; gap: 12px; color: #778d85; }
+.gp-section-label span { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #d7e5dc; border-radius: 50%; color: #168b70; }
+.gp-intro-content { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; margin-top: 34px; }
+.gp-section-overline { margin-bottom: 18px; }
+.gp-intro h2, .gp-section-heading h2, .gp-closing h2 { color: #10314c; font-size: clamp(30px, 2.8vw, 40px); letter-spacing: -.02em; line-height: 1.3; }
+.gp-intro .intro-prose { max-width: 520px; color: #546a66; font-size: 15px; line-height: 1.85; }
+.gp-intro .intro-prose p { line-height: 1.85; }
+
+.gp-vision { padding-block: 84px 90px; background: #eef5ef; }
+.gp-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; margin-bottom: 38px; }
+.gp-section-heading > p { color: #789087; font-size: 13px; text-align: right; }
+.gp-vision-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.gp-vision-grid article { min-height: 240px; padding: 26px; border: 1px solid #dae8de; border-radius: 10px; background: #fff; }
+.gp-vision-top { display: flex; justify-content: space-between; align-items: center; color: #159273; font-size: 12px; font-weight: 700; }
+.gp-vision-top span:last-child { color: #a2caba; font-size: 21px; font-weight: 400; }
+.gp-vision-grid h3 { margin-top: 31px; color: #17384d; font-size: 19px; }
+.gp-vision-grid p { margin-top: 13px; color: #61756e; font-size: 14px; line-height: 1.75; }
+.gp-projects { padding-block: 88px 96px; }
+.gp-projects .project-card { border-color: #dce8e2; box-shadow: 0 8px 26px #173e2e08; }
+.gp-projects .project-body h3 { color: #10314c; }
+
+.gp-closing { background: #12354a; color: #fff; }
+.gp-closing-inner { display: flex; align-items: center; justify-content: space-between; gap: 32px; padding-block: 65px; }
+.gp-closing .gp-section-overline { color: #70ddbb; }
+.gp-closing h2 { color: #fff; }
+.gp-closing-inner > div > p:last-child { margin-top: 15px; color: #bfd0cb; font-size: 14px; }
+.gp-closing-button { background: #e9fff5; border-color: #e9fff5; color: #0d604e; font-weight: 600; white-space: nowrap; }
+.gp-closing-button:hover { background: #ccf6e4; text-decoration: none; }
+.site-footer { background: #0d283b; color: #fff; border-color: #294655; }
+.footer-content { min-height: 72px; }
+.footer-brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; font-size: 21px; line-height: 1.1; }
+.footer-brand .brand-mark { display: inline-block; margin: 0; }
+.footer-brand .footer-brand-copy { display: block; margin: 0; color: #fff; font-size: 21px; font-weight: 600; }
+.footer-brand-copy small { display: block; margin-top: 7px; color: #a3bbb4; font-size: 9px; font-weight: 600; letter-spacing: .04em; }
+.site-footer .text-link { border-color: #69837e; color: #e3f2ea; }
+.site-footer .text-link:hover { border-color: #a8c5b7; background: #214554; color: #fff; }
+
+@media (max-width: 900px) {
+  .gp-hero-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .gp-hero h1 { font-size: 42px; }
+  .gp-intro-content { gap: 38px; }
+  .gp-vision-grid article { padding: 22px; }
+}
+@media (max-width: 760px) {
+  .site-header { height: auto; min-height: 78px; }
+  .brand { font-size: 20px; }
+  .brand small { font-size: 9px; }
+  .brand-mark { width: 42px; height: 42px; flex-basis: 42px; }
+  .gp-hero::before { inset: 30% 0 0 0; }
+  .gp-hero-grid { grid-template-columns: 1fr; gap: 38px; padding-top: 56px; padding-bottom: 35px; }
+  .gp-hero h1 { font-size: clamp(36px, 9vw, 46px); }
+  .gp-hero-description { font-size: 15px; }
+  .gp-hero-note { margin-top: 25px; }
+  .gp-hero-bottom { gap: 17px; flex-wrap: wrap; padding-block: 16px; }
+  .gp-bottom-caption { display: none; }
+  .gp-intro { padding-block: 65px; }
+  .gp-intro-content { grid-template-columns: 1fr; gap: 22px; margin-top: 25px; }
+  .gp-vision { padding-block: 64px; }
+  .gp-section-heading { align-items: flex-start; flex-direction: column; gap: 18px; margin-bottom: 28px; }
+  .gp-section-heading > p { text-align: left; }
+  .gp-vision-grid { grid-template-columns: 1fr; gap: 12px; }
+  .gp-vision-grid article { min-height: 0; }
+  .gp-vision-grid h3 { margin-top: 22px; }
+  .gp-projects { padding-block: 65px; }
+  .gp-closing-inner { align-items: flex-start; flex-direction: column; padding-block: 54px; }
+}
+@media (max-width: 390px) {
+  .gp-kicker { font-size: 10px; gap: 7px; }
+  .gp-hero-figure figcaption { font-size: 9px; gap: 8px; padding-inline: 14px; }
+  .gp-hero-actions .button { width: 100%; }
+}

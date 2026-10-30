@@ -896,3 +896,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Thay đúng wwwroot/image/hero.jpg, JPEG thực kích thước 1619 × 971 px, dung lượng 504.246 byte, giữ nguyên tham chiếu ảnh và giao diện
 - Lưu prompt ở docs/HERO_IMAGE_PROMPT.txt, cảnh quan và lớp quy hoạch chỉ mang tính minh họa
 
+## 2026-10-30 Thiết kế lại trang giới thiệu GeoPlan AI
+
+- Người dùng cung cấp hai biểu trưng PNG trong suốt, dùng logo 1 trên header nền sáng và logo 2 trên footer nền tối
+- Đổi thương hiệu thành GeoPlan AI trong nội dung công khai, header, footer và tiêu đề trình duyệt
+- Thiết kế lại trang giới thiệu với màu xanh đậm, xanh ngọc, ảnh góc nhìn không gian, phần giới thiệu, ba định hướng, bốn dự án và lời mời dùng công cụ
+- Giữ điều hướng đến trang dự án và công cụ đánh giá, không thay chức năng dự đoán hoặc bản đồ
+- Build và 43 kiểm thử frontend đạt, kiểm tra Chrome trên màn hình 1440 px và 390 px xác nhận hai logo và ảnh tải được, nút có đúng đích, không tràn ngang hoặc lỗi JavaScript
+

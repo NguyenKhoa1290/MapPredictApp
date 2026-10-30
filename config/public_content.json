@@ -1,7 +1,7 @@
 {
   "content_status": "draft",
-  "brand": "Quỹ đất",
-  "intro": "Đề tài hướng đến việc kết hợp dữ liệu tiêu chí, mô hình AI và bản đồ để hỗ trợ trình bày kết quả đánh giá quỹ đất theo quy hoạch chi tiết\n\nKhám phá các dự án có sẵn hoặc bắt đầu với dữ liệu của mình trong công cụ Đánh giá quỹ đất",
+  "brand": "GeoPlan AI",
+  "intro": "GeoPlan AI kết hợp dữ liệu tiêu chí, mô hình AI và bản đồ để hỗ trợ trình bày kết quả đánh giá quỹ đất theo quy hoạch chi tiết\n\nKhám phá các dự án có sẵn hoặc bắt đầu với dữ liệu của mình trong công cụ Đánh giá quỹ đất",
   "visions": [
     {
       "title": "Dữ liệu làm nền tảng",

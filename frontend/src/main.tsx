@@ -8,6 +8,7 @@ import './styles/typography.css';
 import './styles/layout.css';
 import './styles/buttons.css';
 import './styles/images.css';
+import './styles/geoplan.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode><BrowserRouter basename="/portal"><App /></BrowserRouter></StrictMode>,
