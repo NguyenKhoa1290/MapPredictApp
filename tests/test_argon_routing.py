@@ -66,7 +66,7 @@ class ArgonRoutingTests(unittest.TestCase):
         self.assertEqual(reply['accounts'][0]['rotated_at'], 95)
         self.assertEqual(reply['accounts'][0]['rotation_checked_at'], 99)
         self.assertEqual(reply['accounts'][0]['renewal_state'], 'renewed')
-        self.assertEqual(reply['maintenance'], {'poll_interval_seconds': 30, 'rotate_interval_seconds': 600, 'repair_cooldown_seconds': 300})
+        self.assertEqual(reply['maintenance'], {'poll_interval_seconds': 30, 'rotate_interval_seconds': 36000, 'repair_cooldown_seconds': 300})
         self.assertNotIn('verified-test-xsrf', json.dumps(reply))
         self.assertNotIn('private-cookie', json.dumps(reply))
         self.assertNotIn('model_headers', json.dumps(reply))

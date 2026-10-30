@@ -31,9 +31,9 @@ Thay mật khẩu làm phiên cũ mất hiệu lực
 
 ## Các chế độ chatbot
 
-Gia hạn phiên chạy trên service khi không có tab trình duyệt nào mở, kiểm tra mỗi 30 giây và xoay cookie mỗi 10 phút. Mốc `refresh_attempt_at` chỉ dành cho lần gọi RotateCookies, không bị thay đổi bởi kiểm tra trang thông thường. Cookie trả về từ RotateCookies được ghi ngay trước bước kiểm tra trang Gemini, đồng thời lưu các cookie mới từ RPC. Cookie bị Google xóa không được khôi phục từ bản cũ. Cập nhật cookie thủ công được ưu tiên hơn lượt gia hạn đang chạy.
+Gia hạn phiên chạy trên service khi không có tab trình duyệt nào mở, kiểm tra mỗi 30 giây và xoay cookie mỗi 10 giờ. Mốc `refresh_attempt_at` chỉ dành cho lần gọi RotateCookies, không bị thay đổi bởi kiểm tra trang thông thường. Cookie trả về từ RotateCookies được ghi ngay trước bước kiểm tra trang Gemini, đồng thời lưu các cookie mới từ RPC. Cookie bị Google xóa không được khôi phục từ bản cũ. Cập nhật cookie thủ công được ưu tiên hơn lượt gia hạn đang chạy.
 
-Đối chiếu `Tailieuthamkhao/gemini-agent/google_session.py` và `server_terminal.py`: bản tham khảo dùng RotateCookies, kiểm tra quota mỗi 30 giây và chu kỳ xoay 12 giờ. Bản triển khai dùng chu kỳ 10 phút theo yêu cầu người dùng. Có phản hồi HTTP 200 từ RotateCookies chưa đủ xác nhận đăng nhập, chỉ ghi thời điểm xoay thành công sau khi kiểm tra lại phiên Gemini.
+Đối chiếu `Tailieuthamkhao/gemini-agent/google_session.py` và `server_terminal.py`: bản tham khảo dùng RotateCookies, kiểm tra quota mỗi 30 giây và chu kỳ xoay 12 giờ. Bản triển khai dùng chu kỳ 10 giờ theo yêu cầu người dùng. Có phản hồi HTTP 200 từ RotateCookies chưa đủ xác nhận đăng nhập, chỉ ghi thời điểm xoay thành công sau khi kiểm tra lại phiên Gemini.
 
 Tham khảo cơ chế lưu cookie ngay sau RotateCookies trong [Gemini-API](https://github.com/HanaokaYuzu/Gemini-API/blob/master/src/gemini_webapi/utils/rotate_1psidts.py). Không thể đảm bảo Google không thu hồi phiên, khi Google không chấp nhận cookie sau cả bước gia hạn cần cập nhật cookie mới trong quản trị.
 
@@ -88,7 +88,7 @@ Các trường hợp chuyển tài khoản và hết quota đã kiểm thử b�
 
 ## Phiên Gemini
 
-Service gemini-session chạy liên tục, kiểm tra phiên và quota mỗi 30 giây và thử RotateCookies mỗi 10 phút
+Service gemini-session chạy liên tục, kiểm tra phiên và quota mỗi 30 giây và thử RotateCookies mỗi 10 giờ
 Giãn lần tự sửa phiên lỗi ít nhất 300 giây, dùng các mốc trong google_session.py và server_terminal.py của server tham khảo
 Trang quản trị đọc các mốc thời gian từ service và cập nhật trạng thái theo cùng chu kỳ, không làm mất bản nháp cấu hình đang nhập
 Cơ chế dựa trên google_session.py của dự án tham khảo, khóa file đã hỗ trợ Windows và Linux

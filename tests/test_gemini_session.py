@@ -52,7 +52,7 @@ class GeminiSessionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 manager.import_cookie(None)
 
-    def test_regular_page_checks_do_not_postpone_ten_minute_rotation(self):
+    def test_regular_page_checks_do_not_postpone_ten_hour_rotation(self):
         import httpx
         from gemini_web2api.google_session import GoogleSession
         with tempfile.TemporaryDirectory() as folder:
@@ -77,18 +77,18 @@ class GeminiSessionTests(unittest.TestCase):
                     yield c
             with patch.object(session, 'client', client):
                 # Each successful poll is only 30 seconds before the next one.
-                for now in range(1030, 1601, 30):
+                for now in (1030, 36940, 36970, 37000):
                     with patch('gemini_web2api.google_session.time.time', return_value=now):
                         session.maintain()
                         session.refresh()
             self.assertEqual(calls.count('/RotateCookies'), 1)
             settings = json.loads(path.read_text())
-            self.assertEqual(settings['session_rotated_at'], 1600)
-            self.assertEqual(settings['refresh_attempt_at'], 1600)
-            self.assertEqual(settings['session_cookie_renewed_at'], 1600)
+            self.assertEqual(settings['session_rotated_at'], 37000)
+            self.assertEqual(settings['refresh_attempt_at'], 37000)
+            self.assertEqual(settings['session_cookie_renewed_at'], 37000)
             self.assertEqual(settings['session_renewal_state'], 'renewed')
 
-    def test_sidcc_only_response_is_not_renewal_and_keeps_ten_minute_schedule(self):
+    def test_sidcc_only_response_is_not_renewal_and_keeps_ten_hour_schedule(self):
         import httpx
         from gemini_web2api.google_session import GoogleSession
         with tempfile.TemporaryDirectory() as folder:
@@ -111,17 +111,17 @@ class GeminiSessionTests(unittest.TestCase):
                 with httpx.Client(transport=httpx.MockTransport(handle), cookies=cookies) as c:
                     yield c
             with patch.object(session, 'client', client):
-                for now in (1600, 1630, 1900, 2199):
+                for now in (37000, 37030, 37300, 72999):
                     with patch('gemini_web2api.google_session.time.time', return_value=now):
                         session.maintain()
                         session.refresh()
                 self.assertEqual(len(rotations), 1)
                 settings = json.loads(path.read_text())
-                self.assertEqual(settings['session_rotation_checked_at'], 1600)
+                self.assertEqual(settings['session_rotation_checked_at'], 37000)
                 self.assertEqual(settings['session_renewal_state'], 'not_renewed')
                 self.assertNotIn('session_rotated_at', settings)
                 self.assertNotIn('session_cookie_renewed_at', settings)
-                with patch('gemini_web2api.google_session.time.time', return_value=2200):
+                with patch('gemini_web2api.google_session.time.time', return_value=73000):
                     session.maintain()
                 self.assertEqual(len(rotations), 2)
             self.assertIn('__Secure-1PSIDTS=old', cookie.read_text())

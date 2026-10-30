@@ -204,7 +204,7 @@ export function AiAdmin() {
       <div role="tabpanel" id="admin-panel-session" aria-labelledby="admin-tab-session" hidden={tab !== 'session'}>
       <section className="admin-card"><h2>Phiên Gemini</h2>
         {state.account_pool?.maintenance ? <p>Kiểm tra phiên và quota mỗi {state.account_pool.maintenance.poll_interval_seconds} giây<br />
-          Tự thử gia hạn mỗi {state.account_pool.maintenance.rotate_interval_seconds / 60} phút<br />
+          Tự thử gia hạn mỗi {state.account_pool.maintenance.rotate_interval_seconds / 3600} giờ<br />
           Giãn lần thử sửa phiên lỗi ít nhất {state.account_pool.maintenance.repair_cooldown_seconds / 60} phút</p> : <p>Chưa đọc được lịch gia hạn từ server</p>}
         <p className="admin-help">Thời gian lấy từ cấu hình service, việc gia hạn chạy cả khi không có người dùng chatbot</p>
         <p className="admin-help">Cập nhật cookie tại từng tài khoản trong tab Tài khoản Thông minh</p>

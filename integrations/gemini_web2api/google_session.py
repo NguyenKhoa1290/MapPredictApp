@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 import httpx
 from .session_audit import AUTH_COOKIES, error_type, session_event
 
-SESSION_ROTATE_INTERVAL = 10 * 60
+SESSION_ROTATE_INTERVAL = 10 * 60 * 60
 SESSION_REPAIR_COOLDOWN = 300
 SESSION_POLL_INTERVAL = 30
 

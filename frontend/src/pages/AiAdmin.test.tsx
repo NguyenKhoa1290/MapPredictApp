@@ -92,7 +92,7 @@ it('updates cookies on the chosen Gmail account and renews sessions without dupl
   const model = { label: 'Nhanh', model: 'test-fast', provider: 'gemini', url: '' };
   const pool = { accounts: [{ id: 'account-a', label: 'One', email: 'one@example.test', status: 'ready', renewal_state: 'not_renewed' },
     { id: 'account-b', label: 'Two', email: 'two@example.test', status: 'needs_login' }],
-    maintenance: { poll_interval_seconds: 30, rotate_interval_seconds: 600, repair_cooldown_seconds: 300 } };
+    maintenance: { poll_interval_seconds: 30, rotate_interval_seconds: 36000, repair_cooldown_seconds: 300 } };
   const data = { csrf: 'admin-csrf', settings: { models: { fast: model, smart: { ...model, label: 'Thông minh' } },
     embedding: { url: 'http://ai-embedding:11434', model: 'embedding' } }, gemini: { state: 'ready' }, account_pool: pool, services: ['gemini-session'] };
   const fetch = vi.fn().mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data }) });
@@ -116,7 +116,7 @@ it('updates cookies on the chosen Gmail account and renews sessions without dupl
   const panel = within(screen.getByRole('tabpanel'));
   expect(panel.queryByRole('textbox')).toBeNull();
   expect(panel.getByText(/Kiểm tra phiên và quota mỗi 30 giây/)).toBeTruthy();
-  expect(panel.getByText(/Tự thử gia hạn mỗi 10 phút/)).toBeTruthy();
+  expect(panel.getByText(/Tự thử gia hạn mỗi 10 giờ/)).toBeTruthy();
   expect(panel.getByText(/Google chưa cấp cookie thời hạn phiên mới/)).toBeTruthy();
   fetch.mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data: pool }) });
   fireEvent.click(panel.getByRole('button', { name: 'Gia hạn phiên' }));
