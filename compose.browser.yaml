@@ -18,9 +18,9 @@ services:
     shm_size: 32m
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
-    mem_limit: 256m
-    memswap_limit: 384m
-    cpus: 0.5
+    mem_limit: 384m
+    memswap_limit: 512m
+    cpus: 1
     pids_limit: 192
     logging:
       driver: json-file

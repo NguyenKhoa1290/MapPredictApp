@@ -8,7 +8,7 @@
 docker compose -f compose.yaml -f compose.vps.yaml -f compose.browser.yaml --profile gemini-browser up -d --build gemini-browser
 ```
 
-Giới hạn 256 MiB RAM, tổng RAM và swap tối đa 384 MiB, 0,5 CPU và 192 tiến trình hoặc luồng. Container không tự khởi động lại khi lỗi hoặc khi VPS khởi động lại trong giai đoạn thử. Profile nằm trong volume `gemini_browser_profile`, không xóa volume khi dừng thử
+Giới hạn 384 MiB RAM, tổng RAM và swap tối đa 512 MiB, 1 CPU và 192 tiến trình hoặc luồng. Phép thử đầu ở 256 MiB RAM và 128 MiB swap đã chạm trần swap, Gemini vẫn trắng và CDP timeout, do đó đã dừng container trước khi nâng giới hạn thử. Container không tự khởi động lại khi lỗi hoặc khi VPS khởi động lại trong giai đoạn thử. Profile nằm trong volume `gemini_browser_profile`, không xóa volume khi dừng thử
 
 Container chạy bằng UID 10001, filesystem chỉ đọc, bỏ Linux capabilities và không được cấp secret của ứng dụng. Chromium dùng `--no-sandbox` trong container đã giới hạn quyền, do đó không dùng browser này để duyệt các website không liên quan. Trình quản lý mật khẩu và đồng bộ Chrome bị tắt
 
