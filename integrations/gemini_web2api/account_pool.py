@@ -14,7 +14,7 @@ from .quota_guard import QuotaGuard, QuotaRejected
 
 ARGON = 'gemini-4-argon'
 FLASH = 'gemini-3.5-flash-lite'
-SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models')
+SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models', 'audit_config_path')
 
 
 class AccountPool:
@@ -106,10 +106,11 @@ class AccountPool:
             return self.snapshot()
 
     @contextmanager
-    def profile(self, settings):
+    def profile(self, settings, config_path=None):
         previous = {key: CONFIG[key] for key in SESSION_FIELDS if key in CONFIG}
         try:
             CONFIG.update({key: settings.get(key) for key in SESSION_FIELDS})
+            CONFIG['audit_config_path'] = config_path
             yield
         finally:
             for key in SESSION_FIELDS:
@@ -143,7 +144,7 @@ class AccountPool:
                     headers = (settings.get('model_headers') or {}).get(str(route.get('mode'))) if route else None
                     if not settings.get('model_available') or not route or not headers or not settings.get('xsrf_token'):
                         raise ValueError('Argon access not verified')
-                    with self.profile(settings):
+                    with self.profile(settings, path):
                         result = generate(route['mode'], route.get('think', 4))
                         if not isinstance(result, str) or not result.strip():
                             raise ValueError('Empty upstream response')
@@ -197,7 +198,7 @@ class AccountPool:
                     route = settings.get('extra_models', {}).get(FLASH)
                     if not route or str(route['mode']) not in settings.get('model_headers', {}) or not settings.get('xsrf_token'):
                         continue
-                    with self.profile(settings):
+                    with self.profile(settings, path):
                         previous = CONFIG.get('generation_deadline')
                         CONFIG['generation_deadline'] = deadline
                         try:

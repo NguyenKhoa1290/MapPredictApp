@@ -9,6 +9,7 @@ import uuid
 
 from .gemini_usage import UsageReader, UsageAuthError
 from .google_session import GoogleSession, atomic_text, cookie_pairs, header_cookie, private_lock, rpc_bodies, write_json
+from .session_audit import session_event, error_type
 
 SESSION_KEYS = ('auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models', 'email', 'model_available')
 
@@ -47,7 +48,9 @@ class AccountStore:
             atomic_text(profile_cookie, header_cookie(pairs))
             settings = {key: current[key] for key in SESSION_KEYS if key in current}
             settings.update(cookie_file=str(profile_cookie), label='Tài khoản 1')
+            settings['audit_generation'] = uuid.uuid4().hex[:12]
             write_json(profile, settings)
+            session_event('cookie_import', profile, settings)
             write_json(self.registry_path, {'accounts': [{'id': account_id, 'label': settings['label']}]})
 
     def add_cookie(self, text, label=None, auth_user=None, update_id=None):
@@ -88,11 +91,13 @@ class AccountStore:
             label = label or previous.get('label') or f'Tài khoản {len(registry["accounts"]) + 1}'
             # Old tokens/model identity must not be transferred to a newly pasted session.
             profile = {'label': label, 'auth_user': auth_user, 'cookie_file': str(profile_path.with_name('cookie.txt'))}
+            profile['audit_generation'] = uuid.uuid4().hex[:12]
             # Identity was checked above, or the cookie digest is unchanged.
             if previous.get('email'):
                 profile['email'] = previous['email']
             atomic_text(profile_path.with_name('cookie.txt'), header_cookie(pairs))
             write_json(profile_path, profile)
+            session_event('cookie_import', profile_path, profile)
             if not update_id:
                 registry['accounts'].append({'id': account_id, 'label': label})
             else:
@@ -150,6 +155,8 @@ class AccountStore:
     def scan_one(self, entry, discover=False):
         account_id = entry['id']
         result = {'id': account_id, 'label': entry['label'], 'usage': None, 'status': 'unavailable', 'email': None}
+        config = {}
+        failure = None
         try:
             path = self.path(account_id)
             config = json.loads(path.read_text(encoding='utf-8'))
@@ -169,10 +176,13 @@ class AccountStore:
                 result['status'] = 'exhausted'
             else:
                 result['status'] = 'ready'
-        except UsageAuthError:
+        except UsageAuthError as error:
             result['status'] = 'needs_login'
-        except Exception:
+            failure = error_type(error)
+        except Exception as error:
             result['status'] = 'unavailable'
+            failure = error_type(error)
+        session_event('account_scan', self.path(account_id), config, state=result['status'], error_type=failure, throttle=300)
         return result
 
     def scan(self, discover=False):

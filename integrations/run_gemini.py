@@ -14,6 +14,7 @@ from gemini_web2api.gemini import generate
 from gemini_web2api.tools import messages_to_prompt
 from gemini_web2api.google_session import SESSION_POLL_INTERVAL
 from gemini_web2api.models import thinking_depth
+from gemini_web2api.session_audit import emit, session_event, error_type
 
 token = Path('/run/secrets/assistant_key').read_text().strip()
 CONFIG.update(host='0.0.0.0', port=8081, api_keys=[token], cookie_file=None,
@@ -114,13 +115,29 @@ class ManagedGeminiHandler(GeminiHandler):
 
 
 if __name__ == '__main__':
+    from gemini_web2api.google_session import maintenance_policy
+    emit('service_start', **maintenance_policy())
+    try:
+        audit_accounts = pool.store.registry()['accounts']
+    except Exception as error:
+        emit('maintenance_error', error_type=error_type(error))
+        audit_accounts = []
+    for entry in audit_accounts:
+        try:
+            path = pool.store.path(entry['id'])
+            session_event('baseline', path, json.loads(path.read_text(encoding='utf-8')))
+        except Exception as error:
+            emit('maintenance_error', error_type=error_type(error))
     manager.start()
     def maintain_accounts():
         while True:
+            started = time.monotonic()
+            emit('maintenance_tick', throttle=300)
             try:
                 pool.scan(discover=False)
-            except Exception:
-                pass
+                emit('maintenance_complete', elapsed_ms=(time.monotonic() - started) * 1000, throttle=300)
+            except Exception as error:
+                emit('maintenance_error', error_type=error_type(error))
             time.sleep(SESSION_POLL_INTERVAL)
     threading.Thread(target=maintain_accounts, name='argon-account-maintenance', daemon=True).start()
     ThreadedServer(('0.0.0.0', 8081), ManagedGeminiHandler).serve_forever()

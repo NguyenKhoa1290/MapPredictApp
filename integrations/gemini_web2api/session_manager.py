@@ -3,9 +3,11 @@ import json
 from pathlib import Path
 import threading
 import time
+import uuid
 
 from .config import CONFIG
 from .google_session import GoogleSession, UsageAuthError, cookie_pairs, header_cookie, write_json, atomic_text, SESSION_POLL_INTERVAL, maintenance_policy
+from .session_audit import session_event
 
 
 class SessionManager:
@@ -69,7 +71,9 @@ class SessionManager:
         with self.lock:
             atomic_text(self.cookie, header_cookie(pairs))
             write_json(self.path, {'cookie_file': str(self.cookie), 'auth_user': account,
+                                  'audit_generation': uuid.uuid4().hex[:12],
                                   'session_maintenance_started_at': time.time()})
+            session_event('cookie_import', self.path, json.loads(self.path.read_text(encoding='utf-8')))
             self.session = GoogleSession(self.path)
             self.activate()
             return self.refresh()

@@ -46,6 +46,7 @@ obj/
 *.p12
 *.log
 /logs/
+**/diagnostics/session.jsonl*
 /data/
 /uploads/
 /instance/

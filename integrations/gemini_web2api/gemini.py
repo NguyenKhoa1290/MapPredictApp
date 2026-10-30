@@ -18,6 +18,7 @@ except ImportError:
     HAS_HTTPX = False
 
 from .config import CONFIG
+from .session_audit import AUTH_COOKIES, emit, error_type
 
 _ssl_ctx = None
 _cookie_cache = {"str": "", "sapisid": None, "identity": None}
@@ -260,6 +261,8 @@ def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None
 
     last_err = None
     for attempt in range(CONFIG["retry_attempts"]):
+        started = time.monotonic()
+        emit('generation_start', CONFIG.get('audit_config_path'), endpoint='generate')
         try:
             deadline = CONFIG.get('generation_deadline')
             timeout = CONFIG['request_timeout_sec']
@@ -276,6 +279,17 @@ def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None
                 resp = opener.open(req, timeout=timeout)
             else:
                 resp = urllib.request.urlopen(req, context=ctx, timeout=timeout)
+            received = []
+            try:
+                values = resp.headers.get_all('Set-Cookie', [])
+                if isinstance(values, (list, tuple)):
+                    received = [item.split('=', 1)[0].strip() for item in values
+                                if isinstance(item, str) and item.split('=', 1)[0].strip() in AUTH_COOKIES]
+            except Exception:
+                pass  # Diagnostics must never change generation behavior.
+            emit('generation_response', CONFIG.get('audit_config_path'), endpoint='generate',
+                 status=getattr(resp, 'status', None), received_auth_cookies=received,
+                 elapsed_ms=(time.monotonic() - started) * 1000)
             raw = read_response(resp, deadline).decode("utf-8", errors="replace")
             if metadata is not None:
                 metadata.clear()
@@ -295,9 +309,16 @@ def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None
                                 metadata['applied_level'] = value[59]
                     except (ValueError, TypeError, IndexError, KeyError):
                         continue
-            return extract_response_text(raw)
+            answer = extract_response_text(raw)
+            emit('generation_complete', CONFIG.get('audit_config_path'), endpoint='generate',
+                 has_answer=isinstance(answer, str) and bool(answer.strip()),
+                 elapsed_ms=(time.monotonic() - started) * 1000)
+            return answer
         except Exception as e:
             last_err = e
+            emit('generation_error', CONFIG.get('audit_config_path'), endpoint='generate',
+                 error_type=error_type(e), status=getattr(e, 'code', None),
+                 elapsed_ms=(time.monotonic() - started) * 1000)
             if attempt < CONFIG["retry_attempts"] - 1:
                 log(f"Retry {attempt+1}/{CONFIG['retry_attempts']}: {e}")
                 time.sleep(CONFIG["retry_delay_sec"])
