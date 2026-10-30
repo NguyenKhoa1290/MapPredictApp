@@ -819,3 +819,15 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Đã triển khai lên VPS, kiểm tra bằng Chrome trong context riêng trên website thật, dự đoán một dòng thử trả HTTP 200 và Y=2, multipart chatbot khớp bảng kết quả, reload vẫn giữ CSV kết quả đúng, file gốc không đổi
 - Trong phép kiểm tra trình duyệt chỉ chặn phản hồi chatbot để không gọi LLM, vẫn kiểm tra dữ liệu thực được gửi từ trang và chạy mô hình dự đoán thực trên VPS
 
+## 2026-10-30 Log chẩn đoán mất phiên Gemini
+
+- Theo yêu cầu người dùng, thêm JSONL trong volume gemini_session tại /var/lib/gemini-session/diagnostics/session.jsonl, xoay mỗi 2 MiB và giữ 4 bản cũ, tổng khoảng 10 MiB
+- Ghi khởi động và nhịp bảo trì, mốc kiểm tra, thời điểm đến hạn và xoay thành công, cooldown, HTTP và độ trễ ở trang Gemini, RotateCookies, quota, phát hiện model và gọi model
+- Phân biệt chuyển hướng đăng nhập, thiếu XSRF, không khớp danh tính, RPC từ chối dưới HTTP 200, lỗi mạng và xung đột khi lưu cookie
+- Mỗi lần nhập cookie có mã ngẫu nhiên mới để đối chiếu, không tạo mã này từ giá trị cookie, mỗi tiến trình có run_id riêng
+- Chỉ ghi trường và giá trị trong danh sách cho phép, không ghi cookie, token, email, mật khẩu, prompt, câu trả lời hoặc nội dung file, lỗi ghi log không thay đổi hoạt động phiên
+- 5 kiểm thử log, 7 kiểm thử phiên, 23 kiểm thử định tuyến đạt, CI Windows, Linux và Docker đều đạt sau khi sửa phân bổ kiểm thử adapter riêng và bổ sung module migration bị thiếu trong image web
+- Đã triển khai qua CI/CD, bộ cập nhật VPS xác nhận revision c3a81bc1, service Gemini healthy và log đã có 53 bản ghi ở lần kiểm tra đầu, file có quyền 600, kiểm tra không tìm thấy các giá trị cookie, XSRF và email đang lưu trong nội dung log
+- Log đầu ghi nhận trang Gemini thiếu XSRF và các lần sửa phiên đang chờ cooldown, chưa đủ kết luận nguyên nhân gốc, log tiếp tục ghi cho lần xảy ra tiếp theo
+- Đã kiểm tra hai tài khoản có danh tính và bộ cookie khác nhau, không phải hai bản sao của cùng một phiên
+
