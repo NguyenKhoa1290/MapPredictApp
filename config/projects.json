@@ -1,8 +1,8 @@
 {
   "projects": [
-    {"id": "hcm", "name": "Đánh giá quy hoạch chi tiết cho thành phố Hồ Chí Minh", "region": "TP Hồ Chí Minh", "kind": "map", "category": "BẢN ĐỒ DỰ ÁN", "index": "01", "variant": 0, "status": "preview"},
-    {"id": "bac-kan", "name": "Đánh giá quy hoạch chi tiết cho thành phố Bắc Kạn", "region": "TP Bắc Kạn", "kind": "map", "category": "BẢN ĐỒ DỰ ÁN", "index": "02", "variant": 1, "status": "preview"},
-    {"id": "phu-quoc", "name": "Đánh giá quy hoạch chi tiết cho thành phố Phú Quốc", "region": "TP Phú Quốc", "kind": "map", "category": "BẢN ĐỒ DỰ ÁN", "index": "03", "variant": 2, "status": "preview"},
+    {"id": "hcm", "name": "Đánh giá quy hoạch chi tiết cho thành phố Hồ Chí Minh", "region": "Thành phố Hồ Chí Minh", "kind": "map", "category": "BẢN ĐỒ DỰ ÁN", "index": "01", "variant": 0, "status": "preview"},
+    {"id": "bac-kan", "name": "Đánh giá quy hoạch chi tiết cho thành phố Bắc Kạn", "region": "Thành phố Bắc Kạn", "kind": "map", "category": "BẢN ĐỒ DỰ ÁN", "index": "02", "variant": 1, "status": "preview"},
+    {"id": "phu-quoc", "name": "Đánh giá quy hoạch chi tiết cho thành phố Phú Quốc", "region": "Thành phố Phú Quốc", "kind": "map", "category": "BẢN ĐỒ DỰ ÁN", "index": "03", "variant": 2, "status": "preview"},
     {"id": "ai", "name": "Ứng dụng AI vào đánh giá quỹ đất dựa trên quy hoạch chi tiết", "region": "Ứng dụng AI vào đánh giá quỹ đất", "kind": "ai", "category": "CÔNG CỤ NGHIÊN CỨU", "index": "04", "variant": 3, "status": "shell"}
   ]
 }

@@ -101,7 +101,7 @@ describe('React portal shell', () => {
 
   it('opens a dedicated map page, loads existing labels and offers only viewer controls', async () => {
     const fetcher = mockAPI(); mount('/projects/phu-quoc');
-    expect(await screen.findByRole('heading', { name: 'TP Phú Quốc' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Thành phố Phú Quốc' })).toBeTruthy();
     expect(await screen.findByLabelText('Bản đồ lưới dự án')).toBeTruthy();
     expect(screen.queryByRole('banner')).toBeNull();
     expect(screen.queryByRole('contentinfo')).toBeNull();
