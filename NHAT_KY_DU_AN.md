@@ -809,3 +809,13 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Kết thúc thử với browser ở trạng thái dừng và restart=no, chưa đăng nhập tài khoản hay chuyển chatbot sang browser, giữ profile và cấu hình để tiếp tục khi có thêm tài nguyên
 - Đã kiểm tra cấu hình Compose hợp lệ, không thay cấu hình chạy mặc định của web, Qdrant hoặc tunnel
 
+## 2026-10-30 Đồng bộ bảng dự đoán với dữ liệu gửi chatbot
+
+- Phát hiện context của trợ lý luôn ưu tiên file CSV đầu vào dù bảng đang hiển thị kết quả dự đoán mới
+- Giữ một File CSV tương ứng mỗi bảng kết quả đang hiển thị, gửi đủ các dòng và cột Y, giữ nguyên file đầu vào cho tác vụ dự đoán tiếp theo
+- Giữ ổn định định danh File trong một phiên bản kết quả để kiểm tra nguồn khi xem trước và áp dụng không bị sai, tạo lại CSV khi dự đoán mới hoặc khôi phục workspace
+- Kiểm thử thực hiện thao tác dự đoán rồi bắt multipart gửi chatbot với 205 dòng, xác nhận đủ dòng cuối dù bảng chỉ hiển thị 200 dòng, kiểm tra kết quả mới và khôi phục bảng
+- 27 kiểm thử trợ lý và 6 kiểm thử ghép lưới, khôi phục workspace đều đạt
+- Đã triển khai lên VPS, kiểm tra bằng Chrome trong context riêng trên website thật, dự đoán một dòng thử trả HTTP 200 và Y=2, multipart chatbot khớp bảng kết quả, reload vẫn giữ CSV kết quả đúng, file gốc không đổi
+- Trong phép kiểm tra trình duyệt chỉ chặn phản hồi chatbot để không gọi LLM, vẫn kiểm tra dữ liệu thực được gửi từ trang và chạy mô hình dự đoán thực trên VPS
+
