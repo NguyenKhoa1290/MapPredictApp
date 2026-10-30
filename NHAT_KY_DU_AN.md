@@ -890,3 +890,9 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu prompt đầy đủ ở docs/PROJECT_AI_IMAGE_PROMPT.txt, cảnh quan và màu phân tích chỉ mang tính minh họa
 - Giữ nguyên các chỉnh sửa chưa commit của người dùng ở giao diện trợ lý và ba ảnh dự án còn lại
 
+## 2026-10-30 Ảnh Góc nhìn không gian
+
+- Tạo ảnh bằng image_gen cho phần Góc nhìn không gian trên trang giới thiệu, cảnh quan đô thị Việt Nam với sông, địa hình, ranh ô đất và lớp quy hoạch, đồng bộ phong cách ảnh công cụ AI
+- Thay đúng wwwroot/image/hero.jpg, JPEG thực kích thước 1619 × 971 px, dung lượng 504.246 byte, giữ nguyên tham chiếu ảnh và giao diện
+- Lưu prompt ở docs/HERO_IMAGE_PROMPT.txt, cảnh quan và lớp quy hoạch chỉ mang tính minh họa
+

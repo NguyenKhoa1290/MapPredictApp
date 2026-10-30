@@ -20,3 +20,6 @@ Lưu ảnh đúng định dạng JPEG, không chỉ đổi đuôi file PNG thàn
 Ảnh project-ai.jpg được tạo bằng AI cho chủ đề đánh giá quỹ đất, GIS và quy hoạch
 Cảnh quan, ranh ô đất và màu phân tích trong ảnh là minh họa, không phải dữ liệu khảo sát thực tế
 Prompt tạo ảnh được lưu tại docs/PROJECT_AI_IMAGE_PROMPT.txt
+
+Ảnh hero.jpg được tạo bằng AI cho phần Góc nhìn không gian, đồng bộ phong cách với ảnh công cụ AI
+Prompt được lưu tại docs/HERO_IMAGE_PROMPT.txt, cảnh quan và các lớp quy hoạch mang tính minh họa
