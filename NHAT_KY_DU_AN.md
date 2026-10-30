@@ -881,4 +881,5 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Tại lần kiểm tra sau triển khai, một tài khoản ready và tài khoản còn lại needs_login với renewal_state=not_renewed, đã yêu cầu người dùng cập nhật cookie Firefox cho tài khoản còn lại
 - Theo dõi đến chu kỳ tự động tiếp theo, lúc 20:17:40 giờ Việt Nam log mới ghi rotation_cookie_renewed với auth_cookie_renewed=true rồi rotation_success sau khi xác thực Gemini, cấu hình tài khoản có renewal_state=renewed và session_cookie_renewed_at thực tế, lần kế tiếp được lên lịch sau 600 giây
 - Tài khoản còn lại vẫn not_renewed và đang chờ người dùng cập nhật cookie, không coi tài khoản đó đã được khôi phục
+- Sau khi người dùng báo đã cập nhật tài khoản còn lại, thử gia hạn trên đúng hồ sơ vừa nhập nhận PSIDTS mới và xác thực trang Gemini thành công, trạng thái nội bộ xác nhận cả hai tài khoản ready, renewal_state=renewed và có mốc cookie đổi thực sự, lịch tự động vẫn là 600 giây
 
