@@ -786,3 +786,15 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - 23 kiểm thử định tuyến đạt, đã triển khai service Gemini lên VPS
 - Gọi trực tiếp Flash-Lite trên VPS trả HTTP 200 và nội dung OK sau 2,27 giây, đây là phép thử ngắn, chưa phải thời gian toàn bộ thao tác CSV hoặc DXF
 
+## 2026-10-30 Sửa lịch gia hạn và lưu cookie Gemini
+
+- Đối chiếu google_session.py, server_terminal.py và refresh_auth.py trong Tailieuthamkhao/gemini-agent, giữ chu kỳ xoay 10 phút theo yêu cầu thay vì 12 giờ của bản tham khảo
+- Phát hiện kiểm tra trang thông thường cũng ghi refresh_attempt_at, có thể liên tục hoãn lịch xoay do thời gian chờ sửa phiên, sửa để chỉ cập nhật mốc này khi thực sự gọi RotateCookies
+- Lưu cookie nhận được ngay sau RotateCookies, trước khi kiểm tra trang Gemini, lưu cả cookie trả về từ RPC và không khôi phục cookie Google đã xóa
+- Gia hạn tài khoản độc lập với việc phát hiện model, luồng phiên cũ cũng tuân thủ chờ sửa lỗi ít nhất 5 phút, cập nhật cookie thủ công vẫn được ưu tiên
+- Hai cookie cũ không còn xác thực được, người dùng đã cập nhật một tài khoản trong admin, không ghi nội dung cookie vào nhật ký
+- Trên VPS đã quan sát một chu kỳ tự động khoảng 10 phút 27 giây, không gửi chat và không bấm gia hạn trong thời gian theo dõi, sau đó tài khoản vẫn ready
+- Sau triển khai cuối, Flash-Lite trả HTTP 200 với nội dung OK trong 3,22 giây, đây là phép thử câu hỏi ngắn
+- 203 kiểm thử tổng đạt trước hai ca bổ sung cuối, sau đó 7 kiểm thử phiên và 23 kiểm thử định tuyến đều đạt, 7 kiểm thử phiên cũng đạt trong container Linux, đã thêm kiểm thử phiên vào CI image Gemini
+- Tài khoản cũ còn lại vẫn cần cập nhật cookie, chưa xác nhận độ bền phiên qua nhiều giờ, không coi gia hạn thành công một lần là bảo đảm Google không thu hồi phiên
+
