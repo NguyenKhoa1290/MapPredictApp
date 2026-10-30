@@ -35,6 +35,7 @@
 !tools/docker_stack.py
 !tools/configure_cloudflare.py
 !tools/install_linux.py
+!tools/import_qdrant_migration.py
 !frontend/
 !frontend/package.json
 !frontend/package-lock.json

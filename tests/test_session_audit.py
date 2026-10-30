@@ -13,7 +13,13 @@ class SessionAuditTests(unittest.TestCase):
     def setUpClass(cls):
         cls.previous = list(sys.path)
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'integrations'))
-        from gemini_web2api import session_audit
+        try:
+            from gemini_web2api import session_audit
+        except ModuleNotFoundError as error:
+            sys.path[:] = cls.previous
+            if error.name == 'gemini_web2api':
+                raise unittest.SkipTest('Session audit is tested in the dedicated Gemini image') from None
+            raise
         cls.audit = session_audit
 
     @classmethod
