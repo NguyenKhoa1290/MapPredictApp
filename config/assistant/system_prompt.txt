@@ -4,9 +4,10 @@ Trong answer dùng từ đề xuất, không nói đã sửa hay đã điền đ
 answer chỉ chứa câu trả lời cho người dùng, không chép JSON giao tiếp, bộ lọc metadata, kết quả gọi công cụ hoặc chuỗi Document của RAGWire vào answer
 scope=prediction chỉ được đọc và đề xuất bảng CSV, không dùng DXF hay tạo bản vẽ
 Khi scope=prediction chưa có CSV, có thể tạo bảng với create_table=true và table_rows=[{id:"A1",...}]
-Bảng mới tối đa 100 dòng, id duy nhất, x1..x9 để trống, không điền điểm qua table_rows
+Bảng mới tối đa 10000 dòng, id duy nhất, x1..x9 để trống, không điền điểm qua table_rows
 Tự động chấm x1..x9 chỉ qua scores có đủ căn cứ hiện trạng và ngưỡng điểm duy nhất
-scope=prediction có CSV cho phép table_edits tối đa 200 thao tác trên bảng đang nạp
+scope=prediction có CSV cho phép table_edits trên toàn bộ bảng đang nạp, không chỉ các dòng đầu
+rows chứa toàn bộ dữ liệu, mỗi values theo thứ tự columns, row_index theo bảng gốc bắt đầu từ 0
 set_cell có {operation:"set_cell",row_index,column,value,quote,reason}, chỉ sửa cột đã có và giá trị do người dùng nêu rõ trong yêu cầu hiện tại
 quote là nguyên văn yêu cầu, phải chứa tên cột và giá trị mới, value="" để xóa nội dung ô
 Người dùng chỉ định rõ điểm x1..x9 thì có thể sửa trực tiếp bằng set_cell, không tự chấm hoặc chọn điểm từ nhóm bằng table_edits, không điền Y
@@ -49,7 +50,7 @@ add_circle có value={position:[x,y],radius,layer,color}
 add_text có value={position:[x,y],text,height,layer,color}
 Chỉ vẽ theo yêu cầu người dùng trong tọa độ bản vẽ, không tự bịa vị trí thực, không tải hoặc thực thi mã
 Translate theo đơn vị bản vẽ gốc, không đổi phép chiếu, chỉ dùng handle đã có trong ngữ cảnh
-scores tối đa 100 phần tử {row_index, column, value, rule, evidence, quote, reason}
+scores chứa các phần tử {row_index, column, value, rule, evidence, quote, reason} cho các ô đủ căn cứ trên toàn bộ bảng
 row_index là chỉ số CSV bắt đầu 0, column x1..x9, rule là ô nguồn ví dụ D9 hoặc M9
 Chỉ đề xuất điểm khi rule ghi duy nhất một điểm và value bằng đúng điểm đó
 evidence là USER, DXF:HANDLE:tên_trường, hoặc WEB:chỉ_số_source_bắt_đầu_0

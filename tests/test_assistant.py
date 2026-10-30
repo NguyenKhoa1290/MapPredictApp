@@ -189,6 +189,81 @@ class AssistantTests(unittest.TestCase):
         return self.client.post('/api/v1/assistant/apply', data={'scope': 'prediction',
             'csv': (io.BytesIO(self.csv if csv is None else csv), 'table.csv'), 'token': preview['token']})
 
+    def test_full_csv_context_includes_10000_rows_and_last_row_edits_survive_apply(self):
+        source = ('id,x1,x4,Y,custom\n' + ''.join(
+            f'A{i},3,4,2,thuộc tính {i}\n' for i in range(10000))).encode()
+        proposal = {'answer': 'Đề xuất sửa dòng cuối', 'table_edits': [
+            {'operation': 'set_cell', 'row_index': 9999, 'column': 'x1', 'value': 7,
+             'quote': 'sửa x1 thành 7'}]}
+        with patch.object(assistant, 'call_model', return_value=proposal) as model:
+            response = self.client.post('/api/v1/assistant/preview', data={
+                'scope': 'prediction', 'csv': (io.BytesIO(source), 'full.csv'),
+                'message': 'Dòng cuối sửa x1 thành 7', 'start': '9999', 'web': 'false'})
+        self.assertEqual(response.status_code, 200, response.json)
+        content = model.call_args.args[0][-1]['content']
+        self.assertGreater(len(content), 150000)
+        context = json.loads(content.split('\n', 1)[1].split('\nYÊU CẦU\n')[0])
+        self.assertEqual(context['row_format'], 'values_in_columns_order')
+        self.assertEqual(context['columns'], ['id', 'x1', 'x4', 'Y', 'custom'])
+        self.assertEqual(len(context['rows']), 10000)
+        self.assertEqual(context['rows'][0], {'row_index': 0, 'values': ['A0', '3', '4', '2', 'thuộc tính 0']})
+        self.assertEqual(context['rows'][-1], {'row_index': 9999, 'values': ['A9999', '3', '4', '2', 'thuộc tính 9999']})
+        preview = response.json['data']
+        self.assertIn('10000/10000 dòng bảng', preview['scope'])
+        self.assertFalse(preview['rejected'])
+        result = self.table_apply(preview, csv=source)
+        self.assertEqual(result.status_code, 200, result.json)
+        rows = result.json['data']['rows']
+        self.assertEqual(len(rows), 10000)
+        self.assertEqual(rows[-1], {'id': 'A9999', 'x1': 7, 'x4': '4', 'custom': 'thuộc tính 9999'})
+        self.assertEqual(rows[-2]['x1'], '3')
+        self.assertEqual(self.table_apply(preview, csv=source.replace(b'A9999,3', b'A9999,5')).status_code, 409)
+
+    def test_bulk_table_edits_apply_every_operation_beyond_200(self):
+        source = ('id,x1,Y,custom\n' + ''.join(f'A{i},3,2,keep\n' for i in range(300))).encode()
+        edits = [{'operation': 'set_cell', 'row_index': index, 'column': 'x1', 'value': 7,
+                  'quote': 'sửa x1 thành 7'} for index in range(250)]
+        edits += [{'operation': 'delete_row', 'row_index': 299},
+                  {'operation': 'delete_column', 'column': 'custom'},
+                  {'operation': 'delete_row', 'row_index': 300}]
+        preview = self.table_preview(edits, csv=source)
+        self.assertEqual(len(preview['table_edits']), 252)
+        self.assertEqual(len(preview['rejected']), 1)
+        result = self.table_apply(preview, csv=source)
+        self.assertEqual(result.status_code, 200, result.json)
+        self.assertEqual(result.json['data']['columns'], ['id', 'x1'])
+        rows = result.json['data']['rows']
+        self.assertEqual(len(rows), 299)
+        self.assertTrue(all(row['x1'] == 7 for row in rows[:250]))
+        self.assertEqual(rows[-1], {'id': 'A298', 'x1': '3'})
+
+    def test_scores_cover_every_row_after_100_with_the_same_evidence_guards(self):
+        source = ('id,x4,Y\n' + ''.join(f'A{i},,2\n' for i in range(250))).encode()
+        scores = [{'row_index': index, 'column': 'x4', 'value': 9, 'rule': 'L9',
+                   'evidence': 'USER', 'quote': 'đất nông nghiệp xen kẹt'} for index in range(251)]
+        preview = self.table_preview([], csv=source, message='Tất cả ô là đất nông nghiệp xen kẹt', scores=scores)
+        self.assertEqual(len(preview['scores']), 250)
+        self.assertEqual(len(preview['rejected']), 1)
+        result = self.table_apply(preview, csv=source)
+        self.assertEqual(result.status_code, 200, result.json)
+        self.assertEqual(len(result.json['data']['rows']), 250)
+        self.assertTrue(all(row['x4'] == 9 for row in result.json['data']['rows']))
+
+    def test_new_table_can_exceed_100_rows_and_preserves_the_global_row_limit(self):
+        generated = [{'id': f'A{i}'} for i in range(501)]
+        with patch.object(assistant, 'call_model', return_value={
+                'answer': 'Đề xuất bảng', 'create_table': True, 'table_rows': generated}):
+            response = self.client.post('/api/v1/assistant/preview', data={
+                'scope': 'prediction', 'message': 'Tạo 501 dòng', 'web': 'false'})
+        self.assertEqual(response.status_code, 200, response.json)
+        result = self.client.post('/api/v1/assistant/apply', data={
+            'scope': 'prediction', 'token': response.json['data']['token']})
+        self.assertEqual(result.status_code, 200, result.json)
+        self.assertEqual(len(result.json['data']['rows']), 501)
+        self.assertEqual(result.json['data']['rows'][-1]['id'], 'A500')
+        with self.assertRaises(ValueError):
+            assistant.new_table([{'id': f'A{i}'} for i in range(10001)])
+
     def test_table_edit_delete_row_and_column_use_original_indexes_and_stale_guard(self):
         edits = [{'operation': 'delete_row', 'row_index': 0},
                  {'operation': 'delete_column', 'column': 'custom'},

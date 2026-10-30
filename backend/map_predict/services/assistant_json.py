@@ -7,6 +7,7 @@ LIST_FIELDS = ('sources', 'edits', 'scores', 'table_edits')
 INTERNAL_FIELDS = {'filters', 'metadata', 'page_content', 'documents', 'tool_calls',
                    'so_tieu_chi', 'ten_tieu_chi', 'phan_nhom', 'loai_noi_dung',
                    'phuong_phap_gis', 'nhom_diem', 'source_ref', 'record_id'}
+MAX_MODEL_OUTPUT_CHARS = 8 * 1024 * 1024
 
 
 def text_content(value):
@@ -25,10 +26,10 @@ def text_content(value):
     raise ValueError('Provider content must be text')
 
 
-def json_object(value):
+def json_object(value, *, max_chars=500000):
     """Allow fences/prose, but reject ambiguous objects and malformed JSON."""
     text = text_content(value).strip().lstrip('\ufeff')
-    if len(text) > 500000:
+    if len(text) > max_chars:
         raise ValueError('Model output exceeded limit')
     fence = re.fullmatch(r'```(?:json)?\s*([\s\S]*?)\s*```', text, re.I)
     if fence:
@@ -66,7 +67,7 @@ def json_object(value):
 
 
 def model_result(content):
-    result = json_object(content)
+    result = json_object(content, max_chars=MAX_MODEL_OUTPUT_CHARS)
     for _ in range(3):
         if 'answer' in result:
             break
@@ -74,12 +75,12 @@ def model_result(content):
                        if key in result and isinstance(result[key], (str, dict))), None)
         if nested is None:
             break
-        result = nested if isinstance(nested, dict) else json_object(nested)
+        result = nested if isinstance(nested, dict) else json_object(nested, max_chars=MAX_MODEL_OUTPUT_CHARS)
     # Some compatible providers serialize the whole result inside answer.
     answer = result.get('answer')
     if isinstance(answer, str) and answer.lstrip().startswith(('{', '```json')):
         try:
-            nested = json_object(answer)
+            nested = json_object(answer, max_chars=MAX_MODEL_OUTPUT_CHARS)
         except ValueError:
             nested = None
         if isinstance(nested, dict) and isinstance(nested.get('answer'), str):

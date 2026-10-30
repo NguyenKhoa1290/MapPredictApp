@@ -34,7 +34,7 @@ Ví dụ yêu cầu
 
 ## Phạm vi và quy tắc
 
-- Đọc modelspace, tóm tắt tối đa 300 đối tượng theo bộ lọc layer và 100 dòng bảng từ vị trí đã chọn, hiển thị số đã gửi trên tổng số
+- Đọc modelspace, tóm tắt tối đa 300 đối tượng theo bộ lọc layer và toàn bộ CSV đã nạp, tối đa 10.000 dòng và 5 MiB, hiển thị số đã gửi trên tổng số
 - Chỉ hỗ trợ thay màu ACI, đổi layer, sửa TEXT/MTEXT và dịch đối tượng hiện có theo handle đã gửi
 - Không chạy mã hoặc lệnh shell do LLM sinh, không sửa block/xref hoặc đổi CRS bằng suy đoán
 - Khi không có CSV, chỉ tạo dòng từ ô lưới có một mã được xác định theo thuật toán DXF hiện tại, không gán theo thứ tự hình học

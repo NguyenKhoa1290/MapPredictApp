@@ -1,10 +1,21 @@
 import json
 import unittest
 
-from backend.map_predict.services.assistant_json import model_result
+from backend.map_predict.services.assistant_json import model_result, json_object
 
 
 class AssistantJsonTests(unittest.TestCase):
+    def test_bulk_action_output_is_not_cut_at_the_old_500000_character_limit(self):
+        edits = [{'operation': 'delete_row', 'row_index': i, 'reason': 'r' * 90} for i in range(5000)]
+        raw = json.dumps({'answer': 'Bulk changes', 'table_edits': edits})
+        self.assertGreater(len(raw), 500000)
+        self.assertEqual(model_result(raw)['table_edits'][-1]['row_index'], 4999)
+        self.assertEqual(len(model_result(raw)['table_edits']), 5000)
+        with self.assertRaises(ValueError):
+            json_object(raw)  # Filter parsing keeps its separate, smaller bound.
+        with self.assertRaises(ValueError):
+            model_result(raw[:-1])  # Never turn a partial response into a partial plan.
+
     def test_normal_fenced_prose_and_double_encoded_results_are_decoded(self):
         result = {'answer': 'Nội dung trả lời', 'table_edits': [], 'scores': [], 'edits': []}
         raw = json.dumps(result, ensure_ascii=False)

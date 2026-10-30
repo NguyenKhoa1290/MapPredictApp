@@ -5,7 +5,14 @@ import re
 from .assistant_sources import normalized
 
 
-def validate_edit(edit, rows, columns, start, message, accepted, scores):
+def edit_state(scores):
+    return {'deleted_columns': set(), 'deleted_rows': set(),
+            'cells': {(item['row_index'], item['column']) for item in scores},
+            'edited_rows': {item['row_index'] for item in scores},
+            'edited_columns': {item['column'] for item in scores}}
+
+
+def validate_edit(edit, rows, columns, message, state):
     if not isinstance(edit, dict):
         raise ValueError('Thao tác bảng phải là một đối tượng')
     operation = edit.get('operation')
@@ -18,21 +25,20 @@ def validate_edit(edit, rows, columns, start, message, accepted, scores):
             raise ValueError('Cột chưa có trong bảng đang nạp')
         clean['column'] = column
     if operation != 'delete_column':
-        if type(index) is not int or not start <= index < min(len(rows), start + 100):
-            raise ValueError('Dòng nằm ngoài phạm vi đang xem xét')
+        if type(index) is not int or not 0 <= index < len(rows):
+            raise ValueError('Dòng không tồn tại trong bảng đang nạp')
         clean['row_index'] = index
-    deleted_columns = {item['column'] for item in accepted if item['operation'] == 'delete_column'}
-    deleted_rows = {item['row_index'] for item in accepted if item['operation'] == 'delete_row'}
-    cells = {(item['row_index'], item['column']) for item in accepted if item['operation'] == 'set_cell'}
-    cells.update((item['row_index'], item['column']) for item in scores)
+    deleted_columns = state['deleted_columns']
+    deleted_rows = state['deleted_rows']
+    cells = state['cells']
     if operation == 'delete_column':
-        if column in deleted_columns or any(key == column for _, key in cells):
+        if column in deleted_columns or column in state['edited_columns']:
             raise ValueError('Xóa cột trùng hoặc xung đột với sửa ô, chấm điểm')
         if not [key for key in columns if key not in deleted_columns | {column, 'Y'}]:
             raise ValueError('Bảng cần giữ lại ít nhất một cột')
         clean['affected_rows'] = len(rows)
     elif operation == 'delete_row':
-        if index in deleted_rows or any(row == index for row, _ in cells):
+        if index in deleted_rows or index in state['edited_rows']:
             raise ValueError('Xóa hàng trùng hoặc xung đột với sửa ô, chấm điểm')
         clean['before'] = rows[index]
     else:
@@ -57,6 +63,14 @@ def validate_edit(edit, rows, columns, start, message, accepted, scores):
         if literal and not re.search(r'(?<!\w)' + re.escape(normalized(literal)) + r'(?!\w)', normalized(quote)):
             raise ValueError('Giá trị sửa phải được người dùng nêu rõ, chấm điểm tự động phải dùng scores')
         clean.update(value=value, before=rows[index].get(column, ''), quote=quote[:4000])
+    if operation == 'delete_column':
+        deleted_columns.add(column)
+    elif operation == 'delete_row':
+        deleted_rows.add(index)
+    else:
+        cells.add((index, column))
+        state['edited_rows'].add(index)
+        state['edited_columns'].add(column)
     return clean
 
 

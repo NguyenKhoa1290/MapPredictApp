@@ -4,7 +4,7 @@
 
 - Chatbot tự lấy dữ liệu của tab đang mở, không có bộ chọn file, layer hoặc phạm vi dòng trong chat
 - Tab dự đoán chỉ gửi CSV đầu vào đang nạp, hoặc CSV kết quả nếu không có đầu vào
-- Khi chưa có CSV, Agent có thể đề xuất tạo bảng tối đa 100 dòng, mã ô đất duy nhất, điểm chỉ được điền qua quy tắc đã kiểm chứng
+- Khi chưa có CSV, Agent có thể đề xuất tạo bảng tối đa 10.000 dòng, mã ô đất duy nhất, điểm chỉ được điền qua quy tắc đã kiểm chứng
 - Tab bản đồ chỉ gửi DXF đã nạp, hiển thị theo hệ tọa độ hiện tại và đang tích bật, không gửi CSV
 - Mỗi lượt tối đa 5 DXF, tổng 300 đối tượng mẫu, handle có tiền tố theo file để không lẫn đối tượng giữa các bản vẽ
 - Không có DXF được bật vẫn trò chuyện bình thường, không cấp quyền sửa, vẽ hoặc tạo file DXF

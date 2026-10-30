@@ -849,3 +849,14 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Chrome kiểm tra trên tên miền thật đã nhận JavaScript mới có gzip và tham chiếu, kiểm tra riêng trong image AI đang triển khai trả HTTP 200 cho lượt gzip và lượt dùng lại, xác nhận byte gốc không đổi và summary_cache_hits=1
 - Các phép đo hiệu năng dùng phản hồi model thử để tách thời gian xử lý, không gửi bản vẽ người dùng cho Gemini trong quá trình đo, thời gian model thật và mạng của người dùng vẫn ảnh hưởng thời gian chờ tổng
 
+## 2026-10-30 Bỏ cắt 100 dòng CSV trong ngữ cảnh AI
+
+- Người dùng yêu cầu AI xử lý toàn bộ CSV, phát hiện backend chỉ gửi 100 dòng dù trình duyệt tải file đầy đủ, bước xác thực cũng chỉ cho sửa và chấm điểm trong 100 dòng đó
+- Gửi toàn bộ dòng và cột, tối đa 10.000 dòng và 5 MiB theo giới hạn nạp sẵn có, bao gồm Y và các cột tùy chỉnh, không dùng start để bỏ qua dòng đầu
+- Dùng columns chung và values theo thứ tự cột, giữ row_index gốc, giảm phần lặp tên cột khi gửi đủ bảng
+- Bỏ cắt danh sách 100 điểm và 200 thao tác, cho tạo bảng mới đến 10.000 dòng, giữ kiểm tra nguồn điểm, giá trị người dùng nêu rõ, xung đột, chữ ký và hash file gốc trước áp dụng
+- Lập chỉ mục các thao tác đã nhận để tránh quét lặp danh sách khi xử lý nhiều dòng, vẫn loại Y sau khi thay dữ liệu đầu vào
+- Tách ngân sách ngữ cảnh CSV khỏi ngưỡng tóm tắt DXF, tăng giới hạn đọc phản hồi model và giải mã JSON, phản hồi quá lớn hoặc chưa hoàn chỉnh phải báo lỗi thay vì cắt lấy một phần
+- 226 kiểm thử backend đạt, trong đó xác nhận gửi đủ 10.000 dòng, sửa dòng cuối, áp dụng 250 điểm và 252 thao tác, từ chối file đã thay đổi, tạo bảng 501 dòng và giải mã đề xuất dài hơn 500.000 ký tự
+- Giữ nguyên các chỉnh sửa giao diện chưa commit của người dùng trong wwwroot/assistant.css và wwwroot/assistant.js, không đưa các phần đó vào thay đổi CSV
+

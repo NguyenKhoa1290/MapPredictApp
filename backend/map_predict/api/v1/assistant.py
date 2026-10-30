@@ -82,7 +82,7 @@ def status():
                                     'message': COOKIE_MESSAGE if availability == 'cookie_required' and is_argon(modes[key]['model']) else ''}
                                    for key in ('fast', 'smart')],
                          'retrieval': 'qdrant_keyword',
-                         'features': ['dxf_references', 'dxf_gzip'],
+                         'features': ['dxf_references', 'dxf_gzip', 'full_csv'],
                          'model': current_app.config['ASSISTANT_MODEL'], 'apply': 'preview_required',
                          'service': current_app.config.get('ASSISTANT_ROLE', 'web'),
                          'collection': current_app.config.get('ASSISTANT_QDRANT_COLLECTION')
@@ -176,12 +176,11 @@ def execute(action):
         if not 1 <= len(options.get('message', '').strip()) <= 4000:
             raise PredictionError('MESSAGE_REQUIRED', 'Nhập yêu cầu từ 1 đến 4000 ký tự', 400)
         try:
-            options['start'] = max(1, min(10000, int(options.get('start', '1'))))
             options['history'] = json.loads(options.get('history', '[]'))
             if not isinstance(options['history'], list) or len(options['history']) > 20:
                 raise ValueError()
         except (ValueError, TypeError):
-            raise PredictionError('INVALID_CONTEXT', 'Phạm vi dòng hoặc hội thoại không hợp lệ', 400)
+            raise PredictionError('INVALID_CONTEXT', 'Hội thoại không hợp lệ', 400)
         if len(options.get('layer', '')) > 100 or len(options.get('history', [])) > 20:
             raise PredictionError('INVALID_CONTEXT', 'Ngữ cảnh vượt giới hạn', 400)
     if not BUSY.acquire(blocking=False):

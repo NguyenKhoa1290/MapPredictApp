@@ -21,15 +21,17 @@ from .knowledge import retrieve
 
 EPHEMERAL_KEY = secrets.token_hex(32)
 MAX_FILE = 12 * 1024 * 1024
+MAX_TABLE_ROWS = 10000
+MAX_MODEL_RESPONSE_BYTES = 16 * 1024 * 1024
 PROMPT = '''Bạn là trợ lý GIS của công cụ Đánh giá quỹ đất, trả lời tiếng Việt
 Chỉ trả một JSON object có answer, sources, edits, scores, table_edits, create_table, chưa tự áp dụng thay đổi
 Trong answer dùng từ đề xuất, không nói đã sửa hay đã điền điểm trước khi người dùng áp dụng
 answer chỉ chứa câu trả lời cho người dùng, không chép JSON giao tiếp, bộ lọc metadata, kết quả gọi công cụ hoặc chuỗi Document của RAGWire vào answer
 scope=prediction chỉ được đọc và đề xuất bảng CSV, không dùng DXF hay tạo bản vẽ
 Khi scope=prediction chưa có CSV, có thể tạo bảng với create_table=true và table_rows=[{id:"A1",...}]
-Bảng mới tối đa 100 dòng, id duy nhất, x1..x9 để trống, không điền điểm qua table_rows
+Bảng mới tối đa 10000 dòng, id duy nhất, x1..x9 để trống, không điền điểm qua table_rows
 Tự động chấm x1..x9 chỉ qua scores có đủ căn cứ hiện trạng và ngưỡng điểm duy nhất
-scope=prediction có CSV cho phép table_edits tối đa 200 thao tác trên bảng đang nạp
+scope=prediction có CSV cho phép table_edits trên toàn bộ bảng đang nạp, không chỉ các dòng đầu
 set_cell có {operation:"set_cell",row_index,column,value,quote,reason}, chỉ sửa cột đã có và giá trị do người dùng nêu rõ trong yêu cầu hiện tại
 quote là nguyên văn yêu cầu, phải chứa tên cột và giá trị mới, value="" để xóa nội dung ô
 Người dùng chỉ định rõ điểm x1..x9 thì có thể sửa trực tiếp bằng set_cell, không tự chấm hoặc chọn điểm từ nhóm bằng table_edits, không điền Y
@@ -73,7 +75,7 @@ add_circle có value={position:[x,y],radius,layer,color}
 add_text có value={position:[x,y],text,height,layer,color}
 Chỉ vẽ theo yêu cầu người dùng trong tọa độ bản vẽ, không tự bịa vị trí thực, không tải hoặc thực thi mã
 Translate theo đơn vị bản vẽ gốc, không đổi phép chiếu, chỉ dùng handle đã có trong ngữ cảnh
-scores tối đa 100 phần tử {row_index, column, value, rule, evidence, quote, reason}
+scores chứa các phần tử {row_index, column, value, rule, evidence, quote, reason} cho các ô đủ căn cứ trên toàn bộ bảng
 row_index là chỉ số CSV bắt đầu 0, column x1..x9, rule là ô nguồn ví dụ D9 hoặc M9
 Chỉ đề xuất điểm khi rule ghi duy nhất một điểm và value bằng đúng điểm đó
 evidence là USER, DXF:HANDLE:tên_trường, hoặc WEB:chỉ_số_source_bắt_đầu_0
@@ -217,7 +219,10 @@ def call_model(messages, config, *, response_kind='assistant'):
     try:
         with build_opener(ProxyHandler({})).open(Request(base + '/chat/completions', data=body,
                                                        headers=headers), timeout=config.get('ASSISTANT_CALL_TIMEOUT', 150)) as response:
-            payload = json.loads(response.read(500_001))
+            response_body = response.read(MAX_MODEL_RESPONSE_BYTES + 1)
+            if len(response_body) > MAX_MODEL_RESPONSE_BYTES:
+                raise ValueError('Model response exceeded limit, no partial proposal accepted')
+            payload = json.loads(response_body)
         from .assistant_json import model_result, json_object
         content = payload['choices'][0]['message']['content']
         return json_object(content) if response_kind == 'filters' else model_result(content)
@@ -323,8 +328,8 @@ def valid_drawing(edit):
 
 
 def new_table(value):
-    if not isinstance(value, list) or not 1 <= len(value) <= 100:
-        raise ValueError('Bảng mới cần từ 1 đến 100 dòng có mã ô đất')
+    if not isinstance(value, list) or not 1 <= len(value) <= MAX_TABLE_ROWS:
+        raise ValueError('Bảng mới cần từ 1 đến 10000 dòng có mã ô đất')
     output, ids = [], set()
     for row in value:
         if not isinstance(row, dict) or len(row) > 32:
@@ -398,21 +403,24 @@ def preview(path, dxf, csv, options, config, resources=None):
             rubric += '\nQDRANT:' + record['id'] + '\n' + record['content'] + '\n'
             for key, rule in rules(record['content']).items():
                 catalog[key] = {**rule, 'qdrant_id': record['id']}
-    start = max(0, int(options.get('start', 1)) - 1)
-    selected = [{'row_index': index, 'data': row} for index, row in enumerate(rows[start:start + 100], start)]
     columns = read_csv(csv, 10000, allow_empty=True, with_columns=True)[1] if csv else list(dict.fromkeys(key for row in rows for key in row))
+    # Column names are sent once, including all custom fields and prediction Y.
+    # Positional values avoid repeating long column names for every CSV row.
+    selected = [{'row_index': index, 'values': [row.get(column, '') for column in columns]}
+                for index, row in enumerate(rows)]
     context = {'scope': options.get('scope', 'legacy'), 'dxf': summary, 'rows': selected, 'row_count': len(rows),
-               'columns': columns,
+               'columns': columns, 'row_format': 'values_in_columns_order',
                'source_crs': options.get('crs', ''), 'web_search': options.get('web') == 'true'}
     prompt_file = config.get('ASSISTANT_PROMPT')
     instructions = Path(prompt_file).read_text(encoding='utf-8-sig') if prompt_file else PROMPT
     system = instructions + '\nTÀI LIỆU THAM KHẢO\n' + rubric
     system += '\nDXF: đối chiếu handle_prefix trong dxf.files để biết handle thuộc source_id nào, giữ nguyên handle có tiền tố file khi đề xuất sửa.'
+    system += '\nCSV: rows chứa TOÀN BỘ bảng đang nạp, mỗi rows[i].values theo đúng thứ tự columns, row_index là chỉ số gốc bắt đầu từ 0. Đọc đủ mọi dòng, không chỉ 100 dòng đầu. scores và table_edits có thể đề xuất cho toàn bộ bảng theo yêu cầu, không giới hạn 100 điểm hoặc 200 thao tác, vẫn phải đủ căn cứ và không trùng hoặc xung đột.'
     system += '\nKẾT THÚC TÀI LIỆU. Trả JSON đúng schema, row_index và điểm/màu value là số nguyên, rule là mã ô như L9, không phải cả mô tả. Chưa áp dụng bất kỳ thay đổi nào.'
     system += '\nTách nguồn tiêu chí và hiện trạng: rule lấy từ Qdrant, còn evidence=USER/DXF/WEB cùng quote nguyên văn phải chứng minh hiện trạng của ô đất. Không dùng mô tả ngưỡng Qdrant làm bằng chứng hiện trạng. Nếu người dùng cung cấp hiện trạng thì evidence=USER và quote là một đoạn nguyên văn trong yêu cầu của họ.'
     request_context = json.dumps(context, ensure_ascii=False, separators=(',', ':'))
-    if len(request_context) > 150_000:
-        raise PredictionError('CONTEXT_TOO_LARGE', 'Phạm vi dữ liệu quá lớn, chọn layer hoặc nhóm dòng nhỏ hơn')
+    if len(request_context) > (32 * 1024 * 1024 if csv else 150_000):
+        raise PredictionError('CONTEXT_TOO_LARGE', 'Ngữ cảnh vượt giới hạn xử lý, dữ liệu chưa được cắt hoặc thay đổi')
     history = options.get('history', [])[-6:]
     messages = [{'role': 'system', 'content': system}]
     messages += [{'role': row['role'], 'content': str(row['content'])[:4000]} for row in history
@@ -456,13 +464,13 @@ def preview(path, dxf, csv, options, config, resources=None):
             actions.append(action)
         except (ValueError, TypeError, AttributeError, KeyError) as error:
             rejected.append(str(error))
-    for proposal in (result.get('scores') or [])[:100]:
+    for proposal in result.get('scores') or []:
         try:
             if options.get('scope') == 'map':
                 raise ValueError('Tab bản đồ không chỉnh bảng CSV')
             index, column, value = exact_integer(proposal['row_index']), proposal['column'], exact_integer(proposal['value'])
-            if not start <= index < min(len(rows), start + 100):
-                raise ValueError('Dòng nằm ngoài phạm vi đang xem xét')
+            if not 0 <= index < len(rows):
+                raise ValueError('Dòng không tồn tại trong bảng đang nạp')
             reference = str(proposal.get('rule', '')).replace('sửa ngày 1509!', '').strip(' `').upper()
             rule = catalog.get(reference)
             if not rule or rule['column'] != column or len(rule['points']) != 1 or rule['points'][0] != value:
@@ -495,13 +503,14 @@ def preview(path, dxf, csv, options, config, resources=None):
         except (TypeError, KeyError, IndexError, AttributeError):
             rejected.append('Đề xuất điểm thiếu căn cứ, sai phạm vi hoặc chỉ có nhóm điểm')
     create_table = result.get('create_table') is True and not csv and bool(rows) and options.get('scope') != 'map'
-    from .assistant_tables import validate_edit
+    from .assistant_tables import validate_edit, edit_state
     table_edits = []
-    for edit in (result.get('table_edits') or [])[:200]:
+    state = edit_state(scores)
+    for edit in result.get('table_edits') or []:
         try:
             if options.get('scope') != 'prediction' or not csv:
                 raise ValueError('Sửa bảng chỉ dùng CSV đã nạp trong tab dự đoán')
-            table_edits.append(validate_edit(edit, rows, columns, start, message, table_edits, scores))
+            table_edits.append(validate_edit(edit, rows, columns, message, state))
         except (ValueError, TypeError, KeyError) as error:
             rejected.append(str(error))
     plan = {'hash': file_hash(dxf, csv), 'edits': actions, 'scores': scores, 'create_table': create_table,
