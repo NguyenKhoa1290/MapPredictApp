@@ -871,6 +871,14 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Người dùng xác nhận cookie từ Chrome/Edge, đối chiếu mã server tham khảo cho thấy cùng giao thức RotateCookies, tài liệu Gemini WebAPI có ghi nhận cookie Chromium ràng buộc thiết bị chỉ sống vài giờ, đây là khả năng phù hợp với log chứ chưa chứng minh nguyên nhân nội bộ Google
 - Sửa để phân biệt đổi cookie thời hạn phiên, kiểm tra gia hạn và xác thực trang Gemini, không dùng mốc thành công cũ làm bằng chứng đổi PSIDTS, giữ lịch thử 10 phút và cooldown sửa phiên lỗi
 - Trang quản trị hiển thị trạng thái Google chưa cấp cookie thời hạn phiên mới, lịch 10 phút và các mốc kiểm tra, hướng dẫn dùng phiên Firefox mới khi vẫn bị đăng xuất
-- Đã yêu cầu người dùng cập nhật cookie từ phiên Firefox mới qua trang quản trị, không gửi cookie trong chat, chưa có phiên mới để xác nhận khôi phục đăng nhập
+- Người dùng đã cập nhật cookie mới qua trang quản trị theo hướng dẫn dùng phiên Firefox mới, thử gia hạn một lần trên đúng tài khoản vừa cập nhật nhận cả PSIDTS 1P và 3P mới, xác thực trang Gemini thành công
+- Lượt chat thử thực tế qua website trả HTTP 200 với answer OK, không tạo bảng hoặc đề xuất thay đổi dữ liệu, lần thử đầu trả ACCOUNTS_BUSY rồi lần thử sau thành công, không coi trạng thái bận là lỗi cookie
+- Kết quả xác nhận khôi phục tức thời và đổi cookie gia hạn thực sự, chưa đủ khẳng định độ ổn định sau nhiều giờ
 - 229 kiểm thử backend, 5 kiểm thử giao diện quản trị và build TypeScript đạt, gồm tình huống HTTP 200 chỉ đổi SIDCC nhưng trang còn xác thực, giữ nhịp thử 10 phút, không dùng mốc gia hạn cũ làm bằng chứng và không ghi bí mật trong log
+- Sửa phân bổ kiểm thử HTTPX mới để chỉ chạy khi có dependency Gemini, image web không cần thêm HTTPX, kiểm thử vẫn chạy trong image Gemini chuyên dụng
+- CI Windows, Linux, Docker và đóng gói đã đạt, bộ cập nhật tự động triển khai revision 635a0fb7 lên VPS, các service có healthcheck healthy và tunnel chạy
+- Kiểm tra Chrome ở trang quản trị thật đăng nhập thành công, lịch đọc từ service là 600 giây, có các mốc kiểm tra gia hạn và cookie thời hạn phiên đổi thực sự, kết thúc đăng xuất riêng phiên quản trị dùng để thử
+- Tại lần kiểm tra sau triển khai, một tài khoản ready và tài khoản còn lại needs_login với renewal_state=not_renewed, đã yêu cầu người dùng cập nhật cookie Firefox cho tài khoản còn lại
+- Theo dõi đến chu kỳ tự động tiếp theo, lúc 20:17:40 giờ Việt Nam log mới ghi rotation_cookie_renewed với auth_cookie_renewed=true rồi rotation_success sau khi xác thực Gemini, cấu hình tài khoản có renewal_state=renewed và session_cookie_renewed_at thực tế, lần kế tiếp được lên lịch sau 600 giây
+- Tài khoản còn lại vẫn not_renewed và đang chờ người dùng cập nhật cookie, không coi tài khoản đó đã được khôi phục
 
