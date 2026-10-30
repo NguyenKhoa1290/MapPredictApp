@@ -29,7 +29,14 @@ def private_response(response):
 
 @assistant_api.errorhandler(PredictionError)
 def failed(error):
-    return jsonify(error={'code': error.code, 'message': str(error)}, request_id=g.request_id), error.status
+    return jsonify(error={'code': error.code, 'message': str(error)}, request_id=g.request_id,
+                   resource_cache=cached_references()), error.status
+
+
+def cached_references():
+    age = max(0, time.monotonic() - getattr(g, 'assistant_refs_at', time.monotonic()))
+    return [{**ref, 'expires_in': max(0, int(ref['expires_in'] - age))}
+            for ref in getattr(g, 'assistant_refs', [])]
 
 
 @assistant_api.before_request
@@ -166,6 +173,15 @@ def execute(action):
     if not BUSY.acquire(blocking=False):
         raise PredictionError('ASSISTANT_BUSY', 'Chatbot đang xử lý một yêu cầu, hãy thử lại sau', 429)
     try:
+        g.assistant_refs_at = time.monotonic()
+        g.assistant_refs = []
+        for resource in resources:
+            try:
+                reference = resource.get('cache') or assistant_files.store(resource, current_app.config)
+                if reference:
+                    g.assistant_refs.append(reference)
+            except OSError:
+                pass  # Upload reuse must not depend on the model completing successfully.
         with tempfile.TemporaryDirectory(prefix='map-assistant-') as folder:
             path = Path(folder) / 'drawing.dxf'
             if resources:
@@ -184,15 +200,7 @@ def execute(action):
                     raise
                 raise PredictionError('INVALID_DRAWING', 'DXF hoặc đề xuất không hợp lệ, dữ liệu chưa thay đổi') from error
         if resources:
-            references = []
-            for resource in resources:
-                try:
-                    reference = resource.get('cache') or assistant_files.store(resource, current_app.config)
-                    if reference:
-                        references.append(reference)
-                except OSError:
-                    pass  # Caching is optional; a successful edit must still be returned.
-            result['resource_cache'] = references
+            result['resource_cache'] = cached_references()
         current_app.logger.info('assistant_request %s', json.dumps({
             'request_id': g.request_id, 'action': action,
             'dxf_bytes': sum(len(resource['data']) for resource in resources) if resources else len(dxf),

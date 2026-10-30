@@ -163,3 +163,21 @@ class AssistantFileTests(unittest.TestCase):
         output = ezdxf.read(io.StringIO(base64.b64decode(result.json['data']['dxfs'][0]['dxf']).decode()))
         self.assertEqual(output.entitydb[second_entity.dxf.handle].dxf.color, 4)
         self.assertEqual(assistant_files.resolve(ref['token'], 'file-a', self.config)['data'], first)
+
+    def test_model_failure_still_returns_only_the_callers_upload_reference(self):
+        raw, _ = self.drawing()
+        client = create_app(self.config).test_client()
+        with patch.object(assistant, 'call_model', side_effect=PredictionError('ASSISTANT_UNAVAILABLE', 'Model unavailable', 503)):
+            failed = client.post('/api/v1/assistant/preview', data={'scope': 'map', 'resource_ids': '["file-a"]',
+                'dxf': (io.BytesIO(raw), 'drawing.dxf'), 'message': 'Describe drawing', 'web': 'false'})
+        self.assertEqual(failed.status_code, 503, failed.json)
+        ref = failed.json['resource_cache'][0]['token']
+        with patch.object(assistant, 'call_model', return_value={'answer': 'Recovered'}):
+            retry = client.post('/api/v1/assistant/preview', data={'scope': 'map', 'resource_ids': '["file-a"]',
+                'resource_tokens': json.dumps([ref]), 'message': 'Describe drawing', 'web': 'false'})
+        self.assertEqual(retry.status_code, 200, retry.json)
+        with patch.object(assistant, 'call_model', return_value={'answer': 'No drawing'}):
+            empty = create_app(self.config).test_client().post('/api/v1/assistant/preview',
+                data={'scope': 'map', 'resource_ids': '[]', 'message': 'Hello', 'web': 'false'})
+        self.assertEqual(empty.status_code, 200)
+        self.assertFalse(empty.json['data'].get('resource_cache'))

@@ -425,6 +425,31 @@ test('cached DXF is reused for apply and a changed File is uploaded again', asyn
     } finally { f.close(); }
 });
 
+test('a failed model response retains its upload reference for the next user message', async () => {
+    const f = fixture();
+    try {
+        f.setTableProposal({ edits: [] }, {});
+        const original = f.window.fetch;
+        let previews = 0;
+        f.window.fetch = async (url, options) => {
+            if (url.endsWith('/preview') && ++previews === 1) {
+                f.calls.push({ url, options });
+                return { ok: false, status: 503, json: async () => ({ error: {
+                    code: 'ASSISTANT_UNAVAILABLE', message: 'Model unavailable' },
+                    resource_cache: [{ source_id: 'dxf-1', token: 'received-upload', expires_in: 900 }] }) };
+            }
+            return original(url, options);
+        };
+        await f.submit();
+        assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 1);
+        assert.match(f.get('notice').textContent, /Model unavailable/);
+        await f.submit();
+        const next = f.calls.filter(call => call.url.endsWith('/preview')).at(-1).options.body;
+        assert.equal(next.getAll('dxf').length, 0);
+        assert.deepEqual(JSON.parse(next.get('resource_tokens')), ['received-upload']);
+    } finally { f.close(); }
+});
+
 test('evicted DXF is uploaded once for apply without requesting the model twice', async () => {
     const f = fixture();
     try {

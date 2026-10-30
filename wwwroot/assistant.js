@@ -142,6 +142,14 @@
     async function request(action, form, signal, retry = true) {
         const result = await fetch('/api/v1/assistant/' + action, { method: 'POST', body: form, signal });
         const payload = await result.json();
+        const files = formSources.get(form);
+        for (const cached of payload.data?.resource_cache || payload.resource_cache || []) {
+            const item = files?.resources.find(item => item.id === cached.source_id);
+            if (item && typeof cached.token === 'string' && cached.token.length <= 4096
+                && Number.isFinite(cached.expires_in) && cached.expires_in > 0) {
+                resourceCache.set(item.file, { ...cached, until: Date.now() + Math.min(900, cached.expires_in) * 1000 });
+            }
+        }
         if (!result.ok) {
             if (retry && payload.error?.code === 'ASSISTANT_RESOURCE_EXPIRED') {
                 const files = formSources.get(form);
@@ -158,14 +166,6 @@
                 verifiedPasscode = ''; updatePasscode();
             }
             throw new Error(payload.error?.message || 'Không thể xử lý yêu cầu');
-        }
-        const files = formSources.get(form);
-        for (const cached of payload.data?.resource_cache || []) {
-            const item = files?.resources.find(item => item.id === cached.source_id);
-            if (item && typeof cached.token === 'string' && cached.token.length <= 4096
-                && Number.isFinite(cached.expires_in) && cached.expires_in > 0) {
-                resourceCache.set(item.file, { ...cached, until: Date.now() + Math.min(900, cached.expires_in) * 1000 });
-            }
         }
         return payload.data;
     }

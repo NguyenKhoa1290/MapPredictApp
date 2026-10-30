@@ -8,7 +8,7 @@ Bản vẽ có 359 đối tượng modelspace, 21.097 phần tử entitydb và t
 
 ## Tái sử dụng file
 
-Sau một preview hoặc apply thành công, AI service cấp tham chiếu có chữ ký cho đúng source_id, tên file và SHA-256 của dữ liệu đã nhận. Trình duyệt giữ tham chiếu trong WeakMap gắn với chính File hiện tại, không lưu token vào localStorage. Các lượt tiếp theo và bước apply dùng tham chiếu thay vì tải lại DXF
+Sau khi nhận file đúng giới hạn dung lượng và nguồn, AI service cấp tham chiếu có chữ ký cho đúng source_id, tên file và SHA-256 của dữ liệu đã nhận. Tham chiếu cũng được trả về khi model báo lỗi để lần thử sau không cần tải lại file. Trình duyệt giữ tham chiếu trong WeakMap gắn với chính File hiện tại, không lưu token vào localStorage. Các lượt tiếp theo và bước apply dùng tham chiếu thay vì tải lại DXF
 
 File được lưu riêng trong thư mục dxf-cache cạnh AI_SETTINGS_FILE, quyền thư mục 700 và file 600. Mặc định tối đa 64 MiB và 16 file cho worker hiện tại. Tham chiếu hết hạn sau 15 phút. Healthcheck dọn file hết hạn khi service hoạt động, đồng thời loại các tóm tắt hết hạn. Khi vượt ngân sách, file cũ nhất được loại, không tạo snapshot hoặc lưu lịch sử dữ liệu trên server
 
