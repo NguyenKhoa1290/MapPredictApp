@@ -779,3 +779,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Kiểm tra API website tạo bảng A1 trả HTTP 200 sau 51,35 giây, thời gian này gồm phản hồi Gemini, không còn bước embedding
 - Xác minh 200 kiểm thử Python, 5 kiểm thử giao diện quản trị và bản build frontend đều đạt
 
+## 2026-10-30 Nhanh dùng phiên tài khoản như Argon
+
+- Theo yêu cầu mới, chuyển Nhanh sang gemini-3.5-flash-lite qua pool tài khoản đăng nhập, cùng hàm generate và giao thức với Argon
+- Dùng định tuyến Flash-Lite được phát hiện từ tài khoản, không quay về ẩn danh hoặc model khác khi lỗi, giữ passcode riêng cho Thông minh
+- 23 kiểm thử định tuyến đạt, đã triển khai service Gemini lên VPS
+- Gọi trực tiếp Flash-Lite trên VPS trả HTTP 200 và nội dung OK sau 2,27 giây, đây là phép thử ngắn, chưa phải thời gian toàn bộ thao tác CSV hoặc DXF
+
