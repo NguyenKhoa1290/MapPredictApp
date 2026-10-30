@@ -1,7 +1,7 @@
 .assistant-root {
     position: fixed;
     right: 18px;
-    bottom: 18px;
+    bottom: 90px;
     z-index: 10000;
     font: 14px/1.55 Arial, sans-serif;
     color: #18372e;
@@ -30,18 +30,29 @@
 
 .assistant-launcher {
     box-shadow: 0 4px 20px #133d2a25;
-    font-weight: 600 !important;
-    padding: 13px 20px !important;
+    width: 60px;
+    height: 60px;
+    display: grid;
+    place-items: center;
+    border-radius: 50% !important;
+    padding: 0 !important;
     background: #087445 !important;
-    color: #fff !important
+    color: #fff !important;
+    cursor: grab !important;
+    touch-action: pan-y;
+    user-select: none
 }
 
+.assistant-launcher:active { cursor: grabbing !important }
+.assistant-launcher:focus-visible { outline: 3px solid #6acb9a; outline-offset: 3px }
+.assistant-launcher img { width: 38px; height: 38px; object-fit: contain; pointer-events: none }
+
 .assistant-window {
-    position: absolute;
-    bottom: 60px;
-    right: 0;
+    position: fixed;
+    bottom: 160px;
+    right: 18px;
     width: min(420px, calc(100vw - 36px));
-    height: min(720px, calc(100dvh - 120px));
+    height: min(720px, calc(100dvh - 180px));
     border: 1px solid #b8d4c4;
     border-radius: 16px;
     background: #fff;
@@ -303,13 +314,14 @@
 @media(max-width:600px) {
     .assistant-root {
         right: 10px;
-        bottom: 10px
+        bottom: 90px
     }
 
     .assistant-window {
         width: calc(100vw - 20px);
-        height: calc(100dvh - 95px);
-        bottom: 57px
+        height: calc(100dvh - 180px);
+        bottom: 160px;
+        right: 10px
     }
 }
 

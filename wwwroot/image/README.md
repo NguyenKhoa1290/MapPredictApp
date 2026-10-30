@@ -9,6 +9,7 @@ Nếu trình duyệt còn giữ ảnh cũ, nhấn Ctrl + F5
 - `project-bac-kan.jpg` ảnh dự án TP Bắc Kạn
 - `project-phu-quoc.jpg` ảnh dự án TP Phú Quốc
 - `project-ai.jpg` ảnh công cụ đánh giá
+- `assistant.svg` ảnh trong nút tròn Trợ lý GIS, thay ảnh SVG cùng tên để đổi biểu tượng
 - `logo 1.png` biểu trưng GeoPlan AI trên nền sáng
 - `logo 2.png` biểu trưng GeoPlan AI trên nền tối
 - `member-1.jpg` đến `member-4.jpg` ảnh thành viên theo thứ tự

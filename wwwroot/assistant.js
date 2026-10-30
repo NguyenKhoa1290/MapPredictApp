@@ -3,7 +3,7 @@
     'use strict';
     const root = document.createElement('div');
     root.className = 'assistant-root';
-    root.innerHTML = `<button class="assistant-launcher" type="button" aria-expanded="false" aria-controls="assistant-window">Trợ lý GIS</button>
+    root.innerHTML = `<button class="assistant-launcher" type="button" aria-label="Mở trợ lý GIS" title="Trợ lý GIS · Kéo để di chuyển" aria-expanded="false" aria-controls="assistant-window"><img src="/static/image/assistant.svg" alt="" draggable="false"></button>
       <section id="assistant-window" class="assistant-window" role="dialog" aria-label="Trợ lý GIS" hidden>
         <header class="assistant-header"><div><strong>Trợ lý GIS</strong><small>DXF và tiêu chí đánh giá</small></div><button type="button" class="assistant-close" aria-label="Thu nhỏ trợ lý">×</button></header>
         <div class="assistant-messages" role="log" aria-live="polite"></div>
@@ -17,6 +17,44 @@
     document.body.append(root);
     const get = selector => root.querySelector('.assistant-' + selector);
     const launcher = get('launcher'), panel = get('window');
+    const positionKey = 'mapPredict.assistant.position.v1';
+    let launcherPosition = 1, drag = null, suppressClick = false;
+    try {
+        const saved = localStorage.getItem(positionKey);
+        if (saved !== null && Number.isFinite(Number(saved))) launcherPosition = Math.max(0, Math.min(1, Number(saved)));
+    } catch { /* Position persistence is optional. */ }
+    function positionLauncher() {
+        const margin = 12;
+        const available = Math.max(0, window.innerWidth - launcher.offsetWidth - margin * 2);
+        root.style.left = `${margin + available * launcherPosition}px`;
+        root.style.right = 'auto';
+    }
+    positionLauncher();
+    window.addEventListener('resize', positionLauncher);
+    launcher.addEventListener('pointerdown', event => {
+        if (event.button !== 0 || drag) return;
+        drag = { id: event.pointerId, startX: event.clientX, left: root.getBoundingClientRect().left, moved: false };
+        launcher.setPointerCapture(event.pointerId);
+    });
+    launcher.addEventListener('pointermove', event => {
+        if (!drag || drag.id !== event.pointerId) return;
+        const delta = event.clientX - drag.startX;
+        if (Math.abs(delta) > 4) drag.moved = true;
+        if (!drag.moved) return;
+        const available = Math.max(0, window.innerWidth - launcher.offsetWidth - 24);
+        launcherPosition = available ? Math.max(0, Math.min(1, (drag.left + delta - 12) / available)) : 0;
+        positionLauncher();
+    });
+    function finishDrag(event) {
+        if (!drag || drag.id !== event.pointerId) return;
+        suppressClick = event.type === 'pointerup' && drag.moved;
+        if (drag.moved) {
+            try { localStorage.setItem(positionKey, String(launcherPosition)); } catch { /* Optional preference. */ }
+        }
+        drag = null;
+    }
+    launcher.addEventListener('pointerup', finishDrag);
+    launcher.addEventListener('pointercancel', finishDrag);
     const messages = get('messages'), notice = get('notice'), preview = get('preview');
     const historyKey = 'mapPredict.assistant.history.v1';
     const effortKey = 'mapPredict.assistant.effort.v1';
@@ -100,6 +138,7 @@
     const historyBar = document.querySelector('.assistant-history-bar');
     if (historyBar) get('history-slot').append(historyBar);
     launcher.addEventListener('click', () => {
+        if (suppressClick) { suppressClick = false; return; }
         panel.hidden = !panel.hidden;
         launcher.setAttribute('aria-expanded', String(!panel.hidden));
         if (!panel.hidden) { get('form').querySelector('textarea').focus(); }

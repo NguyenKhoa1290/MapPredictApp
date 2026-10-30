@@ -407,6 +407,32 @@ function fixture(status = { enabled: true }) {
         changeFile: () => { sourceFile = new window.File(['CHANGED'], 'test.dxf'); } };
 }
 
+test('assistant launcher moves horizontally, remembers its position and distinguishes dragging from clicking', () => {
+    const f = fixture();
+    try {
+        const button = f.get('launcher'), root = button.parentElement, panel = f.get('window');
+        Object.defineProperty(button, 'offsetWidth', { value: 60 });
+        button.setPointerCapture = () => {};
+        root.getBoundingClientRect = () => ({ left: parseFloat(root.style.left) });
+        f.window.dispatchEvent(new f.window.Event('resize'));
+        const pointer = (type, x) => {
+            const event = new f.window.Event(type, { bubbles: true });
+            Object.defineProperties(event, { button: { value: 0 }, pointerId: { value: 1 }, clientX: { value: x } });
+            button.dispatchEvent(event);
+        };
+        pointer('pointerdown', 900); pointer('pointermove', 100); pointer('pointerup', 100);
+        const position = Number(f.window.localStorage.getItem('mapPredict.assistant.position.v1'));
+        assert.ok(position >= 0 && position < 1);
+        button.click();
+        assert.equal(panel.hidden, true);
+        button.click();
+        assert.equal(panel.hidden, false);
+        f.window.innerWidth = 320;
+        f.window.dispatchEvent(new f.window.Event('resize'));
+        assert.ok(parseFloat(root.style.left) >= 12 && parseFloat(root.style.left) <= 248);
+    } finally { f.close(); }
+});
+
 test('compression locks submission and preserves the selected model and newly typed draft', async () => {
     const f = fixture({ enabled: true, features: ['dxf_gzip'] });
     try {
