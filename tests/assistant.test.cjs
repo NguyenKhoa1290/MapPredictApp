@@ -401,6 +401,72 @@ function fixture(status = { enabled: true }) {
         changeFile: () => { sourceFile = new window.File(['CHANGED'], 'test.dxf'); } };
 }
 
+test('cached DXF is reused for apply and a changed File is uploaded again', async () => {
+    const f = fixture();
+    try {
+        f.setTableProposal({ resource_cache: [{ source_id: 'dxf-1', token: 'cached-resource', expires_in: 900 }] }, {});
+        await f.submit();
+        const preview = f.calls.find(call => call.url.endsWith('/preview')).options.body;
+        const apply = f.calls.find(call => call.url.endsWith('/apply')).options.body;
+        assert.equal(preview.getAll('dxf').length, 1);
+        assert.equal(apply.getAll('dxf').length, 0);
+        assert.deepEqual(JSON.parse(apply.get('resource_tokens')), ['cached-resource']);
+        assert.equal(apply.get('token'), 'signed-preview');
+        f.get('preview').querySelector('button').click();
+        await tick();
+        f.changeFile();
+        await f.submit();
+        const next = f.calls.filter(call => call.url.endsWith('/preview')).at(-1).options.body;
+        assert.equal(next.getAll('dxf').length, 1);
+        assert.deepEqual(JSON.parse(next.get('resource_tokens')), [null]);
+        for (let i = 0; i < f.window.localStorage.length; i++) {
+            assert.doesNotMatch(f.window.localStorage.getItem(f.window.localStorage.key(i)), /cached-resource/);
+        }
+    } finally { f.close(); }
+});
+
+test('evicted DXF is uploaded once for apply without requesting the model twice', async () => {
+    const f = fixture();
+    try {
+        f.setTableProposal({ resource_cache: [{ source_id: 'dxf-1', token: 'evicted-resource', expires_in: 900 }] }, {});
+        const original = f.window.fetch;
+        let applies = 0;
+        f.window.fetch = async (url, options) => {
+            if (url.endsWith('/apply') && ++applies === 1) {
+                f.calls.push({ url, options });
+                return { ok: false, status: 410, json: async () => ({ error: { code: 'ASSISTANT_RESOURCE_EXPIRED', message: 'Expired' } }) };
+            }
+            return original(url, options);
+        };
+        await f.submit();
+        assert.equal(f.calls.filter(call => call.url.endsWith('/preview')).length, 1);
+        const requests = f.calls.filter(call => call.url.endsWith('/apply'));
+        assert.equal(requests.length, 2);
+        assert.equal(requests[0].options.body.getAll('dxf').length, 0);
+        assert.equal(requests[1].options.body.getAll('dxf').length, 1);
+        assert.equal(requests[1].options.body.get('token'), 'signed-preview');
+        assert.equal(f.commits.length, 1);
+    } finally { f.close(); }
+});
+
+test('expired-resource retries stop after one fresh upload', async () => {
+    const f = fixture();
+    try {
+        f.setTableProposal({ resource_cache: [{ source_id: 'dxf-1', token: 'expired', expires_in: 900 }] }, {});
+        const original = f.window.fetch;
+        f.window.fetch = async (url, options) => {
+            if (url.endsWith('/apply')) {
+                f.calls.push({ url, options });
+                return { ok: false, status: 410, json: async () => ({ error: { code: 'ASSISTANT_RESOURCE_EXPIRED', message: 'Expired' } }) };
+            }
+            return original(url, options);
+        };
+        await f.submit();
+        assert.equal(f.calls.filter(call => call.url.endsWith('/apply')).length, 2);
+        assert.equal(f.commits.length, 0);
+    } finally { f.close(); }
+});
+
 test('table operation previews describe deletions and stage an empty table with its headers', async () => {
     const f = fixture();
     try {

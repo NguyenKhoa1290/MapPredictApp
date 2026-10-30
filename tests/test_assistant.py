@@ -425,7 +425,8 @@ class AssistantTests(unittest.TestCase):
         with patch.object(assistant, 'call_model', return_value={'answer': 'Không có file', 'edits': []}) as model:
             response = second.post('/api/v1/assistant/preview', data={'message': 'Tôi có file nào'})
         self.assertEqual(response.status_code, 200)
-        self.assertIn('"entity_count": 0', model.call_args.args[0][-1]['content'])
+        context = json.loads(model.call_args.args[0][-1]['content'].split('DỮ LIỆU NGƯỜI DÙNG\n')[1].split('\nYÊU CẦU\n')[0])
+        self.assertEqual(context['dxf']['entity_count'], 0)
         self.assertNotIn(self.handle + '", "type"', model.call_args.args[0][-1]['content'])
 
     def test_rate_limit_preserves_health_capacity(self):

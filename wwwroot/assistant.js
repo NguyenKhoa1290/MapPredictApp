@@ -121,22 +121,51 @@
             && current.resources.length === before.resources.length
             && current.resources.every((item, index) => item.id === before.resources[index].id && item.file === before.resources[index].file);
     }
+    const resourceCache = new WeakMap(), formSources = new WeakMap();
     function formData(files) {
         const form = new FormData();
-        for (const item of files.resources) form.append('dxf', item.file);
+        const references = files.resources.map(item => {
+            const cached = resourceCache.get(item.file);
+            if (cached?.source_id === item.id && cached.until > Date.now() + 30000) return cached.token;
+            form.append('dxf', item.file);
+            return null;
+        });
         form.append('scope', files.scope);
-        if (files.scope === 'map') form.append('resource_ids', JSON.stringify(files.resources.map(item => item.id)));
+        if (files.scope === 'map') {
+            form.append('resource_ids', JSON.stringify(files.resources.map(item => item.id)));
+            form.append('resource_tokens', JSON.stringify(references));
+        }
         if (files.csv) form.append('csv', files.csv);
+        formSources.set(form, files);
         return form;
     }
-    async function request(action, form, signal) {
+    async function request(action, form, signal, retry = true) {
         const result = await fetch('/api/v1/assistant/' + action, { method: 'POST', body: form, signal });
         const payload = await result.json();
         if (!result.ok) {
+            if (retry && payload.error?.code === 'ASSISTANT_RESOURCE_EXPIRED') {
+                const files = formSources.get(form);
+                if (files && sameFiles(files) && !signal?.aborted) {
+                    for (const item of files.resources) resourceCache.delete(item.file);
+                    const fresh = formData(files);
+                    for (const [name, value] of form.entries()) {
+                        if (!['dxf', 'csv', 'scope', 'resource_ids', 'resource_tokens'].includes(name)) fresh.append(name, value);
+                    }
+                    return request(action, fresh, signal, false);
+                }
+            }
             if (payload.error?.code === 'ARGON_PASSCODE_REQUIRED') {
                 verifiedPasscode = ''; updatePasscode();
             }
             throw new Error(payload.error?.message || 'Không thể xử lý yêu cầu');
+        }
+        const files = formSources.get(form);
+        for (const cached of payload.data?.resource_cache || []) {
+            const item = files?.resources.find(item => item.id === cached.source_id);
+            if (item && typeof cached.token === 'string' && cached.token.length <= 4096
+                && Number.isFinite(cached.expires_in) && cached.expires_in > 0) {
+                resourceCache.set(item.file, { ...cached, until: Date.now() + Math.min(900, cached.expires_in) * 1000 });
+            }
         }
         return payload.data;
     }

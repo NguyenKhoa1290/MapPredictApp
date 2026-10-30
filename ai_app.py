@@ -1,5 +1,6 @@
 """WSGI entry point for the standalone AI/DXF service."""
 import hmac
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -13,6 +14,7 @@ def create_ai_app(config=None):
     application = Flask(__name__)
     application.config.from_object(Config)
     application.config.update(ASSISTANT_ENABLED=True, ASSISTANT_ROLE='worker', ASSISTANT_SERVICE_URL='')
+    application.logger.setLevel(logging.INFO)
     if config:
         application.config.update(config)
 
@@ -27,6 +29,13 @@ def create_ai_app(config=None):
 
     @application.get('/health')
     def health():
+        from backend.map_predict.services.assistant_files import prune
+        from backend.map_predict.services.assistant_dxf import prune as prune_summaries
+        try:
+            prune(application.config)
+            prune_summaries()
+        except OSError:
+            pass
         return jsonify(status='ok', service='ai')
 
     @application.errorhandler(Exception)

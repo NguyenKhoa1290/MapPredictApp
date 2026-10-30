@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 from flask import Blueprint, current_app, jsonify, request, g, send_file
 
 from ...services import assistant
+from ...services import assistant_files
 from ...services.prediction import PredictionError
 
 assistant_api = Blueprint('assistant_v1', __name__, url_prefix='/api/v1/assistant')
@@ -113,15 +114,29 @@ def execute(action):
         files = request.files.getlist('dxf')
         try:
             ids = json.loads(options.get('resource_ids', '[]'))
-            if not isinstance(ids, list) or not (0 if action == 'preview' else 1) <= len(files) <= 5 or len(ids) != len(files) or len(set(ids)) != len(ids):
+            refs = json.loads(options['resource_tokens']) if 'resource_tokens' in options else [None] * len(ids)
+            if (not isinstance(ids, list) or not (0 if action == 'preview' else 1) <= len(ids) <= 5
+                    or not isinstance(refs, list) or len(refs) != len(ids) or len(set(ids)) != len(ids)
+                    or len(files) != sum(ref is None for ref in refs)):
                 raise ValueError()
-            for item, source_id in zip(files, ids):
-                if not isinstance(source_id, str) or not 1 <= len(source_id) <= 100 or Path(item.filename or '').suffix.lower() != '.dxf':
+            uploads = iter(files)
+            for source_id, ref in zip(ids, refs):
+                if not isinstance(source_id, str) or not 1 <= len(source_id) <= 100:
+                    raise ValueError()
+                if ref is not None:
+                    if not isinstance(ref, str) or len(ref) > 4096:
+                        raise ValueError()
+                    resources.append(assistant_files.resolve(ref, source_id, current_app.config))
+                    continue
+                item = next(uploads)
+                if Path(item.filename or '').suffix.lower() != '.dxf':
                     raise ValueError()
                 content = item.read(assistant.MAX_FILE + 1)
                 if not content or len(content) > assistant.MAX_FILE:
                     raise ValueError()
                 resources.append({'id': source_id, 'name': Path(item.filename).name, 'data': content})
+        except PredictionError:
+            raise
         except (ValueError, TypeError):
             raise PredictionError('MAP_RESOURCE_REQUIRED', 'Cần từ 1 đến 5 DXF đã nạp và bật trên bản đồ, tối đa 12 MB mỗi file', 400) from None
         if request.files.getlist('csv'):
@@ -165,6 +180,21 @@ def execute(action):
                 if isinstance(error, PredictionError):
                     raise
                 raise PredictionError('INVALID_DRAWING', 'DXF hoặc đề xuất không hợp lệ, dữ liệu chưa thay đổi') from error
+        if resources:
+            references = []
+            for resource in resources:
+                try:
+                    reference = resource.get('cache') or assistant_files.store(resource, current_app.config)
+                    if reference:
+                        references.append(reference)
+                except OSError:
+                    pass  # Caching is optional; a successful edit must still be returned.
+            result['resource_cache'] = references
+        current_app.logger.info('assistant_request %s', json.dumps({
+            'request_id': g.request_id, 'action': action,
+            'dxf_bytes': sum(len(resource['data']) for resource in resources) if resources else len(dxf),
+            'cached_files': sum('cache' in resource for resource in resources),
+            'timings': result.get('timings', {})}, separators=(',', ':')))
         if action == 'export':
             if resources:
                 raise PredictionError('INVALID_CONTEXT', 'Xuất từng DXF đã duyệt trong dự án', 400)
