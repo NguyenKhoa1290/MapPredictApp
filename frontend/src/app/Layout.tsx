@@ -5,6 +5,10 @@ import { Assessment } from '../pages/Assessment';
 
 export function Layout() {
   const { loading, error, retry, content } = usePublicData();
+  const brandName = content?.brand || 'GeoPlan AI';
+  const brandWordmark = brandName === 'GeoPlan AI'
+    ? <>GeoPlan <em className="brand-wordmark-ai">AI</em></>
+    : brandName;
   const { pathname } = useLocation();
   const adminHost = window.location.hostname === 'admin.danhgiaquyhoach.top';
   const publicPath = (path: string) => adminHost ? 'https://danhgiaquyhoach.top/portal' + path : path;
@@ -48,7 +52,7 @@ export function Layout() {
     {!hideChrome ? <header className="site-header" ref={header}>
       <Link className="brand" to={publicPath('/')} reloadDocument={adminHost} aria-label="GeoPlan AI | Trang giới thiệu">
         <span className="brand-mark" aria-hidden="true"><img src="/static/image/logo%201.png" alt="" /></span>
-        <span>{content?.brand || 'GeoPlan AI'}<small>QUY HOẠCH & DỮ LIỆU KHÔNG GIAN</small></span>
+        <span><strong className="brand-wordmark">{brandWordmark}</strong><small>QUY HOẠCH & DỮ LIỆU KHÔNG GIAN</small></span>
       </Link>
       <nav aria-label="Điều hướng chính"><NavLink to={publicPath('/')} reloadDocument={adminHost} end>Giới thiệu</NavLink><NavLink to={publicPath('/projects')} reloadDocument={adminHost}>Dự án</NavLink><NavLink to={publicPath('/assessment')} reloadDocument={adminHost}>Đánh giá quỹ đất <span aria-hidden="true">↗</span></NavLink></nav>
     </header> : null}
@@ -60,6 +64,6 @@ export function Layout() {
           {!isAssessment ? <Outlet /> : null}
         </>}
     </main>
-    {!hideChrome ? <footer className="site-footer"><div className="container footer-content"><Link className="footer-brand" to={publicPath('/')} reloadDocument={adminHost} aria-label="GeoPlan AI | Trang giới thiệu"><span className="brand-mark brand-mark--dark" aria-hidden="true"><img src="/static/image/logo%202.png" alt="" /></span><span className="footer-brand-copy">{content?.brand || 'GeoPlan AI'}<small>QUY HOẠCH & DỮ LIỆU KHÔNG GIAN</small></span></Link><Link className="text-link" to={publicPath('/')} reloadDocument={adminHost}><span aria-hidden="true">←</span> Về trang giới thiệu</Link></div></footer> : null}
+    {!hideChrome ? <footer className="site-footer"><div className="container footer-content"><Link className="footer-brand" to={publicPath('/')} reloadDocument={adminHost} aria-label="GeoPlan AI | Trang giới thiệu"><span className="brand-mark brand-mark--dark" aria-hidden="true"><img src="/static/image/logo%202.png" alt="" /></span><span className="footer-brand-copy"><strong className="brand-wordmark">{brandWordmark}</strong><small>QUY HOẠCH & DỮ LIỆU KHÔNG GIAN</small></span></Link><Link className="text-link" to={publicPath('/')} reloadDocument={adminHost}><span aria-hidden="true">←</span> Về trang giới thiệu</Link></div></footer> : null}
   </>;
 }

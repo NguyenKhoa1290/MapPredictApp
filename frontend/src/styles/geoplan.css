@@ -1,6 +1,9 @@
 /* GeoPlan AI identity and introduction page */
 .site-header { height: 88px; border-color: #e5ece8; }
 .brand { color: #103250; gap: 10px; font-size: 21px; line-height: 1.1; }
+.brand-wordmark { font-family: Arial, sans-serif; font-weight: 700; letter-spacing: -.04em; color: #0a2b4d; white-space: nowrap; }
+.brand-wordmark .brand-wordmark-ai { color: #0ac890; }
+.footer-brand .brand-wordmark { color: #fff; }
 .brand small { color: #6f827f; font-size: 9px; letter-spacing: .04em; margin-top: 6px; }
 .brand-mark { position: relative; display: inline-block; flex: 0 0 48px; width: 48px; height: 48px; overflow: hidden; }
 .brand-mark img { position: absolute; width: 122%; height: 122%; left: -11%; top: -11%; max-width: none; object-fit: contain; }
