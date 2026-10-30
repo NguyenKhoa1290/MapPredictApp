@@ -900,6 +900,7 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 
 - Người dùng cung cấp hai biểu trưng PNG trong suốt, dùng logo 1 trên header nền sáng và logo 2 trên footer nền tối
 - Đổi thương hiệu thành GeoPlan AI trong nội dung công khai, header, footer và tiêu đề trình duyệt
+- Dùng logo nền sáng làm biểu tượng tab trình duyệt và cập nhật tiêu đề HTML ban đầu theo tên GeoPlan AI
 - Thiết kế lại trang giới thiệu với màu xanh đậm, xanh ngọc, ảnh góc nhìn không gian, phần giới thiệu, ba định hướng, bốn dự án và lời mời dùng công cụ
 - Giữ điều hướng đến trang dự án và công cụ đánh giá, không thay chức năng dự đoán hoặc bản đồ
 - Build và 43 kiểm thử frontend đạt, kiểm tra Chrome trên màn hình 1440 px và 390 px xác nhận hai logo và ảnh tải được, nút có đúng đích, không tràn ngang hoặc lỗi JavaScript
