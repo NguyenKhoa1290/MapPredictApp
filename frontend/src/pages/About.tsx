@@ -47,6 +47,8 @@ export function About() {
       <ProjectCards projects={projects} />
     </section>
 
+    {/* <section className="team-section" aria-labelledby="team-title"><div className="container"><div className="section-heading"><div><p className="eyebrow">04 Nhóm thực hiện</p><h2 id="team-title">Những người<br />cùng xây dựng</h2></div></div><div className="team-grid">{content.members.map((member, index) => <article className="team-card" key={member.id}><div className="portrait"><img src={`/static/image/${member.id}.jpg`} alt={member.name || `Thành viên ${index + 1}`} loading="lazy" /></div><h3>{member.name || `Thành viên 0${index + 1}`}</h3>{member.role && <p>{member.role}</p>}{member.bio && <p className="member-bio">{member.bio}</p>}{member.contact && <span className="contact-placeholder">{member.contact}</span>}</article>)}</div></div></section> */}
+
     <section className="gp-closing" aria-labelledby="closing-title"><div className="container gp-closing-inner">
       <div><p className="gp-section-overline">BẮT ĐẦU KHÁM PHÁ</p><h2 id="closing-title">Đưa dữ liệu của bạn<br />vào một góc nhìn mới</h2><p>Khám phá không gian và kết quả đánh giá theo cách trực quan hơn</p></div>
       <Link className="button gp-closing-button" to="/assessment">Đi đến công cụ đánh giá <span aria-hidden="true">→</span></Link>
