@@ -904,4 +904,6 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Thiết kế lại trang giới thiệu với màu xanh đậm, xanh ngọc, ảnh góc nhìn không gian, phần giới thiệu, ba định hướng, bốn dự án và lời mời dùng công cụ
 - Giữ điều hướng đến trang dự án và công cụ đánh giá, không thay chức năng dự đoán hoặc bản đồ
 - Build và 43 kiểm thử frontend đạt, kiểm tra Chrome trên màn hình 1440 px và 390 px xác nhận hai logo và ảnh tải được, nút có đúng đích, không tràn ngang hoặc lỗi JavaScript
+- CI Windows, Linux, Docker và đóng gói đạt, bộ cập nhật tự động triển khai revision db36f7c1 lên VPS, các service healthy và tunnel hoạt động
+- Kiểm tra Chrome trên website thật ở 1440 px và 390 px xác nhận tên thương hiệu, cả hai logo, favicon, không tràn ngang hoặc lỗi JavaScript, điều hướng trang dự án và công cụ đánh giá hoạt động; hai logo tải từ tên miền có hash trùng file người dùng cung cấp
 
