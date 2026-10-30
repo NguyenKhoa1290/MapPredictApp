@@ -45,7 +45,9 @@ class AccountPool:
             settings = {}
         email = settings.get('email')
         return {'email': email if isinstance(email, str) and len(email) <= 254 and re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email) else None,
-                'checked_at': settings.get('session_checked_at'), 'rotated_at': settings.get('session_rotated_at'),
+                'checked_at': settings.get('session_checked_at'), 'rotated_at': settings.get('session_cookie_renewed_at'),
+                'rotation_checked_at': settings.get('session_rotation_checked_at'),
+                'renewal_state': settings.get('session_renewal_state') if settings.get('session_renewal_state') in ('renewed', 'not_renewed') else None,
                 'refresh_attempt_at': settings.get('refresh_attempt_at')}
 
     def availability(self):

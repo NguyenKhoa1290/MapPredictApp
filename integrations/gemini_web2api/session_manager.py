@@ -36,7 +36,9 @@ class SessionManager:
             # An unverified imported cookie must not break the anonymous route.
             CONFIG.update(cookie_file=None, auth_user=None, xsrf_token=None)
         self.details['checked_at'] = settings.get('session_checked_at')
-        self.details['rotated_at'] = settings.get('session_rotated_at')
+        self.details['rotated_at'] = settings.get('session_cookie_renewed_at')
+        self.details['rotation_checked_at'] = settings.get('session_rotation_checked_at')
+        self.details['renewal_state'] = settings.get('session_renewal_state')
 
     def status(self):
         with self.lock:

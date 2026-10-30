@@ -3,7 +3,7 @@ import '../styles/ai-admin.css';
 
 type Model = { label: string; provider: 'gemini' | 'compatible'; model: string; url: string; api_key?: string; has_api_key?: boolean; clear_api_key?: boolean };
 type Settings = { models: Record<'fast' | 'smart', Model>; embedding: { url: string; model: string } };
-type Pool = { accounts: { id: string; label: string; email?: string | null; checked_at?: number; rotated_at?: number; refresh_attempt_at?: number; status: string; usage?: { current_5h?: { used_percent: number | null; reset_at?: string }; weekly?: { used_percent: number | null; reset_at?: string } } }[]; unavailable?: boolean;
+type Pool = { accounts: { id: string; label: string; email?: string | null; checked_at?: number; rotated_at?: number; rotation_checked_at?: number; renewal_state?: 'renewed' | 'not_renewed' | null; refresh_attempt_at?: number; status: string; usage?: { current_5h?: { used_percent: number | null; reset_at?: string }; weekly?: { used_percent: number | null; reset_at?: string } } }[]; unavailable?: boolean;
   maintenance?: { poll_interval_seconds: number; rotate_interval_seconds: number; repair_cooldown_seconds: number } };
 type State = { csrf: string; settings: Settings; gemini: { state: string; checked_at?: number; rotated_at?: number }; account_pool?: Pool; pro_access?: { configured: boolean }; services: string[]; embedding_enabled?: boolean };
 const accountLabels: Record<string, string> = { ready: 'Còn quota', exhausted: 'Hết quota', not_checked: 'Chưa kiểm tra', needs_login: 'Cần đăng nhập lại', needs_attention: 'Cần kiểm tra cookie và quyền Argon', unavailable: 'Chưa xác minh được quota', model_unavailable: 'Chưa xác minh quyền dùng Argon' };
@@ -204,13 +204,14 @@ export function AiAdmin() {
       <div role="tabpanel" id="admin-panel-session" aria-labelledby="admin-tab-session" hidden={tab !== 'session'}>
       <section className="admin-card"><h2>Phiên Gemini</h2>
         {state.account_pool?.maintenance ? <p>Kiểm tra phiên và quota mỗi {state.account_pool.maintenance.poll_interval_seconds} giây<br />
-          Tự xoay cookie sau {state.account_pool.maintenance.rotate_interval_seconds / 3600} giờ<br />
+          Tự thử gia hạn mỗi {state.account_pool.maintenance.rotate_interval_seconds / 60} phút<br />
           Giãn lần thử sửa phiên lỗi ít nhất {state.account_pool.maintenance.repair_cooldown_seconds / 60} phút</p> : <p>Chưa đọc được lịch gia hạn từ server</p>}
         <p className="admin-help">Thời gian lấy từ cấu hình service, việc gia hạn chạy cả khi không có người dùng chatbot</p>
         <p className="admin-help">Cập nhật cookie tại từng tài khoản trong tab Tài khoản Thông minh</p>
         {(state.account_pool?.accounts || []).map(row => <div className="admin-account" key={row.id}>
           <strong>{row.email || row.label}</strong><p>{accountLabels[row.status] || row.status}</p>
-          <p>Kiểm tra gần nhất {date(row.checked_at)}<br />Xoay cookie gần nhất {date(row.rotated_at)}<br />Lần thử gia hạn {date(row.refresh_attempt_at)}</p>
+          <p>Kiểm tra gần nhất {date(row.checked_at)}<br />Cookie thời hạn phiên đổi gần nhất {date(row.rotated_at)}<br />Kiểm tra gia hạn gần nhất {date(row.rotation_checked_at)}<br />Lần thử gia hạn {date(row.refresh_attempt_at)}</p>
+          {row.renewal_state === 'not_renewed' && <p role="status">Google chưa cấp cookie thời hạn phiên mới, phản hồi HTTP thành công chưa xác nhận gia hạn. Nếu tiếp tục bị đăng xuất, đăng nhập mới bằng Firefox rồi cập nhật cookie cho tài khoản này</p>}
         </div>)}
         <div className="admin-actions"><button className="button primary" disabled={busy || !state.account_pool?.accounts.length} onClick={() => action(() => tool('accounts-refresh'))}>Gia hạn phiên</button>
           <button className="button" disabled={busy} onClick={() => action(async () => { const data = await api('state'); setState(data); })}>Cập nhật trạng thái</button></div>

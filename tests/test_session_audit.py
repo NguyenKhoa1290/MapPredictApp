@@ -147,3 +147,17 @@ class SessionAuditTests(unittest.TestCase):
         self.assertTrue(any(r.get('reason') == 'rpc_auth_rejected' and r.get('endpoint') == 'quota_rpc' for r in self.records()))
         self.assertNotIn('PRIVATE_XSRF', self.log.read_text())
         self.assertNotIn('private@example.test', self.log.read_text())
+
+    def test_sidcc_update_is_logged_as_not_renewed_even_when_page_still_authenticates(self):
+        import httpx
+        def handle(request):
+            if request.url.path == '/RotateCookies':
+                return httpx.Response(200, headers={'Set-Cookie': 'SIDCC=PRIVATE_CC; Domain=.google.com; Path=/; Secure'})
+            return httpx.Response(200, text='{"SNlM0e":"PRIVATE_XSRF"}')
+        session = self.make_session(handle)
+        session.refresh(rotate=True)
+        records = self.records()
+        self.assertTrue(any(r['event'] == 'rotation_no_renewal' and r['auth_cookie_renewed'] is False for r in records))
+        self.assertFalse(any(r['event'] in ('rotation_success', 'rotation_cookie_renewed') for r in records))
+        self.assertTrue(any(r['event'] == 'auth_ready' for r in records))
+        self.assertNotIn('PRIVATE_CC', self.log.read_text())

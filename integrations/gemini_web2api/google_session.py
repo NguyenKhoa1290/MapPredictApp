@@ -23,6 +23,11 @@ def maintenance_policy():
             'repair_cooldown_seconds': SESSION_REPAIR_COOLDOWN}
 
 
+def active_cookie_pairs(client):
+    return {item.name: item.value for item in client.cookies.jar
+            if item.domain.lstrip('.') in ('google.com', 'gemini.google.com') and not item.is_expired()}
+
+
 class UsageAuthError(ValueError):
     pass
 
@@ -209,13 +214,10 @@ class GoogleSession:
         session_event('auth_ready', self.config_path, config, has_xsrf=True, has_identity=bool(email), throttle=300)
         return fields
 
-    def persist(self, config, cookie_path, original, client, fields=None, rotated=False):
+    def persist(self, config, cookie_path, original, client, fields=None, rotated=False, rotation_checked=False):
         # The client starts with every stored cookie. Rebuild from its current
         # jar so a Set-Cookie deletion cannot resurrect an expired credential.
-        pairs = {}
-        for item in client.cookies.jar:
-            if item.domain.lstrip('.') in ('google.com', 'gemini.google.com') and not item.is_expired():
-                pairs[item.name] = item.value
+        pairs = active_cookie_pairs(client)
         with private_lock(self.config_path.with_suffix('.lock')):
             latest = json.loads(self.config_path.read_text(encoding='utf-8'))
             if cookie_path.read_text(encoding='utf-8').strip() != original:
@@ -229,7 +231,19 @@ class GoogleSession:
             if changed or removed:
                 session_event('cookie_saved', self.config_path, latest,
                               changed_auth_cookies=changed, removed_auth_cookies=removed)
+            renewed = '__Secure-1PSIDTS' in changed
+            if renewed:
+                latest['session_cookie_renewed_at'] = time.time()
+                latest['session_renewal_state'] = 'renewed'
+                session_event('rotation_cookie_renewed', self.config_path, latest, auth_cookie_renewed=True)
+            if rotation_checked:
+                latest['session_rotation_checked_at'] = time.time()
+                latest['session_renewal_state'] = 'renewed' if renewed else 'not_renewed'
+                if not renewed:
+                    session_event('rotation_no_renewal', self.config_path, latest, auth_cookie_renewed=False)
             if fields is None:
+                if renewed or rotation_checked:
+                    write_json(self.config_path, latest)
                 return updated
             latest['xsrf_token'] = fields['SNlM0e']
             if fields.get('cfb2h'):
@@ -258,7 +272,8 @@ class GoogleSession:
             if 'session_maintenance_started_at' not in config:
                 config['session_maintenance_started_at'] = time.time()
                 write_json(self.config_path, config)
-            anchor = config.get('session_rotated_at') or config['session_maintenance_started_at']
+            anchor = (config.get('session_rotation_checked_at') or config.get('session_rotated_at')
+                      or config['session_maintenance_started_at'])
             if (time.time() - anchor < SESSION_ROTATE_INTERVAL or
                     time.time() - config.get('refresh_attempt_at', 0) < SESSION_REPAIR_COOLDOWN):
                 return
@@ -304,11 +319,13 @@ class GoogleSession:
             response.raise_for_status()
             # A successful RotateCookies can invalidate the previous timestamp
             # cookie. Save its replacement before another network request.
-            original = self.persist(config, cookie_path, original, client)
+            current_ts = active_cookie_pairs(client).get('__Secure-1PSIDTS')
+            renewed = bool(current_ts and current_ts != pairs.get('__Secure-1PSIDTS'))
+            original = self.persist(config, cookie_path, original, client, rotation_checked=True)
             if original is None:
                 return
             fields = self.page(client, config, prefix)
-            self.persist(config, cookie_path, original, client, fields, rotated=True)
+            self.persist(config, cookie_path, original, client, fields, rotated=renewed)
 
     def request_rpc(self, rpcid, payload='[]', source='/usage', retry=True):
         if retry:

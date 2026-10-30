@@ -18,7 +18,8 @@ AUTH_COOKIES = frozenset(('SID', 'SAPISID', 'APISID', 'HSID', 'SSID', 'NID',
 EVENTS = frozenset(('service_start', 'maintenance_tick', 'maintenance_complete', 'maintenance_error',
     'baseline', 'rotation_due', 'refresh_start', 'refresh_cooldown', 'google_response',
     'network_error', 'auth_failure', 'auth_ready', 'cookie_saved', 'cookie_save_conflict',
-    'rotation_success', 'cookie_import', 'account_scan', 'generation_start', 'generation_response', 'generation_complete', 'generation_error'))
+    'rotation_success', 'rotation_cookie_renewed', 'rotation_no_renewal',
+    'cookie_import', 'account_scan', 'generation_start', 'generation_response', 'generation_complete', 'generation_error'))
 ENUMS = {
     'endpoint': {'gemini_page', 'rotate_cookies', 'quota_rpc', 'models_rpc', 'other_rpc', 'generate'},
     'reason': {'login_redirect', 'redirect_loop', 'missing_xsrf', 'identity_mismatch',
@@ -32,8 +33,9 @@ ENUMS = {
 }
 NUMBERS = frozenset(('status', 'elapsed_ms', 'last_checked_at', 'last_rotated_at',
     'last_attempt_at', 'rotation_age_seconds', 'attempt_age_seconds', 'overdue_seconds',
-    'poll_interval_seconds', 'rotate_interval_seconds', 'repair_cooldown_seconds', 'account_count'))
-BOOLEANS = frozenset(('automatic', 'rotate', 'has_xsrf', 'has_identity', 'identity_matches', 'has_answer'))
+    'poll_interval_seconds', 'rotate_interval_seconds', 'repair_cooldown_seconds', 'account_count',
+    'last_rotation_checked_at', 'last_cookie_renewed_at'))
+BOOLEANS = frozenset(('automatic', 'rotate', 'has_xsrf', 'has_identity', 'identity_matches', 'has_answer', 'auth_cookie_renewed'))
 _lock = threading.RLock()
 _handlers = {}
 _recent = {}
@@ -103,4 +105,6 @@ def session_event(event, config_path, config=None, **fields):
     return emit(event, config_path, generation=config.get('audit_generation'),
                 last_checked_at=config.get('session_checked_at'),
                 last_rotated_at=config.get('session_rotated_at'),
+                last_rotation_checked_at=config.get('session_rotation_checked_at'),
+                last_cookie_renewed_at=config.get('session_cookie_renewed_at'),
                 last_attempt_at=config.get('refresh_attempt_at'), **fields)

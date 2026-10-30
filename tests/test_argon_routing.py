@@ -58,15 +58,28 @@ class ArgonRoutingTests(unittest.TestCase):
     def test_admin_snapshot_returns_verified_email_and_server_schedule_without_secrets(self):
         path = self.pool.store.path('a' * 32)
         settings = json.loads(path.read_text())
-        settings.update(email='verified@example.test', session_checked_at=100, session_rotated_at=90)
+        settings.update(email='verified@example.test', session_checked_at=100, session_rotated_at=90,
+                        session_cookie_renewed_at=95, session_rotation_checked_at=99, session_renewal_state='renewed')
         path.write_text(json.dumps(settings))
         reply = self.pool.snapshot()
         self.assertEqual(reply['accounts'][0]['email'], 'verified@example.test')
-        self.assertEqual(reply['accounts'][0]['rotated_at'], 90)
+        self.assertEqual(reply['accounts'][0]['rotated_at'], 95)
+        self.assertEqual(reply['accounts'][0]['rotation_checked_at'], 99)
+        self.assertEqual(reply['accounts'][0]['renewal_state'], 'renewed')
         self.assertEqual(reply['maintenance'], {'poll_interval_seconds': 30, 'rotate_interval_seconds': 600, 'repair_cooldown_seconds': 300})
         self.assertNotIn('verified-test-xsrf', json.dumps(reply))
         self.assertNotIn('private-cookie', json.dumps(reply))
         self.assertNotIn('model_headers', json.dumps(reply))
+
+    def test_old_rotation_timestamp_cannot_be_reported_as_verified_cookie_renewal(self):
+        path = self.pool.store.path('a' * 32)
+        settings = json.loads(path.read_text())
+        settings.update(session_rotated_at=90, session_rotation_checked_at=100, session_renewal_state='not_renewed')
+        path.write_text(json.dumps(settings))
+        row = self.pool.snapshot()['accounts'][0]
+        self.assertIsNone(row['rotated_at'])
+        self.assertEqual(row['renewal_state'], 'not_renewed')
+        self.assertEqual(row['rotation_checked_at'], 100)
 
     def test_manual_refresh_rotates_each_profile_and_keeps_revoked_login_visible(self):
         from gemini_web2api.google_session import UsageAuthError

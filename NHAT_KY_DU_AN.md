@@ -864,3 +864,13 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - CI Windows, Linux, Docker và đóng gói đạt cho commit c1652b0c, bộ cập nhật tự động triển khai thành công lên VPS, các service có healthcheck đều healthy và tunnel đang chạy
 - Kiểm tra riêng trong image AI đang chạy trên VPS nhận đủ ngữ cảnh 10.000 dòng và cột Y, custom, xem trước và áp dụng sửa dòng cuối trả HTTP 200, file đổi sau xem trước bị chặn HTTP 409, lời gọi model được thay bằng phản hồi thử trong tiến trình kiểm tra riêng
 
+## 2026-10-30 Kiểm tra lần đăng xuất Gemini tiếp theo
+
+- Log xác nhận cả hai tài khoản bị RPC từ chối lúc 17:46:52 và 17:47:22 giờ Việt Nam, gần hai giờ sau khi nhập cookie, tác vụ bảo trì vẫn chạy và không có lần khởi động lại service trong khoảng này
+- Mỗi tài khoản có 11 lần kiểm tra xoay được code cũ ghi thành công, nhưng chỉ nhận cookie SIDCC mới, không có bằng chứng PSIDTS đổi, việc ghi nhận gia hạn thành công trước đó chưa đủ chặt
+- Người dùng xác nhận cookie từ Chrome/Edge, đối chiếu mã server tham khảo cho thấy cùng giao thức RotateCookies, tài liệu Gemini WebAPI có ghi nhận cookie Chromium ràng buộc thiết bị chỉ sống vài giờ, đây là khả năng phù hợp với log chứ chưa chứng minh nguyên nhân nội bộ Google
+- Sửa để phân biệt đổi cookie thời hạn phiên, kiểm tra gia hạn và xác thực trang Gemini, không dùng mốc thành công cũ làm bằng chứng đổi PSIDTS, giữ lịch thử 10 phút và cooldown sửa phiên lỗi
+- Trang quản trị hiển thị trạng thái Google chưa cấp cookie thời hạn phiên mới, lịch 10 phút và các mốc kiểm tra, hướng dẫn dùng phiên Firefox mới khi vẫn bị đăng xuất
+- Đã yêu cầu người dùng cập nhật cookie từ phiên Firefox mới qua trang quản trị, không gửi cookie trong chat, chưa có phiên mới để xác nhận khôi phục đăng nhập
+- 229 kiểm thử backend, 5 kiểm thử giao diện quản trị và build TypeScript đạt, gồm tình huống HTTP 200 chỉ đổi SIDCC nhưng trang còn xác thực, giữ nhịp thử 10 phút, không dùng mốc gia hạn cũ làm bằng chứng và không ghi bí mật trong log
+

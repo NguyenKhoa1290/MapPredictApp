@@ -31,6 +31,16 @@ Không ghi giá trị cookie, XSRF, Authorization, email, mật khẩu, passcode
 
 ## Đọc chuỗi lỗi
 
-`rotation_due` và `refresh_start` cho biết tác vụ có thực sự đến hạn và bắt đầu. `google_response` ở endpoint `rotate_cookies` chỉ ghi mã HTTP và tên cookie thay đổi, HTTP 200 chưa đủ chứng minh phiên đã được gia hạn thành công. Cần có `rotation_success` sau khi kiểm tra trang Gemini
+`rotation_due` và `refresh_start` cho biết tác vụ có thực sự đến hạn và bắt đầu. `google_response` ở endpoint `rotate_cookies` chỉ ghi mã HTTP và tên cookie thay đổi, HTTP 200 chưa đủ chứng minh phiên đã được gia hạn thành công
+
+Từ bản sửa ngày 30/10/2026 sau sự cố đăng xuất, `rotation_cookie_renewed` xác nhận giá trị `__Secure-1PSIDTS` đã đổi và được lưu. `rotation_success` còn yêu cầu kiểm tra trang Gemini thành công sau đó. `rotation_no_renewal` cho biết Google không cấp giá trị PSIDTS mới, kể cả khi HTTP 200, SIDCC đã đổi và trang vẫn tạm đăng nhập được. Các sự kiện `rotation_success` ghi trước bản sửa này chưa phân biệt được trường hợp SIDCC đổi nhưng PSIDTS giữ nguyên
+
+Trang quản trị tách thời điểm kiểm tra gia hạn khỏi thời điểm cookie thời hạn phiên thực sự đổi. Mốc cũ `session_rotated_at` không được coi là bằng chứng đổi PSIDTS, mốc mới là `session_cookie_renewed_at`. Một lần thử không cấp cookie mới vẫn giữ lịch thử định kỳ 10 phút, không quét lại ở mọi lần kiểm tra 30 giây khi phiên còn dùng được
 
 `auth_failure` cho biết bước xác thực cụ thể bị từ chối, `network_error` ghi loại timeout hoặc lỗi kết nối, `cookie_save_conflict` cho biết có cập nhật cookie khác trong lúc ghi. Một `run_id` mới giúp đối chiếu việc container hoặc tiến trình vừa khởi động lại. Log chỉ cung cấp dấu vết quan sát được, không tự kết luận nguyên nhân nội bộ của Google
+
+## Sự cố ngày 30/10/2026
+
+Hai tài khoản nhập lúc 15:47:09 và 15:47:39 giờ Việt Nam, bị RPC từ chối lúc 17:46:52 và 17:47:22. Mỗi tài khoản có 11 lần kiểm tra xoay được code cũ ghi nhận thành công, nhưng chỉ đổi SIDCC, không có bằng chứng PSIDTS được cấp mới. Sau đó trang Gemini thiếu XSRF và các lần RotateCookies tiếp theo không khôi phục được xác thực
+
+Tác vụ bảo trì vẫn hoạt động, không có sự kiện khởi động lại service giữa lần nhập và thời điểm lỗi. Người dùng xác nhận lấy cookie từ Chrome/Edge. Đây là khả năng phù hợp với cookie ràng buộc thiết bị, chưa đủ để khẳng định chính sách nội bộ Google. [Gemini WebAPI hướng dẫn thử cookie từ Firefox khi cookie Chromium hết hạn sau vài giờ](https://github.com/HanaokaYuzu/Gemini-API#initialization). Cần cookie phiên mới từ người dùng để kiểm tra khả năng gia hạn thực tế, server không thể tự tạo lại phiên đăng nhập đã bị từ chối
