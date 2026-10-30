@@ -175,8 +175,10 @@ class GoogleSession:
             raise UsageAuthError('Google account identity mismatch')
         return fields
 
-    def persist(self, config, cookie_path, original, client, fields, rotated=False):
-        pairs = cookie_pairs(original)
+    def persist(self, config, cookie_path, original, client, fields=None, rotated=False):
+        # The client starts with every stored cookie. Rebuild from its current
+        # jar so a Set-Cookie deletion cannot resurrect an expired credential.
+        pairs = {}
         for item in client.cookies.jar:
             if item.domain.lstrip('.') in ('google.com', 'gemini.google.com') and not item.is_expired():
                 pairs[item.name] = item.value
@@ -184,7 +186,10 @@ class GoogleSession:
             latest = json.loads(self.config_path.read_text(encoding='utf-8'))
             if cookie_path.read_text(encoding='utf-8').strip() != original:
                 return  # A manual cookie update wins over an in-flight refresh.
-            atomic_text(cookie_path, header_cookie(pairs))
+            updated = header_cookie(pairs)
+            atomic_text(cookie_path, updated)
+            if fields is None:
+                return updated
             latest['xsrf_token'] = fields['SNlM0e']
             if fields.get('cfb2h'):
                 latest['gemini_bl'] = fields['cfb2h']
@@ -201,6 +206,7 @@ class GoogleSession:
         self.fields = fields
         self.fingerprint = hashlib.sha256(header_cookie(pairs).encode()).hexdigest()
         self.loaded_at = time.monotonic()
+        return updated
 
     def maintain(self):
         """Proactively rotate valid sessions; quota polling drives this for every account."""
@@ -222,12 +228,6 @@ class GoogleSession:
 
     def refresh(self, automatic=False, rotate=False):
         config, cookie_path, original, pairs, prefix = self.settings()
-        with private_lock(self.config_path.with_suffix('.lock')):
-            latest = json.loads(self.config_path.read_text(encoding='utf-8'))
-            if automatic and time.time() - latest.get('refresh_attempt_at', 0) < SESSION_REPAIR_COOLDOWN:
-                raise UsageAuthError('Session repair is cooling down; import a new cookie JSON if login was revoked')
-            latest['refresh_attempt_at'] = time.time()
-            write_json(self.config_path, latest)
         with self.client(pairs) as client:
             if not rotate:
                 try:
@@ -236,12 +236,25 @@ class GoogleSession:
                     return
                 except UsageAuthError:
                     pass
+            # Ordinary page checks must not reset the rotation cooldown. The
+            # 30-second poll otherwise postpones the 10-minute rotation forever.
+            with private_lock(self.config_path.with_suffix('.lock')):
+                latest = json.loads(self.config_path.read_text(encoding='utf-8'))
+                if automatic and time.time() - latest.get('refresh_attempt_at', 0) < SESSION_REPAIR_COOLDOWN:
+                    raise UsageAuthError('Session repair is cooling down; import a new cookie JSON if login was revoked')
+                latest['refresh_attempt_at'] = time.time()
+                write_json(self.config_path, latest)
             response = client.post('https://accounts.google.com/RotateCookies',
                 headers={'Origin': 'https://accounts.google.com', 'Content-Type': 'application/json'},
                 content='[000,"-0000000000000000000"]')
             if response.status_code in (400, 401, 403):
                 raise UsageAuthError('Google could not renew this session; import a new cookie JSON')
             response.raise_for_status()
+            # A successful RotateCookies can invalidate the previous timestamp
+            # cookie. Save its replacement before another network request.
+            original = self.persist(config, cookie_path, original, client)
+            if original is None:
+                return
             fields = self.page(client, config, prefix)
             self.persist(config, cookie_path, original, client, fields, rotated=True)
 
@@ -254,7 +267,9 @@ class GoogleSession:
             with self.client(pairs) as client:
                 if digest != self.fingerprint or not self.fields or time.monotonic() - self.loaded_at > 1200:
                     fields = self.page(client, config, prefix)
-                    self.persist(config, cookie_path, original, client, fields)
+                    original = self.persist(config, cookie_path, original, client, fields)
+                    if original is None:
+                        raise UsageAuthError('Google session changed during request')
                 fields = self.fields
                 prefix = fields.get('_account_prefix', prefix)
                 params = {'rpcids': rpcid, 'hl': 'en', 'rt': 'c', 'source-path': prefix + source,
@@ -273,6 +288,7 @@ class GoogleSession:
                     raise UsageAuthError('Google rejected this session')
                 response.raise_for_status()
                 rpc_bodies(response.text, rpcid)  # Detect authentication rejection even under HTTP 200.
+                self.persist(config, cookie_path, original, client, fields)
                 return response.text
         except UsageAuthError:
             if not retry:

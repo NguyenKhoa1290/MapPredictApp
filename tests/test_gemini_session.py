@@ -3,6 +3,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+import json
+import contextlib
 
 
 class GeminiSessionTests(unittest.TestCase):
@@ -49,3 +51,77 @@ class GeminiSessionTests(unittest.TestCase):
             self.assertFalse(manager.path.exists())
             with self.assertRaises(ValueError):
                 manager.import_cookie(None)
+
+    def test_regular_page_checks_do_not_postpone_ten_minute_rotation(self):
+        import httpx
+        from gemini_web2api.google_session import GoogleSession
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'config.json'
+            cookie = Path(folder) / 'cookie.txt'
+            cookie.write_text('SID=one; SAPISID=two; __Secure-1PSID=three')
+            path.write_text(json.dumps({'cookie_file': str(cookie), 'session_rotated_at': 1000,
+                                        'session_maintenance_started_at': 1000}))
+            calls = []
+            def handle(request):
+                calls.append(request.url.path)
+                if request.url.path == '/RotateCookies':
+                    return httpx.Response(200, headers={'Set-Cookie': '__Secure-1PSIDTS=new; Domain=.google.com; Path=/; Secure'})
+                return httpx.Response(200, text='{"SNlM0e":"xsrf"}')
+            session = GoogleSession(path)
+            @contextlib.contextmanager
+            def client(pairs):
+                cookies = httpx.Cookies()
+                for name, value in pairs.items():
+                    cookies.set(name, value, domain='.google.com', path='/')
+                with httpx.Client(transport=httpx.MockTransport(handle), cookies=cookies) as c:
+                    yield c
+            with patch.object(session, 'client', client):
+                # Each successful poll is only 30 seconds before the next one.
+                for now in range(1030, 1601, 30):
+                    with patch('gemini_web2api.google_session.time.time', return_value=now):
+                        session.maintain()
+                        session.refresh()
+            self.assertEqual(calls.count('/RotateCookies'), 1)
+            settings = json.loads(path.read_text())
+            self.assertEqual(settings['session_rotated_at'], 1600)
+            self.assertEqual(settings['refresh_attempt_at'], 1600)
+
+    def test_rotated_cookie_survives_failed_followup_page(self):
+        import httpx
+        from gemini_web2api.google_session import GoogleSession
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'config.json'
+            cookie = Path(folder) / 'cookie.txt'
+            original = 'SID=one; SAPISID=two; __Secure-1PSID=three; __Secure-1PSIDTS=old'
+            cookie.write_text(original)
+            path.write_text(json.dumps({'cookie_file': str(cookie)}))
+            def handle(request):
+                if request.url.path == '/RotateCookies':
+                    return httpx.Response(200, headers={'Set-Cookie': '__Secure-1PSIDTS=new; Domain=.google.com; Path=/; Secure'})
+                return httpx.Response(503)
+            session = GoogleSession(path)
+            @contextlib.contextmanager
+            def client(pairs):
+                cookies = httpx.Cookies()
+                for name, value in pairs.items():
+                    cookies.set(name, value, domain='.google.com', path='/')
+                with httpx.Client(transport=httpx.MockTransport(handle), cookies=cookies) as c:
+                    yield c
+            with patch.object(session, 'client', client), self.assertRaises(httpx.HTTPStatusError):
+                session.refresh(rotate=True)
+            self.assertIn('__Secure-1PSIDTS=new', cookie.read_text())
+            self.assertNotIn('__Secure-1PSIDTS=old', cookie.read_text())
+            self.assertNotIn('session_rotated_at', json.loads(path.read_text()))
+
+    def test_inflight_rotation_cannot_replace_manual_cookie_update(self):
+        import httpx
+        from gemini_web2api.google_session import GoogleSession
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'config.json'
+            cookie = Path(folder) / 'cookie.txt'
+            cookie.write_text('SID=manual; SAPISID=two; __Secure-1PSID=three')
+            path.write_text(json.dumps({'cookie_file': str(cookie)}))
+            with httpx.Client(cookies={'SID': 'stale'}) as client:
+                result = GoogleSession(path).persist({}, cookie, 'SID=old', client)
+            self.assertIsNone(result)
+            self.assertIn('SID=manual', cookie.read_text())

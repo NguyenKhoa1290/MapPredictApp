@@ -154,6 +154,8 @@ class AccountStore:
             path = self.path(account_id)
             config = json.loads(path.read_text(encoding='utf-8'))
             result['email'] = config.get('email')
+            # Session upkeep is independent of model discovery and quota RPCs.
+            GoogleSession(path).maintain()
             if discover or time.time() - config.get('model_checked_at', 0) > 3600:
                 self.discover(account_id)
             reader = self.readers.setdefault(account_id, UsageReader(self.root, config_path=path))

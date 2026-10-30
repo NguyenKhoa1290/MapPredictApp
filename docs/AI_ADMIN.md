@@ -31,6 +31,12 @@ Thay mật khẩu làm phiên cũ mất hiệu lực
 
 ## Các chế độ chatbot
 
+Gia hạn phiên chạy trên service khi không có tab trình duyệt nào mở, kiểm tra mỗi 30 giây và xoay cookie mỗi 10 phút. Mốc `refresh_attempt_at` chỉ dành cho lần gọi RotateCookies, không bị thay đổi bởi kiểm tra trang thông thường. Cookie trả về từ RotateCookies được ghi ngay trước bước kiểm tra trang Gemini, đồng thời lưu các cookie mới từ RPC. Cookie bị Google xóa không được khôi phục từ bản cũ. Cập nhật cookie thủ công được ưu tiên hơn lượt gia hạn đang chạy.
+
+Đối chiếu `Tailieuthamkhao/gemini-agent/google_session.py` và `server_terminal.py`: bản tham khảo dùng RotateCookies, kiểm tra quota mỗi 30 giây và chu kỳ xoay 12 giờ. Bản triển khai dùng chu kỳ 10 phút theo yêu cầu người dùng. Có phản hồi HTTP 200 từ RotateCookies chưa đủ xác nhận đăng nhập, chỉ ghi thời điểm xoay thành công sau khi kiểm tra lại phiên Gemini.
+
+Tham khảo cơ chế lưu cookie ngay sau RotateCookies trong [Gemini-API](https://github.com/HanaokaYuzu/Gemini-API/blob/master/src/gemini_webapi/utils/rotate_1psidts.py). Không thể đảm bảo Google không thu hồi phiên, khi Google không chấp nhận cookie sau cả bước gia hạn cần cập nhật cookie mới trong quản trị.
+
 Trạng thái kiểm tra ngày 29/10/2026: cookie đăng nhập được không đồng nghĩa model trả lời được. Adapter hiện còn dùng StreamGenerate. Quan sát trực tiếp giao diện Google xác nhận tài khoản đang dùng processSession qua WebChannel, model được chỉ định trong payload protobuf. Chưa hoàn tất nâng adapter sang giao thức này nên chưa xác nhận khôi phục 3.8 Flash. Các phép thử cũ chỉ xác nhận category và effort, không đủ chứng minh hash model thực tế.
 
 Nguồn đối chiếu: [báo lỗi của gemini-web2api](https://github.com/Sophomoresty/gemini-web2api/issues/110) và [mô tả giao thức processSession](https://github.com/stevensuna/gemini-web-mcp-cli/blob/main/docs/research/transport/processSession.md)
