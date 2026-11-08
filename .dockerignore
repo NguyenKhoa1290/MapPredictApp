@@ -19,10 +19,6 @@
 !backend/
 !backend/**
 !tools/
-!quality/
-!quality/__init__.py
-!quality/analysis/
-!quality/analysis/**
 !tools/auto_deploy.py
 !tools/docker_stack.py
 !tools/configure_cloudflare.py

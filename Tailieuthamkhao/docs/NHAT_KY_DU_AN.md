@@ -977,3 +977,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Cập nhật backend, import kiểm thử, Docker và đóng gói theo đường dẫn mới
 - Sửa mount ảnh trong Compose để trỏ đến assessment/static/image
 - Giữ cấu hình Vite và TypeScript ở gốc frontend
+
+## 2026-11-08 Kiểm tra lại trang quy hoạch thành phố
+
+- Ba route projects/hcm, projects/bac-kan và projects/phu-quoc dùng trang thật ProjectDetail và ProjectMapCanvas trong frontend/src/pages/projects
+- Các file test ở frontend/tests và quality/tests chỉ kiểm tra trang và dữ liệu, không phải điểm chạy giao diện
+- Tách bộ đọc workbook dự án khỏi script phân tích sang shared/project_workbook.py để backend không phụ thuộc quality
+- Image chạy web không chứa công cụ quality, CI mount riêng quality khi kiểm tra
