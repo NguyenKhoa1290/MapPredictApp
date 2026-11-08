@@ -11,18 +11,20 @@ vi.mock('../../../frontend/src/pages/projects/components/ProjectMapCanvas', () =
     data: import('../../../frontend/src/shared/api/types').ProjectMapData; visible: boolean; opacity: number; basemap: string;
     activeLabels: (number | null)[]; onSelect: (cell: import('../../../frontend/src/shared/api/types').CellProperties) => void;
   }) => <div aria-label="Bản đồ lưới dự án" data-visible={String(visible)} data-opacity={opacity} data-basemap={basemap} data-labels={JSON.stringify(activeLabels)}>
-    <button onClick={() => onSelect(data.collection.features[0].properties)}>Chọn ô trên bản đồ</button>
-  </div>,
+      <button onClick={() => onSelect(data.collection.features[0].properties)}>Chọn ô trên bản đồ</button>
+    </div>,
 }));
 
 const mapFixture = {
   project_id: 'phu-quoc', mode: 'geographic', source_crs: 'EPSG:9208', crs_confirmed: false,
   crs_options: [{ code: 'EPSG:9208', name: 'VN-2000 / TM-3 104-45' }, { code: 'EPSG:3405', name: 'VN-2000 / UTM zone 48N' }],
   counts: { total: 2, scored: 1, unscored: 1, Y: { '0': 1, '1': 0, '2': 0 } },
-  collection: { type: 'FeatureCollection', features: [
-    { type: 'Feature', id: 'A', geometry: { type: 'Polygon', coordinates: [[[104, 10], [104.01, 10], [104.01, 10.01], [104, 10]]] }, properties: { grid_id: '1', code: 'PQ1', Y: 0, handles: ['A'], label_status: 'valid', fillColor: '#ff0000', fillOpacity: 0.6 } },
-    { type: 'Feature', id: 'B', geometry: { type: 'Polygon', coordinates: [[[104.01, 10], [104.02, 10], [104.02, 10.01], [104.01, 10]]] }, properties: { grid_id: '2', code: null, Y: null, handles: ['B'], label_status: 'valid', fillColor: null, fillOpacity: 0 } },
-  ] },
+  collection: {
+    type: 'FeatureCollection', features: [
+      { type: 'Feature', id: 'A', geometry: { type: 'Polygon', coordinates: [[[104, 10], [104.01, 10], [104.01, 10.01], [104, 10]]] }, properties: { grid_id: '1', code: 'PQ1', Y: 0, handles: ['A'], label_status: 'valid', fillColor: '#ff0000', fillOpacity: 0.6 } },
+      { type: 'Feature', id: 'B', geometry: { type: 'Polygon', coordinates: [[[104.01, 10], [104.02, 10], [104.02, 10.01], [104.01, 10]]] }, properties: { grid_id: '2', code: null, Y: null, handles: ['B'], label_status: 'valid', fillColor: null, fillOpacity: 0 } },
+    ]
+  },
 };
 
 function mockAPI({ legacy = true, fail = false } = {}) {
@@ -83,13 +85,17 @@ describe('React portal shell', () => {
     expect(document.documentElement.style.getPropertyValue('--site-header-height')).toBe('0px');
     const frame = screen.getByTitle('Công cụ đánh giá quỹ đất');
     act(() => {
-      window.dispatchEvent(new MessageEvent('message', { origin: 'https://invalid.example', source: (frame as HTMLIFrameElement).contentWindow,
-        data: { type: 'map-predict:navigate-projects' } }));
+      window.dispatchEvent(new MessageEvent('message', {
+        origin: 'https://invalid.example', source: (frame as HTMLIFrameElement).contentWindow,
+        data: { type: 'map-predict:navigate-projects' }
+      }));
     });
     expect(screen.queryByRole('heading', { name: 'Khám phá các dự án' })).toBeNull();
     act(() => {
-      window.dispatchEvent(new MessageEvent('message', { origin: window.location.origin, source: (frame as HTMLIFrameElement).contentWindow,
-        data: { type: 'map-predict:navigate-projects' } }));
+      window.dispatchEvent(new MessageEvent('message', {
+        origin: window.location.origin, source: (frame as HTMLIFrameElement).contentWindow,
+        data: { type: 'map-predict:navigate-projects' }
+      }));
     });
     expect(await screen.findByRole('heading', { name: 'Khám phá các dự án' })).toBeTruthy();
     expect(screen.getByRole('banner')).toBeTruthy();
@@ -148,8 +154,10 @@ describe('React portal shell', () => {
     const fetcher = mockAPI({ fail: true }); const user = userEvent.setup(); mount();
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: /Hiểu không gian/ })).toBeNull();
-    fetcher.mockImplementation(async input => new Response(JSON.stringify({ data: String(input).endsWith('site-content')
-      ? { ...contentFile, legacy_available: true } : catalogFile.projects })));
+    fetcher.mockImplementation(async input => new Response(JSON.stringify({
+      data: String(input).endsWith('site-content')
+        ? { ...contentFile, legacy_available: true } : catalogFile.projects
+    })));
     await user.click(screen.getByRole('button', { name: 'Thử lại' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: /Hiểu không gian/ })).toBeTruthy());
   });
