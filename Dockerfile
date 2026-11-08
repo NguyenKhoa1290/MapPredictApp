@@ -3,7 +3,6 @@ WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
-COPY config/ /build/config/
 RUN npm run build
 
 FROM python:3.11-slim-bookworm AS dependencies
@@ -53,7 +52,7 @@ COPY app.py ./
 COPY backend/ ./backend/
 COPY ai_service/ ./ai_service/
 COPY shared/ ./shared/
-COPY config/ ./config/
+COPY frontend/config/ ./frontend/config/
 COPY templates/ ./templates/
 COPY wwwroot/ ./wwwroot/
 COPY tools/audit_reference_excel.py tools/audit_reference_dxf.py tools/auto_deploy.py tools/docker_stack.py tools/install_linux.py tools/configure_cloudflare.py ./tools/

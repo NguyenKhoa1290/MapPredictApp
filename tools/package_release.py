@@ -14,7 +14,7 @@ FILES = (
     "tools/set_ai_admin_password.py", "README.md", "models/README.md",
     "models/rf_model_rating_pipeline.pkl", "tools/audit_reference_excel.py", "tools/audit_reference_dxf.py",
 )
-FOLDERS = ("backend", "ai_service", "shared", "config", "templates", "wwwroot", "frontend/dist", "Tailieuthamkhao/docs")
+FOLDERS = ("backend", "ai_service", "shared", "frontend/config", "templates", "wwwroot", "frontend/dist", "Tailieuthamkhao/docs")
 
 
 def sources():

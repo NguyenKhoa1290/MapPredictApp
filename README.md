@@ -11,7 +11,7 @@
 - `frontend` giao diện React của portal và trang quản trị
 - `templates`, `wwwroot` giao diện bản đồ và dự đoán đang dùng trong công cụ đánh giá
 - `integrations` kết nối và duy trì phiên Gemini
-- `config` nội dung website và danh mục dự án
+- `frontend/config` nội dung website và danh mục dự án, backend đọc để phục vụ API
 - `models` pipeline dự đoán đang dùng
 - `deploy`, `tools`, `.github` cấu hình triển khai, công cụ vận hành và CI/CD
 - `tests` kiểm thử, dữ liệu mẫu nằm trong `tests/fixtures`
