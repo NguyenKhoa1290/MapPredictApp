@@ -12,7 +12,8 @@
 - `frontend/tests` kiểm thử React, tách khỏi mã nguồn giao diện
 - `assessment` ứng dụng bản đồ và dự đoán, gồm điểm khởi động, template và tài nguyên tĩnh
 - `integrations` kết nối và duy trì phiên Gemini
-- `frontend/config` nội dung website và danh mục dự án, backend đọc để phục vụ API
+- `frontend/src/pages/about/content.json` nội dung website, backend đọc để phục vụ API
+- `frontend/src/pages/projects/catalog.json` danh mục dự án
 - `backend/models` pipeline dự đoán do backend nạp
 - `deploy`, `tools`, `.github` cấu hình triển khai, công cụ vận hành và CI/CD
 - `quality/analysis` phân tích dữ liệu tham khảo

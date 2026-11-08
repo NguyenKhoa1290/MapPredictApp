@@ -29,8 +29,6 @@
 !tools/install_linux.py
 !tools/import_qdrant_migration.py
 !frontend/
-!frontend/config/
-!frontend/config/**
 !frontend/package.json
 !frontend/package-lock.json
 !frontend/index.html

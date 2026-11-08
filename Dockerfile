@@ -52,7 +52,8 @@ COPY assessment/ ./assessment/
 COPY backend/ ./backend/
 COPY ai_service/ ./ai_service/
 COPY shared/ ./shared/
-COPY frontend/config/ ./frontend/config/
+COPY frontend/src/pages/about/content.json ./frontend/src/pages/about/content.json
+COPY frontend/src/pages/projects/catalog.json ./frontend/src/pages/projects/catalog.json
 COPY tools/auto_deploy.py tools/docker_stack.py tools/install_linux.py tools/configure_cloudflare.py ./tools/
 COPY quality/__init__.py ./quality/__init__.py
 COPY quality/analysis/ ./quality/analysis/

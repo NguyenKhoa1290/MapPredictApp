@@ -969,3 +969,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - CSS quản trị nằm trong trang ai-admin, CSS dùng chung giữ trong src/styles
 - Cập nhật import, cấu hình Vitest và phạm vi kiểm tra TypeScript
 - Giữ nguyên các thay đổi nội dung và giao diện chưa commit của người dùng
+
+## 2026-11-08 Đặt cấu hình nội dung theo trang
+
+- Chuyển nội dung website vào frontend/src/pages/about/content.json
+- Chuyển danh mục dự án vào frontend/src/pages/projects/catalog.json
+- Cập nhật backend, import kiểm thử, Docker và đóng gói theo đường dẫn mới
+- Sửa mount ảnh trong Compose để trỏ đến assessment/static/image
+- Giữ cấu hình Vite và TypeScript ở gốc frontend

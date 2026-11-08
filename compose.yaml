@@ -19,14 +19,20 @@ x-worker: &worker
   secrets: [assistant_key]
   volumes:
     - type: bind
-      source: ./wwwroot/image
-      target: /app/wwwroot/image
+      source: ./assessment/static/image
+      target: /app/assessment/static/image
       read_only: true
       bind:
         create_host_path: false
     - type: bind
-      source: ./frontend/config
-      target: /app/frontend/config
+      source: ./frontend/src/pages/about/content.json
+      target: /app/frontend/src/pages/about/content.json
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ./frontend/src/pages/projects/catalog.json
+      target: /app/frontend/src/pages/projects/catalog.json
       read_only: true
       bind:
         create_host_path: false

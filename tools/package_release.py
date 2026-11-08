@@ -13,8 +13,9 @@ FILES = (
     "requirements.txt", "run_python.bat",
     "tools/set_ai_admin_password.py", "README.md", "backend/models/README.md",
     "backend/models/rf_model_rating_pipeline.pkl", "quality/__init__.py",
+    "frontend/src/pages/about/content.json", "frontend/src/pages/projects/catalog.json",
 )
-FOLDERS = ("backend", "ai_service", "assessment", "shared", "quality/analysis", "frontend/config", "frontend/dist", "Tailieuthamkhao/docs")
+FOLDERS = ("backend", "ai_service", "assessment", "shared", "quality/analysis", "frontend/dist", "Tailieuthamkhao/docs")
 
 
 def sources():

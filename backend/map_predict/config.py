@@ -11,8 +11,8 @@ class Config(AIConfig):
     MAX_CONTENT_LENGTH = int(os.environ.get("MAP_PREDICT_MAX_UPLOAD_BYTES", 600 * 1024 * 1024))
     PROXY_HOPS = int(os.environ.get("MAP_PREDICT_PROXY_HOPS", "0"))
     FRONTEND_DIST = ROOT / "frontend" / "dist"
-    PUBLIC_CONTENT_FILE = ROOT / "frontend" / "config" / "public_content.json"
-    PROJECT_CATALOG_FILE = ROOT / "frontend" / "config" / "projects.json"
+    PUBLIC_CONTENT_FILE = ROOT / "frontend" / "src" / "pages" / "about" / "content.json"
+    PROJECT_CATALOG_FILE = ROOT / "frontend" / "src" / "pages" / "projects" / "catalog.json"
     PROJECT_SOURCE_FOLDER = Path(os.environ.get("MAP_PREDICT_PROJECT_SOURCE_FOLDER",
                                               ROOT / "Tailieuthamkhao" / "Giaodienfrontend" / "luoi"))
     MODEL_DIRECTORY = Path(os.environ.get("MAP_PREDICT_MODEL_DIR", ROOT / "backend" / "models"))

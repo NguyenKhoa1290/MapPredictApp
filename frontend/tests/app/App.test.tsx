@@ -3,8 +3,8 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { App } from '../../src/app/App';
-import contentFile from '../../config/public_content.json';
-import catalogFile from '../../config/projects.json';
+import contentFile from '../../src/pages/about/content.json';
+import catalogFile from '../../src/pages/projects/catalog.json';
 
 vi.mock('../../src/pages/projects/components/ProjectMapCanvas', () => ({
   ProjectMapCanvas: ({ data, visible, opacity, basemap, activeLabels, onSelect }: {
