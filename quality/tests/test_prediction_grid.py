@@ -152,7 +152,7 @@ class PredictionGridTests(unittest.TestCase):
         self.assertFalse(self.result_path.exists())
 
     def test_mixed_dxf_gpkg_joins_and_legacy_columns_api(self):
-        gpkg = (python_app.ROOT / "tests/fixtures/layer_du_doan.gpkg").read_bytes()
+        gpkg = (python_app.ROOT / "quality/tests/fixtures/layer_du_doan.gpkg").read_bytes()
         columns = self.client.post("/api/prediction-columns", data={"layer": (io.BytesIO(gpkg), "a.gpkg")})
         self.assertEqual(columns.status_code, 200, columns.json)
         self.assertIn("fid", columns.json["columns"])

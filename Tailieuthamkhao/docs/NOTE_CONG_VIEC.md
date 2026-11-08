@@ -104,7 +104,7 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
   - Đọc toàn bộ 3 sheet liên quan; xác định dòng dữ liệu, cột tên ô/ID, x1–x9, Y; đếm thiếu, trùng và Y không hợp lệ. Không lấy nhầm sheet huấn luyện hoặc sheet Yên Bái.
   - Hoàn thành khi: có cấu hình đọc riêng từng sheet và ví dụ mã thực tế; các dòng không dùng được có lý do.
   - Phụ thuộc: không; không sửa file gốc.
-  - Kết quả: [biên bản kiểm kê](CV02_KIEM_KE_EXCEL.md), [định nghĩa nguồn từng sheet](cv02_excel_sources.json) và công cụ chỉ đọc `tools/audit_reference_excel.py`.
+  - Kết quả: [biên bản kiểm kê](CV02_KIEM_KE_EXCEL.md), [định nghĩa nguồn từng sheet](cv02_excel_sources.json) và công cụ chỉ đọc `quality/analysis/audit_reference_excel.py`.
   - TP.HCM: 297 dòng đủ dữ liệu; tổng trực tiếp Y=0/1/2 là 135/162/0. Công thức L302 đếm thiếu 1 dòng Y=0; mã `TP267` không có trong nguồn.
   - Bắc Kạn: 400 mã, 380 dòng đủ dữ liệu; `BK1`–`BK20` (hàng 4–23) thiếu x1–x9 và Y. Số mẫu cột A bị trùng, không dùng làm ID ghép mặc định. Không tự gán Y=0 cho ô thiếu.
   - Phú Quốc: 1.677 dòng đủ dữ liệu; mã B là số Excel, cần giữ kiểu gốc khi chuẩn bị khóa.
@@ -115,7 +115,7 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
   - Kiểm tra polyline kín, block, TEXT/MTEXT, mã ô, extent và tọa độ. Đối chiếu địa phương để xác nhận EPSG/độ dịch với người dùng khi thiếu bằng chứng.
   - Hoàn thành khi: từng dự án có kết luận về cách đọc, trường ghép, CRS đã xác nhận hoặc vướng mắc cụ thể. Không đánh dấu đúng vị trí chỉ vì hình học đã vẽ được.
   - Phụ thuộc: không.
-  - Kết quả: [biên bản khảo sát](CV03_KHAO_SAT_DXF.md), [định nghĩa nguồn](cv03_dxf_sources.json), công cụ chỉ đọc `tools/audit_reference_dxf.py` và 5 kiểm thử không sửa DXF.
+  - Kết quả: [biên bản khảo sát](CV03_KHAO_SAT_DXF.md), [định nghĩa nguồn](cv03_dxf_sources.json), công cụ chỉ đọc `quality/analysis/audit_reference_dxf.py` và 5 kiểm thử không sửa DXF.
   - Chọn hình học/nhãn ứng viên: TP.HCM `DTL-1D` + MTEXT layer `0` (1.695 ô); Bắc Kạn `00.Ranh gioi` + MTEXT layer `0` (400 ô); Phú Quốc `Docao` + TEXT layer `0` (1.734 polygon, 1.676 hình học khác nhau, 58 bản trùng dư).
   - Đã tái hiện vấn đề bộ đọc hiện tại: lẫn đường bao/nhãn nền, điểm chèn MTEXT trên biên, hình học Phú Quốc trùng và nhãn 1232 ngoài lưới. Chưa áp dụng snap, gộp trùng, ghép gần nhất hoặc sửa nguồn.
   - Người dùng xác nhận VN-2000; chưa có EPSG/phép chiếu cụ thể. Cả ba không có GEODATA; Phú Quốc có header đơn vị mm và XREF ngoài chưa được cung cấp. Đã hỏi thêm EPSG/kinh tuyến trục/múi chiếu; chưa duyệt chuyển tọa độ.

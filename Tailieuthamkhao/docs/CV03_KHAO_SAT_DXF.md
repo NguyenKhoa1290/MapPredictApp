@@ -19,7 +19,7 @@ Bổ sung: người dùng cho biết dùng chung phép chiếu với DXF trướ
 - Kiểm tra hình học trùng bằng polygon đã chuẩn hóa thứ tự đỉnh, không sửa tọa độ. Đếm cặp chồng diện tích trên `1e-5` đơn vị bản vẽ bình phương chỉ để bỏ nhiễu số trong chẩn đoán, không phải dung sai trắc địa.
 - Tọa độ/kích thước bên dưới là **đơn vị bản vẽ gốc**, không mặc định đều là mét. `GEODATA` có thể lưu định nghĩa CRS/EPSG; cả ba file không có đối tượng này. [Tài liệu GeoData của ezdxf](https://ezdxf.readthedocs.io/en/stable/dxfobjects/geodata.html).
 - Tìm chuỗi EPSG/VN-2000/PROJCS/GEOGCS/GEODATA trong ba file không có kết quả. Đây là chưa tìm thấy bằng chứng CRS, không phải chứng minh file không thể có thông tin địa lý gián tiếp.
-- Công cụ tái lập: `tools/audit_reference_dxf.py`; cấu hình tham khảo: [cv03_dxf_sources.json](cv03_dxf_sources.json).
+- Công cụ tái lập: `quality/analysis/audit_reference_dxf.py`; cấu hình tham khảo: [cv03_dxf_sources.json](cv03_dxf_sources.json).
 
 ## 1. TP.HCM — luoi_hcm.dxf
 

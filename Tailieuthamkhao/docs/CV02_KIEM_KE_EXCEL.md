@@ -8,7 +8,7 @@ Ngày kiểm tra: 2026-10-26. Trạng thái: **hoàn thành kiểm kê**, không
 - SHA-256 trước và sau khi đọc: `b7373684cb05ee3dc91308f0fd97523e714e785fbd6ad7e5a2a6aa925ad48b0f`; file không thay đổi.
 - Đọc toàn bộ ô có giá trị/công thức của đúng ba sheet `data tp. HCM`, `bắc kan`, `data Phú Quốc`; không lấy dữ liệu huấn luyện hoặc Yên Bái.
 - Dùng ZIP/XML chuẩn của Python để giữ kiểu ô, mã gốc, công thức và giá trị cache. Không chạy Excel, không tính lại công thức, không chạy AI, không sửa workbook. Artifact Tool không có ở vị trí dependency được cung cấp trong môi trường này.
-- Công cụ tái kiểm tra: `tools/audit_reference_excel.py`, chỉ xuất JSON ra stdout. Phạm vi dòng là phạm vi của phiên bản nguồn trên, không phải bộ tự nhận diện mọi workbook. Nguồn thay đổi cần kiểm kê lại.
+- Công cụ tái kiểm tra: `quality/analysis/audit_reference_excel.py`, chỉ xuất JSON ra stdout. Phạm vi dòng là phạm vi của phiên bản nguồn trên, không phải bộ tự nhận diện mọi workbook. Nguồn thay đổi cần kiểm kê lại.
 - Định nghĩa đọc cho từng sheet: [cv02_excel_sources.json](cv02_excel_sources.json), là cấu hình tham khảo cho CV-11, chưa được nối vào API ứng dụng.
 
 ## Quy tắc đọc chung đã xác định

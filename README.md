@@ -14,7 +14,8 @@
 - `frontend/config` nội dung website và danh mục dự án, backend đọc để phục vụ API
 - `backend/models` pipeline dự đoán do backend nạp
 - `deploy`, `tools`, `.github` cấu hình triển khai, công cụ vận hành và CI/CD
-- `tests` kiểm thử, dữ liệu mẫu nằm trong `tests/fixtures`
+- `quality/analysis` phân tích dữ liệu tham khảo
+- `quality/tests` kiểm thử, dữ liệu mẫu nằm trong `quality/tests/fixtures`
 - `Tailieuthamkhao/docs` tài liệu, nhật ký, kế hoạch công việc và bằng chứng kiểm tra
 
 `assessment/app.py` là điểm khởi động web, `ai_service/app.py` là điểm khởi động service AI
@@ -37,9 +38,9 @@ Mở http://127.0.0.1:8765/portal/
 ## Kiểm tra
 
 ```powershell
-.\venv\Scripts\python.exe -B -W ignore::ResourceWarning -m unittest discover -s tests -p "test_*.py"
+.\venv\Scripts\python.exe -B -W ignore::ResourceWarning -m unittest discover -s quality/tests -p "test_*.py"
 npm --prefix frontend test
-node --test tests/basemaps.test.cjs tests/color_adjustments.test.cjs tests/pdf_export.test.cjs tests/assistant.test.cjs
+node --test quality/tests/basemaps.test.cjs quality/tests/color_adjustments.test.cjs quality/tests/pdf_export.test.cjs quality/tests/assistant.test.cjs
 ```
 
 ## Tài liệu

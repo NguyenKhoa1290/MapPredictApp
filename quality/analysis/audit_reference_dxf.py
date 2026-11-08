@@ -6,8 +6,8 @@ from pathlib import Path
 import re
 import sys
 
-# Allow direct execution from tools without changing the application import path.
-ROOT = Path(__file__).resolve().parents[1]
+# Allow direct execution from quality/analysis without changing the application import path.
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 

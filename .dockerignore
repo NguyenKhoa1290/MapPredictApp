@@ -19,8 +19,10 @@
 !backend/
 !backend/**
 !tools/
-!tools/audit_reference_excel.py
-!tools/audit_reference_dxf.py
+!quality/
+!quality/__init__.py
+!quality/analysis/
+!quality/analysis/**
 !tools/auto_deploy.py
 !tools/docker_stack.py
 !tools/configure_cloudflare.py

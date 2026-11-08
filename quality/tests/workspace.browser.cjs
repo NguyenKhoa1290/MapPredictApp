@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
-const root = path.resolve(__dirname, "..");
+const root = path.resolve(__dirname, "../..");
 const serverUrl = process.env.WORKSPACE_TEST_URL;
 if (!serverUrl) throw new Error("WORKSPACE_TEST_URL must point to a disposable test server, not user data.");
 const url = new URL('/legacy/?embedded=1', serverUrl).href;

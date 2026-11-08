@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const root = path.resolve(__dirname, '..');
+const root = path.resolve(__dirname, '../..');
 const server = process.env.WORKSPACE_TEST_URL;
 if (!server) throw new Error('WORKSPACE_TEST_URL is required');
 const dxf = execFileSync(process.env.PYTHON || path.join(root, 'venv/Scripts/python.exe'), ['-c', `

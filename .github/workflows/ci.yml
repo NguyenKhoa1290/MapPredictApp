@@ -50,7 +50,7 @@ jobs:
         working-directory: frontend
         run: npm test
       - name: Test backend
-        run: python -B -W ignore::ResourceWarning -m unittest discover -s tests -p "test_*.py"
+        run: python -B -W ignore::ResourceWarning -m unittest discover -s quality/tests -p "test_*.py"
       - name: Validate Linux service units
         if: runner.os == 'Linux'
         shell: bash
@@ -71,7 +71,7 @@ jobs:
           subprocess.run(['systemd-analyze', '--man=no', 'verify', *paths], check=True)
           PY
       - name: Test map rendering utilities
-        run: node --test tests/basemaps.test.cjs tests/color_adjustments.test.cjs tests/pdf_export.test.cjs tests/assistant.test.cjs
+        run: node --test quality/tests/basemaps.test.cjs quality/tests/color_adjustments.test.cjs quality/tests/pdf_export.test.cjs quality/tests/assistant.test.cjs
       - name: Package and verify extracted application
         run: python -B tools/package_release.py --output dist/MapPredictApp.zip --smoke-test
   docker:
@@ -94,13 +94,13 @@ jobs:
         run: |
           python3 -c "from pathlib import Path; import os,secrets; p=Path(os.environ['RUNNER_TEMP'],'assistant-ci-key'); p.write_text(secrets.token_hex(32)); p.chmod(0o644)"
           docker network create map-predict-ci-network
-          docker run -d --name map-predict-ai-ci --network map-predict-ci-network --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" -v "${{ github.workspace }}/tests:/app/tests:ro" -e MAP_PREDICT_ASSISTANT_SECRET_FILE=/run/secrets/assistant_key map-predict-ai-ci
+          docker run -d --name map-predict-ai-ci --network map-predict-ci-network --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" -v "${{ github.workspace }}/quality/tests:/app/quality/tests:ro" -e MAP_PREDICT_ASSISTANT_SECRET_FILE=/run/secrets/assistant_key map-predict-ai-ci
       - name: Start image without host credentials
         run: >-
           docker run -d --name map-predict-ci
           --read-only --tmpfs /tmp:rw,nosuid,noexec,size=536870912
           -v "${{ github.workspace }}/backend/models:/app/backend/models:ro"
-          -v "${{ github.workspace }}/tests:/app/tests:ro"
+          -v "${{ github.workspace }}/quality/tests:/app/quality/tests:ro"
           -v "${{ runner.temp }}/assistant-ci-key:/run/secrets/assistant_key:ro"
           --network map-predict-ci-network
           -e MAP_PREDICT_ASSISTANT_ENABLED=1
@@ -116,25 +116,25 @@ jobs:
           curl --fail --silent http://127.0.0.1:8766/portal/ > /dev/null
           docker exec map-predict-ci python -c "import json, urllib.request; assert json.load(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/predictions/model'))['data']['ready']"
       - name: Test production dependency set
-        run: docker exec -e MAP_PREDICT_AI_SERVICE_URL= -e MAP_PREDICT_ASSISTANT_ENABLED=0 map-predict-ci python -B -W ignore::ResourceWarning -m unittest discover -s tests -p "test_*.py"
+        run: docker exec -e MAP_PREDICT_AI_SERVICE_URL= -e MAP_PREDICT_ASSISTANT_ENABLED=0 map-predict-ci python -B -W ignore::ResourceWarning -m unittest discover -s quality/tests -p "test_*.py"
       - name: Verify live gateway reaches authenticated AI service
         run: |
           curl --fail --silent http://127.0.0.1:8766/api/v1/assistant/status > /dev/null
           docker exec map-predict-ai-ci python -c "from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8001/health').status==200"
       - name: Test RAGWire retrieval and JSON boundaries in AI image
-        run: docker exec map-predict-ai-ci python -B -m unittest discover -s tests -p 'test_ragwire_retrieval.py'
+        run: docker exec map-predict-ai-ci python -B -m unittest discover -s quality/tests -p 'test_ragwire_retrieval.py'
       - name: Verify private Gemini adapter without account cookies
         run: |
-          docker run -d --name map-predict-gemini-ci --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" -v "${{ github.workspace }}/tests:/app/tests:ro" map-predict-gemini-ci
+          docker run -d --name map-predict-gemini-ci --read-only --tmpfs /tmp -v "${RUNNER_TEMP}/assistant-ci-key:/run/secrets/assistant_key:ro" -v "${{ github.workspace }}/quality/tests:/app/quality/tests:ro" map-predict-gemini-ci
           for attempt in $(seq 1 15); do
             if [ "$(docker inspect --format '{{.State.Health.Status}}' map-predict-gemini-ci)" = healthy ]; then break; fi
             sleep 2
           done
           test "$(docker inspect --format '{{.State.Health.Status}}' map-predict-gemini-ci)" = healthy
-          docker exec map-predict-gemini-ci python -B -m unittest discover -s tests -p 'test_gemini_session.py'
-          docker exec map-predict-gemini-ci python -B -m unittest discover -s tests -p 'test_session_audit.py'
-          docker exec map-predict-gemini-ci python -B -m unittest discover -s tests -p 'test_argon_routing.py'
-          docker exec map-predict-gemini-ci python -B -m unittest discover -s tests -p 'test_gemini_session.py'
+          docker exec map-predict-gemini-ci python -B -m unittest discover -s quality/tests -p 'test_gemini_session.py'
+          docker exec map-predict-gemini-ci python -B -m unittest discover -s quality/tests -p 'test_session_audit.py'
+          docker exec map-predict-gemini-ci python -B -m unittest discover -s quality/tests -p 'test_argon_routing.py'
+          docker exec map-predict-gemini-ci python -B -m unittest discover -s quality/tests -p 'test_gemini_session.py'
       - name: Container diagnostics
         if: failure()
         run: docker logs map-predict-ci

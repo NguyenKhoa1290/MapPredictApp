@@ -15,7 +15,7 @@ class ArgonRoutingTests(unittest.TestCase):
         except ImportError:
             raise unittest.SkipTest('Gemini dependencies are installed in the Gemini image')
         cls.previous = list(sys.path)
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'integrations'))
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'integrations'))
         from gemini_web2api.account_pool import AccountPool
         cls.pool_type = AccountPool
 

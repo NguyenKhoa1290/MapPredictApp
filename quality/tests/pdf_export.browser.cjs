@@ -42,7 +42,7 @@ const url = new URL('/legacy/?embedded=1', serverUrl).href;
         assert.ok((await popup.locator(".map-meta").textContent()).includes("9208"));
         if(await popup.locator(".map-warning").textContent()) console.error("IMAGE_DIAGNOSTIC",await popup.evaluate(()=>[...document.images].filter(image=>!image.naturalWidth).slice(0,5).map(image=>({src:image.src.slice(0,100),complete:image.complete}))),failed.slice(-8));
         assert.equal(await popup.locator(".map-warning").textContent(),"");
-        await popup.pdf({path:path.join(__dirname,"../tmp/pdfs/map-visible-test.pdf"),preferCSSPageSize:true,printBackground:true,displayHeaderFooter:false});
+        await popup.pdf({path:path.join(__dirname,"../../tmp/pdfs/map-visible-test.pdf"),preferCSSPageSize:true,printBackground:true,displayHeaderFooter:false});
         assert.deepEqual(await page.evaluate(()=>({center:map.getCenter(),zoom:map.getZoom(),visible:overlays.map(o=>o.visible),count:overlays.length})),before);
         await popup.close();
         console.log("PASS: one-page export snapshot retains raster without CORS, visible canvas layers and attribution, excludes sidebar/controls, leaves live map unchanged");

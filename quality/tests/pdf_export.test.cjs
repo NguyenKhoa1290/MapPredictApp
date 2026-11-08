@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { fitPage, intersects, missingTiles } = require("../assessment/static/pdf_export.js");
+const { fitPage, intersects, missingTiles } = require("../../assessment/static/pdf_export.js");
 
 test("landscape map fits a single printable A4 area without changing aspect", () => {
     const size = fitPage(1600, 900);

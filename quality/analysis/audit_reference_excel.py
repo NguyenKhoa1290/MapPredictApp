@@ -14,7 +14,7 @@ import re
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "Tailieuthamkhao/Giaodienfrontend/luoi/File ex.xlsx"
 NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"

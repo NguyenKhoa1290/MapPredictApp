@@ -12,7 +12,7 @@ class SessionAuditTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.previous = list(sys.path)
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'integrations'))
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'integrations'))
         try:
             from gemini_web2api import session_audit
         except ModuleNotFoundError as error:

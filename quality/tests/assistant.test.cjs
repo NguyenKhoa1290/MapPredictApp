@@ -1,12 +1,12 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const { JSDOM } = require('../frontend/node_modules/jsdom');
-const script = fs.readFileSync(require('node:path').join(__dirname, '../assessment/static/assistant.js'), 'utf8');
+const { JSDOM } = require('../../frontend/node_modules/jsdom');
+const script = fs.readFileSync(require('node:path').join(__dirname, '../../assessment/static/assistant.js'), 'utf8');
 const tick = () => new Promise(resolve => setTimeout(resolve, 5));
 const vm = require('node:vm');
 const historyContext = vm.createContext({ Blob, structuredClone, setTimeout, clearTimeout });
-vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../assessment/static/workspace_store.js'), 'utf8'), historyContext);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../../assessment/static/workspace_store.js'), 'utf8'), historyContext);
 const WorkspaceHistory = historyContext.WorkspaceHistory;
 
 test('stalled browser save aborts instead of locking draft review indefinitely', async () => {
@@ -14,7 +14,7 @@ test('stalled browser save aborts instead of locking draft review indefinitely',
     const context = vm.createContext({ Blob, structuredClone,
         setTimeout(callback, ms) { assert.equal(ms, 30000); expire = callback; return 1; },
         clearTimeout() { cleared = true; } });
-    vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../assessment/static/workspace_store.js'), 'utf8'), context);
+    vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../../assessment/static/workspace_store.js'), 'utf8'), context);
     const store = new context.WorkspaceStore();
     const tx = { objectStore: () => ({ get: () => ({}) }),
         abort() { aborted = true; this.onabort(); } };
@@ -30,7 +30,7 @@ test('stalled browser save aborts instead of locking draft review indefinitely',
 
 test('joined parcel clicks show a safe name popup without zoom while base layer clicks still zoom', () => {
     const path = require('node:path');
-    const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
+    const read = name => fs.readFileSync(path.join(__dirname, '../..', name), 'utf8');
     const html = read('assessment/templates/index.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
     const dom = new JSDOM(html, { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
     const w = dom.window;
@@ -84,7 +84,7 @@ test('joined parcel clicks show a safe name popup without zoom while base layer 
 
 test('chat sends the full displayed prediction result and restores it after workspace travel', async () => {
     const path = require('node:path');
-    const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
+    const read = name => fs.readFileSync(path.join(__dirname, '../..', name), 'utf8');
     const html = read('assessment/templates/index.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '').replace(/{%[^%]*%}/g, '');
     const dom = new JSDOM(html, { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
     const w = dom.window;
@@ -173,7 +173,7 @@ test('chat sends the full displayed prediction result and restores it after work
 
 test('real workspace restores DXF, empty CSV input and table across confirm undo redo', async () => {
     const path = require('node:path');
-    const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
+    const read = name => fs.readFileSync(path.join(__dirname, '../..', name), 'utf8');
     const html = read('assessment/templates/index.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '')
         .replace(/{%[^%]*%}/g, '');
     const dom = new JSDOM(html, { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
@@ -338,7 +338,7 @@ test('a new page can import before and after history with DXF bytes and redo pos
 });
 
 test('IndexedDB stores the complete timeline and DXF bytes across a database reopen', async () => {
-    const { IDBFactory } = require('../frontend/node_modules/fake-indexeddb');
+    const { IDBFactory } = require('../../frontend/node_modules/fake-indexeddb');
     const factory = new IDBFactory();
     const first = new historyContext.WorkspaceStore(factory, 'timeline-test');
     const second = new historyContext.WorkspaceStore(factory, 'timeline-test');

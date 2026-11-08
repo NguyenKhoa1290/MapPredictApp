@@ -1,7 +1,7 @@
 """Synthetic audit tests; never open or modify user result files."""
 import unittest
 
-from tools.audit_reference_excel import audit_sheet, key, numeric
+from quality.analysis.audit_reference_excel import audit_sheet, key, numeric
 
 
 def cell(value, kind="n", formula=False):

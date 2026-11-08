@@ -14,7 +14,7 @@ from shapely.ops import transform
 
 from shared.geospatial.cad_to_geojson import _entity_features
 from shared.geospatial.gis import source_crs_options
-from tools.audit_reference_excel import PROJECTS, key, numeric, read_sheets
+from quality.analysis.audit_reference_excel import PROJECTS, key, numeric, read_sheets
 
 PALETTE = {0: "#ff0000", 1: "#ffa500", 2: "#008000"}
 SOURCES = {

@@ -16,7 +16,7 @@ class GeminiSessionTests(unittest.TestCase):
             raise unittest.SkipTest('Session adapter dependency is installed in its own Docker image')
         import sys
         cls.previous = list(sys.path)
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'integrations'))
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'integrations'))
         from gemini_web2api.session_manager import SessionManager
         cls.manager_type = SessionManager
 

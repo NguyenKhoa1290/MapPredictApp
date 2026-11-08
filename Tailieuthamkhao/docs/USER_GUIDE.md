@@ -63,12 +63,12 @@ Cho phép zoom đến 22 để xem vector. Ảnh raster yêu cầu tối đa zoo
 
 Nút **Phân tích độ dịch** ở từng DXF đọc các block lồng nhau và tổng hợp phép chèn, không sửa file gốc. Khi block còn giữ tọa độ lớn trong phạm vi EPSG đã chọn, đủ đỉnh không thẳng hàng và chỉ có phép tịnh tiến nhất quán, ứng dụng đề xuất độ dịch ngược. **Xem trước vị trí** vẽ khung phạm vi dự kiến, chưa thay đổi layer hay X/Y. **Áp dụng độ dịch** thay thế X/Y riêng cho file đó; sau đó nhấn **Hiển thị trên bản đồ** để nạp lại. Không cộng lặp độ dịch, không thay EPSG chung và không tự áp dụng cho file khác. Thay EPSG hoặc chọn lại file sẽ hủy đề xuất cũ. Nếu có xoay/co giãn, độ dịch mâu thuẫn, tọa độ trộn hoặc không còn bằng chứng gốc, ứng dụng không đề xuất áp dụng và yêu cầu điểm mốc/QGIS. Sai lệch đối chiếu đỉnh chỉ đo tính nhất quán của phép dịch, không phải độ chính xác định vị thực địa; EPSG vẫn cần người dùng xác nhận.
 
-Ứng dụng không tự đọc layer từ đường dẫn cố định và không tự áp dụng phép dịch riêng theo tên file. Chỉ đổi EPSG sẽ không đặt đúng hình học có tọa độ CAD cục bộ. File `tests/fixtures/layer_du_doan.gpkg` được giữ để kiểm thử, không tự xuất hiện trên bản đồ.
+Ứng dụng không tự đọc layer từ đường dẫn cố định và không tự áp dụng phép dịch riêng theo tên file. Chỉ đổi EPSG sẽ không đặt đúng hình học có tọa độ CAD cục bộ. File `quality/tests/fixtures/layer_du_doan.gpkg` được giữ để kiểm thử, không tự xuất hiện trên bản đồ.
 
 Kiểm tra luồng chính:
 
 ```powershell
-.\venv\Scripts\python.exe -m unittest discover -s tests -v
+.\venv\Scripts\python.exe -m unittest discover -s quality/tests -v
 node --test tests/color_adjustments.test.cjs
 node --test tests/basemaps.test.cjs
 node --test tests/pdf_export.test.cjs

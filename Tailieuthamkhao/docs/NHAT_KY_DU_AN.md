@@ -953,3 +953,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Chuyển pipeline và hướng dẫn model vào backend/models
 - Cập nhật đường dẫn mặc định, mount Docker, CI và đóng gói
 - Model tiếp tục được mount chỉ đọc trong Docker, không đưa vào image ứng dụng
+
+## 2026-11-08 Gom phân tích và kiểm thử
+
+- Gom bộ kiểm thử và dữ liệu mẫu vào quality/tests
+- Gom script khảo sát Excel và DXF vào quality/analysis
+- Cập nhật đường dẫn CI/CD, Docker, import và công cụ đóng gói
+- Các kiểm thử React đặt cạnh component tiếp tục chạy bằng npm trong frontend

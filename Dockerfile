@@ -53,7 +53,9 @@ COPY backend/ ./backend/
 COPY ai_service/ ./ai_service/
 COPY shared/ ./shared/
 COPY frontend/config/ ./frontend/config/
-COPY tools/audit_reference_excel.py tools/audit_reference_dxf.py tools/auto_deploy.py tools/docker_stack.py tools/install_linux.py tools/configure_cloudflare.py ./tools/
+COPY tools/auto_deploy.py tools/docker_stack.py tools/install_linux.py tools/configure_cloudflare.py ./tools/
+COPY quality/__init__.py ./quality/__init__.py
+COPY quality/analysis/ ./quality/analysis/
 COPY tools/import_qdrant_migration.py ./tools/
 COPY --from=frontend /build/frontend/dist/ ./frontend/dist/
 RUN mkdir -p /app/backend/models /app/project-data /var/lib/map-predict-ai && chown 10001:10001 /var/lib/map-predict-ai

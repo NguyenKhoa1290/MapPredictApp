@@ -3,7 +3,7 @@ import unittest
 
 from shapely.geometry import box
 
-from tools.audit_reference_dxf import geometry_summary, label_summary
+from quality.analysis.audit_reference_dxf import geometry_summary, label_summary
 
 
 def label(x, y, text="1"):
