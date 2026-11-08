@@ -5,7 +5,7 @@ export function ProjectCards({ projects }: { projects: Project[] }) {
   return <div className="project-grid">{projects.map(project => <article className="project-card" key={project.id}>
     <div className={`project-image${project.kind === 'ai' ? ' ai-cover' : ''}`}>
       <img src={`/static/image/project-${project.id}.jpg`} alt={project.region} loading="lazy" />
-      <span className="project-number">DỰ ÁN {project.index}</span>
+      {/* <span className="project-number">DỰ ÁN {project.index}</span> */}
     </div>
     <div className="project-body"><p className="project-meta">{project.category}</p>
       <h3>{project.kind === 'map' && <small>Đánh giá quy hoạch chi tiết</small>}{project.region}</h3>
