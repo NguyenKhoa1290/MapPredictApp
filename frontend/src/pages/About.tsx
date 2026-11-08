@@ -9,9 +9,9 @@ export function About() {
     <section className="gp-hero" aria-labelledby="hero-title">
       <div className="container gp-hero-grid">
         <div className="gp-hero-copy">
-          <p className="gp-kicker"><span /> GEOPLAN AI <span className="gp-kicker-divider" /> DỮ LIỆU & KHÔNG GIAN</p>
+          <p className="gp-kicker"><span /> GEOPLAN AI         Ứng dụng dữ liệu và không gian</p>
           <h1 id="hero-title">Hiểu không gian<br /><em>Nhìn rõ tiềm năng</em></h1>
-          <p className="gp-hero-description">Kết nối AI, dữ liệu và bản đồ để đánh giá quỹ đất theo quy hoạch chi tiết</p>
+          <p className="gp-hero-description">Kết nối trí tuệ nhân tạo, dữ liệu và bản đồ để đánh giá quỹ đất theo quy hoạch chi tiết</p>
           <div className="button-row gp-hero-actions">
             <Link className="button primary" to="/assessment">Đi đến công cụ đánh giá <span aria-hidden="true">→</span></Link>
             <Link className="button secondary" to="/projects">Khám phá dự án</Link>
