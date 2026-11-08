@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { App } from '../../src/app/App';
-import contentFile from '../../src/pages/about/content.json';
-import catalogFile from '../../src/pages/projects/catalog.json';
+import { App } from '../../../frontend/src/app/App';
+import contentFile from '../../../frontend/src/pages/about/content.json';
+import catalogFile from '../../../frontend/src/pages/projects/catalog.json';
 
-vi.mock('../../src/pages/projects/components/ProjectMapCanvas', () => ({
+vi.mock('../../../frontend/src/pages/projects/components/ProjectMapCanvas', () => ({
   ProjectMapCanvas: ({ data, visible, opacity, basemap, activeLabels, onSelect }: {
-    data: import('../../src/shared/api/types').ProjectMapData; visible: boolean; opacity: number; basemap: string;
-    activeLabels: (number | null)[]; onSelect: (cell: import('../../src/shared/api/types').CellProperties) => void;
+    data: import('../../../frontend/src/shared/api/types').ProjectMapData; visible: boolean; opacity: number; basemap: string;
+    activeLabels: (number | null)[]; onSelect: (cell: import('../../../frontend/src/shared/api/types').CellProperties) => void;
   }) => <div aria-label="Bản đồ lưới dự án" data-visible={String(visible)} data-opacity={opacity} data-basemap={basemap} data-labels={JSON.stringify(activeLabels)}>
     <button onClick={() => onSelect(data.collection.features[0].properties)}>Chọn ô trên bản đồ</button>
   </div>,

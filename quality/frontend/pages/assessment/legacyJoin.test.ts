@@ -1,9 +1,9 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { projectPath } from '../../paths';
 import { waitFor } from '@testing-library/dom';
 
-const source = (path: string) => readFileSync(resolve('..', path), 'utf8');
+const source = (path: string) => readFileSync(projectPath(path), 'utf8');
 const payload = { source_crs: 'EPSG:9208', layers: [{ name: 'grid.dxf', data: {
   features: [{ properties: { grid_id: '1', Y: 2 } }],
   join_summary: { total: 2, matched: 1, unmatched: 1, exact: 0, numeric: 1, ambiguous: 0,

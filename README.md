@@ -9,7 +9,7 @@
 - `ai_service` API, cấu hình, prompt, chatbot và quản trị của service AI
 - `shared` đọc CSV, xử lý GIS và cấu hình kết nối dùng chung
 - `frontend/src/pages` giao diện React chia theo trang about, projects, assessment và ai-admin
-- `frontend/tests` kiểm thử React, tách khỏi mã nguồn giao diện
+- `quality/frontend` kiểm thử React, tách khỏi mã nguồn giao diện
 - `assessment` ứng dụng bản đồ và dự đoán, gồm điểm khởi động, template và tài nguyên tĩnh
 - `integrations` kết nối và duy trì phiên Gemini
 - `frontend/src/pages/about/content.json` nội dung website, backend đọc để phục vụ API

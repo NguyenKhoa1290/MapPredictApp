@@ -1,13 +1,13 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PredictionWorkspace } from '../../../src/pages/assessment/csv/PredictionWorkspace';
-import type { AssessmentState } from '../../../src/pages/assessment/csv/persistence';
+import { PredictionWorkspace } from '../../../../frontend/src/pages/assessment/csv/PredictionWorkspace';
+import type { AssessmentState } from '../../../../frontend/src/pages/assessment/csv/persistence';
 
 const saved = vi.hoisted(() => ({ value: null as AssessmentState | null, readError: null as Error | null,
   writeError: null as Error | null, attempts: 0 }));
-vi.mock('../../../src/pages/assessment/csv/persistence', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../../src/pages/assessment/csv/persistence')>();
+vi.mock('../../../../frontend/src/pages/assessment/csv/persistence', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../../../frontend/src/pages/assessment/csv/persistence')>();
   return { ...actual, AssessmentStorage: class {
     async read() { if (saved.readError) throw saved.readError; return saved.value; }
     async write(value: AssessmentState) { saved.attempts++; if (saved.writeError) throw saved.writeError; saved.value = value; }

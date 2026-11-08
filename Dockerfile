@@ -3,6 +3,7 @@ WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
+COPY quality/frontend/ /build/quality/frontend/
 RUN npm run build
 
 FROM python:3.11-slim-bookworm AS dependencies

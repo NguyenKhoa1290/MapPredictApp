@@ -984,3 +984,9 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Các file test ở frontend/tests và quality/tests chỉ kiểm tra trang và dữ liệu, không phải điểm chạy giao diện
 - Tách bộ đọc workbook dự án khỏi script phân tích sang shared/project_workbook.py để backend không phụ thuộc quality
 - Image chạy web không chứa công cụ quality, CI mount riêng quality khi kiểm tra
+
+## 2026-11-08 Gom kiểm thử frontend vào quality
+
+- Chuyển frontend/tests sang quality/frontend, giữ cách chia nhóm theo trang
+- Mã chạy các trang quy hoạch tiếp tục ở frontend/src/pages/projects
+- Cập nhật đường dẫn import, Vitest, TypeScript và bước build Docker

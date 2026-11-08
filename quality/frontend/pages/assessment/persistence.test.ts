@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { projectPath } from '../../paths';
 import { Blob as NativeBlob, File as NativeFile } from 'node:buffer';
 import { IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
-import { AssessmentStorage, emptyAssessment } from '../../../src/pages/assessment/csv/persistence';
-import type { AssessmentState } from '../../../src/pages/assessment/csv/persistence';
+import { AssessmentStorage, emptyAssessment } from '../../../../frontend/src/pages/assessment/csv/persistence';
+import type { AssessmentState } from '../../../../frontend/src/pages/assessment/csv/persistence';
 
-const source = readFileSync(resolve('..', 'assessment/static/workspace_store.js'), 'utf8');
+const source = readFileSync(projectPath('assessment/static/workspace_store.js'), 'utf8');
 let factory: IDBFactory;
 let opened: AssessmentStorage[];
 const open = () => { const store = new AssessmentStorage(factory); opened.push(store); return store; };
