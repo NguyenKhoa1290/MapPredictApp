@@ -11,8 +11,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 ROOT = Path(__file__).resolve().parents[1]
 FILES = (
     "requirements.txt", "run_python.bat",
-    "tools/set_ai_admin_password.py", "README.md", "models/README.md",
-    "models/rf_model_rating_pipeline.pkl", "tools/audit_reference_excel.py", "tools/audit_reference_dxf.py",
+    "tools/set_ai_admin_password.py", "README.md", "backend/models/README.md",
+    "backend/models/rf_model_rating_pipeline.pkl", "tools/audit_reference_excel.py", "tools/audit_reference_dxf.py",
 )
 FOLDERS = ("backend", "ai_service", "assessment", "shared", "frontend/config", "frontend/dist", "Tailieuthamkhao/docs")
 

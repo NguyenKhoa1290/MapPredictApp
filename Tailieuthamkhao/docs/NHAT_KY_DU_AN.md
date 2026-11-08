@@ -947,3 +947,9 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Đường dẫn URL static và các API hiện có được giữ để portal và dữ liệu trình duyệt tiếp tục sử dụng
 - Cập nhật điểm chạy thành python -m assessment.app và WSGI assessment.app:app
 - Cập nhật Docker, launcher Windows, đóng gói và đường dẫn kiểm thử
+
+## 2026-11-08 Chuyển model vào backend
+
+- Chuyển pipeline và hướng dẫn model vào backend/models
+- Cập nhật đường dẫn mặc định, mount Docker, CI và đóng gói
+- Model tiếp tục được mount chỉ đọc trong Docker, không đưa vào image ứng dụng

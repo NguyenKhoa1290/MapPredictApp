@@ -49,3 +49,4 @@ venv/
 tmp/
 .git/
 .secrets/
+backend/models/

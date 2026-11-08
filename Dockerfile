@@ -41,7 +41,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     OPENBLAS_NUM_THREADS=1 \
     MKL_NUM_THREADS=1 \
     NUMEXPR_NUM_THREADS=1 \
-    MAP_PREDICT_MODEL_DIR=/app/models \
+    MAP_PREDICT_MODEL_DIR=/app/backend/models \
     MAP_PREDICT_PROJECT_SOURCE_FOLDER=/app/project-data
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
@@ -56,7 +56,7 @@ COPY frontend/config/ ./frontend/config/
 COPY tools/audit_reference_excel.py tools/audit_reference_dxf.py tools/auto_deploy.py tools/docker_stack.py tools/install_linux.py tools/configure_cloudflare.py ./tools/
 COPY tools/import_qdrant_migration.py ./tools/
 COPY --from=frontend /build/frontend/dist/ ./frontend/dist/
-RUN mkdir -p /app/models /app/project-data /var/lib/map-predict-ai && chown 10001:10001 /var/lib/map-predict-ai
+RUN mkdir -p /app/backend/models /app/project-data /var/lib/map-predict-ai && chown 10001:10001 /var/lib/map-predict-ai
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=3s --retries=4 \

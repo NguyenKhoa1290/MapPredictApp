@@ -99,9 +99,8 @@ jobs:
         run: >-
           docker run -d --name map-predict-ci
           --read-only --tmpfs /tmp:rw,nosuid,noexec,size=536870912
-          -v "${{ github.workspace }}/models:/app/models:ro"
+          -v "${{ github.workspace }}/backend/models:/app/backend/models:ro"
           -v "${{ github.workspace }}/tests:/app/tests:ro"
-          -v "${{ github.workspace }}/layer_du_doan.gpkg:/app/layer_du_doan.gpkg:ro"
           -v "${{ runner.temp }}/assistant-ci-key:/run/secrets/assistant_key:ro"
           --network map-predict-ci-network
           -e MAP_PREDICT_ASSISTANT_ENABLED=1

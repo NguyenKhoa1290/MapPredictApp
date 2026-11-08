@@ -9,7 +9,7 @@ x-worker: &worker
   environment:
     MAP_PREDICT_PROXY_HOPS: '1'
     MAP_PREDICT_MAX_UPLOAD_BYTES: '${MAP_PREDICT_MAX_UPLOAD_BYTES:-67108864}'
-    MAP_PREDICT_MODEL_DIR: /app/models
+    MAP_PREDICT_MODEL_DIR: /app/backend/models
     MAP_PREDICT_PROJECT_SOURCE_FOLDER: /app/project-data
     MAP_PREDICT_ASSISTANT_ENABLED: '${MAP_PREDICT_ASSISTANT_ENABLED:-1}'
     MAP_PREDICT_ASSISTANT_URL: http://gemini-session:8081/v1
@@ -31,8 +31,8 @@ x-worker: &worker
       bind:
         create_host_path: false
     - type: bind
-      source: ./models
-      target: /app/models
+      source: ./backend/models
+      target: /app/backend/models
       read_only: true
       bind:
         create_host_path: false

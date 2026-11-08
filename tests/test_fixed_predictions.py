@@ -19,7 +19,7 @@ class FixedPredictionTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.directory = Path(self.folder.name)
-        shutil.copy2(ROOT / 'models' / 'rf_model_rating_pipeline.pkl', self.directory / 'rf_model_rating_pipeline.pkl')
+        shutil.copy2(ROOT / 'backend' / 'models' / 'rf_model_rating_pipeline.pkl', self.directory / 'rf_model_rating_pipeline.pkl')
         self.app = create_app({'TESTING': True, 'MODEL_DIRECTORY': self.directory})
         self.client = self.app.test_client()
 
@@ -35,7 +35,7 @@ class FixedPredictionTests(unittest.TestCase):
         response = self.upload()
         self.assertEqual(response.status_code, 200, response.json)
         output = response.json['data']
-        pipeline = joblib.load(ROOT / 'models' / 'rf_model_rating_pipeline.pkl')
+        pipeline = joblib.load(ROOT / 'backend' / 'models' / 'rf_model_rating_pipeline.pkl')
         expected_y = int(pipeline.predict(pd.DataFrame([[0] * 9], columns=FEATURES))[0])
         self.assertEqual(output['rows'][0]['Y'], expected_y)
         self.assertEqual(output['rows'][0]['id'], 'lot-1')
@@ -123,7 +123,7 @@ class FixedPredictionTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(list(calls[0].iloc[0]), list(range(1, 10)))
         self.assertEqual([path.name for path in self.directory.iterdir()], ['rf_model_rating_pipeline.pkl'])
-        pipeline = joblib.load(ROOT / 'models' / 'rf_model_rating_pipeline.pkl')
+        pipeline = joblib.load(ROOT / 'backend' / 'models' / 'rf_model_rating_pipeline.pkl')
         joblib.dump(pipeline.named_steps['rf'], self.directory / 'rf_model_rating_pipeline.pkl')
         with self.assertLogs(self.app.logger, level='WARNING'):
             incompatible = self.upload()

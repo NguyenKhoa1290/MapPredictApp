@@ -12,7 +12,7 @@
 - `assessment` ứng dụng bản đồ và dự đoán, gồm điểm khởi động, template và tài nguyên tĩnh
 - `integrations` kết nối và duy trì phiên Gemini
 - `frontend/config` nội dung website và danh mục dự án, backend đọc để phục vụ API
-- `models` pipeline dự đoán đang dùng
+- `backend/models` pipeline dự đoán do backend nạp
 - `deploy`, `tools`, `.github` cấu hình triển khai, công cụ vận hành và CI/CD
 - `tests` kiểm thử, dữ liệu mẫu nằm trong `tests/fixtures`
 - `Tailieuthamkhao/docs` tài liệu, nhật ký, kế hoạch công việc và bằng chứng kiểm tra

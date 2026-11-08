@@ -64,6 +64,6 @@ obj/
 # Keep only the active pipeline and its documentation.
 *.pkl
 *.onnx
-/models/*
-!/models/README.md
-!/models/rf_model_rating_pipeline.pkl
+/backend/models/*
+!/backend/models/README.md
+!/backend/models/rf_model_rating_pipeline.pkl
