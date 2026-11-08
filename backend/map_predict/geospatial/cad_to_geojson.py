@@ -209,7 +209,7 @@ def _read_dxf(path):
 
 def main():
     if len(sys.argv) < 2:
-        _error("Usage: cad_to_geojson.py <input.dxf>")
+        _error("Usage: python -m backend.map_predict.geospatial.cad_to_geojson <input.dxf>")
 
     input_path = sys.argv[1]
     if not os.path.isfile(input_path):

@@ -15,8 +15,8 @@ import ezdxf
 from shapely import STRtree, normalize
 from shapely.geometry import Point, Polygon
 
-from cad_to_geojson import _entity_features
-from prediction_grid import read_dxf_grid
+from backend.map_predict.geospatial.cad_to_geojson import _entity_features
+from backend.map_predict.geospatial.prediction_grid import read_dxf_grid
 
 SOURCES = (
     ("hcm", "luoi_hcm.dxf", "DTL-1D", "MTEXT"),

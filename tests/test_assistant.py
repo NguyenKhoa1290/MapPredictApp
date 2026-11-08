@@ -407,7 +407,7 @@ class AssistantTests(unittest.TestCase):
         self.assertEqual(output['file-b'].entitydb[self.handle].dxf.color, 3)
         self.assertEqual(len(output['file-a'].modelspace().query('LINE')), 0)
         self.assertEqual(len(output['file-b'].modelspace().query('LINE')), 1)
-        from cad_to_geojson import read_assistant_attributes
+        from backend.map_predict.geospatial.cad_to_geojson import read_assistant_attributes
         self.assertEqual(read_assistant_attributes(output['file-a'].entitydb[self.handle])['tenlodat'], 'Lô A1')
         response = self.client.post('/api/v1/assistant/apply', data={'scope': 'map', 'resource_ids': '["file-a"]',
             'dxf': (io.BytesIO(self.dxf), 'a.dxf'), 'token': preview['token']})

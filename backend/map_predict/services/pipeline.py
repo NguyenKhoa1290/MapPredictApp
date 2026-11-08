@@ -47,7 +47,7 @@ def predict_rows(input_data, model_path, scaler_path=None):
 
 def main():
     if len(sys.argv) not in (3, 4):
-        print(json.dumps({"error": "Usage: predict_pkl.py <pipeline.pkl> <data.json> or <model.pkl> <scaler.pkl> <data.json>"}))
+        print(json.dumps({"error": "Usage: python -m backend.map_predict.services.pipeline <pipeline.pkl> <data.json> or <model.pkl> <scaler.pkl> <data.json>"}))
         sys.exit(1)
 
     model_path = sys.argv[1]

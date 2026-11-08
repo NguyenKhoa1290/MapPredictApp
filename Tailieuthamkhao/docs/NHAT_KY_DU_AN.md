@@ -316,7 +316,7 @@
 - Cho zoom lẻ, giảm nửa mức khi bấm nút, giảm độ nhạy cuộn và giữ thêm vùng canvas để thu nhỏ không hụt viền lưới
 - Giữ nền cũ trong lúc tải nền mới, buffer có giới hạn và cập nhật tile ở cuối cử chỉ zoom
 - Kiểm thử raster và canvas dùng cùng tỷ lệ trong animation, giữ điểm dưới chuột và cập nhật hình học đúng sau zoom
-- Build đạt, 32 kiểm thử React/Leaflet, 16 kiểm thử Node nền/PDF và kiểm thử route legacy đạt, chi tiết tại [MAP_MOTION.md](docs/MAP_MOTION.md)
+- Build đạt, 32 kiểm thử React/Leaflet, 16 kiểm thử Node nền/PDF và kiểm thử route legacy đạt, chi tiết tại [MAP_MOTION.md](MAP_MOTION.md)
 
 ## 2026-10-26 Ẩn trạng thái tự lưu thường lệ
 
@@ -332,7 +332,7 @@
 - Kiểm tra file `rf_model_rating_pipeline.pkl` là sklearn Pipeline với StandardScaler và RandomForestClassifier, nhận x1 đến x9 và trả nhãn 0, 1, 2
 - Dùng bản sao cố định tại `models/rf_model_rating_pipeline.pkl`, gọi pipeline.predict trên dữ liệu gốc, không chuẩn hóa thêm lần nữa ở API
   - Build đạt, 76 kiểm thử Python và 30 kiểm thử React đạt, HTTP dự đoán ở API legacy và v1 đều trả 200 cùng phiên bản pipeline mới
-  - Iframe được giữ khi chuyển mục rồi quay về để phiên làm việc liền mạch, chi tiết tại [LEGACY_PIPELINE.md](docs/LEGACY_PIPELINE.md)
+  - Iframe được giữ khi chuyển mục rồi quay về để phiên làm việc liền mạch, chi tiết tại [LEGACY_PIPELINE.md](LEGACY_PIPELINE.md)
 - Tiếp tục giữ ba dự án riêng và EPSG:9208 ở trạng thái xem thử, người dùng sẽ chốt vị trí sau
 
 ## 2026-10-26 Header luôn hiện và khung trang thống nhất
@@ -349,7 +349,7 @@
 - Bỏ đọc, ghi và export file kết quả mặc định từ máy chủ ở cả luồng cũ, file thật trên đĩa được giữ nguyên
 - Build đạt, 75 kiểm thử Python, 30 kiểm thử React/Leaflet/IndexedDB và 34 kiểm thử Node đạt
 - Việc chốt vị trí ba lưới vẫn để người dùng quyết định sau, bước tiếp theo là CV-21 ghép dữ liệu với lưới đánh giá
-- Giới hạn kiểm tra và phạm vi chuyển bản lưu tại [CV20_KET_QUA_VA_TU_LUU.md](docs/CV20_KET_QUA_VA_TU_LUU.md)
+- Giới hạn kiểm tra và phạm vi chuyển bản lưu tại [CV20_KET_QUA_VA_TU_LUU.md](CV20_KET_QUA_VA_TU_LUU.md)
 
 ## 2026-10-26 Hoàn thành CV-19
 
@@ -358,7 +358,7 @@
 - Trang Đánh giá mới có nạp CSV, xem trước, chạy dự đoán, bảng kết quả phân trang và xuất CSV đúng kết quả hiện tại, kèm mã phiên bản mô hình
 - API dự đoán mới xử lý riêng từng request và không ghi file kết quả chung, có giới hạn CSV/request/số dòng và lỗi rõ ràng
 - Chưa nối ghép lưới ở trang Đánh giá và chưa tự lưu kết quả mới qua reload, tiếp tục ở CV-20/CV-21/CV-22
-- Chi tiết tại [CV19_MO_HINH_CO_DINH.md](docs/CV19_MO_HINH_CO_DINH.md)
+- Chi tiết tại [CV19_MO_HINH_CO_DINH.md](CV19_MO_HINH_CO_DINH.md)
 
 ## 2026-10-26 Hoãn chốt vị trí ba lưới và tiếp tục CV-19
 
@@ -398,7 +398,7 @@
 - Có nền đường phố/vệ tinh, bật/tắt lưới, độ đậm, chú giải lọc nhãn, zoom toàn lưới và thông tin ô. Header/thanh bên nằm ngoài phần viewport Leaflet.
 - Đã xử lý MTEXT theo attachment cho nguồn số thuần, khóa ghép số duy nhất, BK1–20 không tô, gộp hình học Phú Quốc trùng hoàn toàn và giữ handles; không sửa nguồn hoặc chạy AI.
 - Người dùng yêu cầu thử 9208: mặc định EPSG:9208 ở trình xem và API, vẫn ghi rõ chưa xác nhận phép chiếu thực tế. Cho đổi CRS/lưới gốc để kiểm tra; chưa khẳng định đúng địa phương.
-- Cấu trúc, số ô, API và giới hạn: [PROJECT_MAP_VIEWER.md](docs/PROJECT_MAP_VIEWER.md). Thông tin khung/409 trong bản ghi CV-07 bên dưới mô tả giai đoạn trước thay đổi này.
+- Cấu trúc, số ô, API và giới hạn: [PROJECT_MAP_VIEWER.md](PROJECT_MAP_VIEWER.md). Thông tin khung/409 trong bản ghi CV-07 bên dưới mô tả giai đoạn trước thay đổi này.
 
 ## 2026-10-26 — Triển khai khung CV-07
 
@@ -406,7 +406,7 @@
 - Giao diện tại `/portal/`: header ba mục, Giới thiệu, danh sách bốn dự án/bộ lọc, chi tiết địa phương và khung Đánh giá hai tab. Các URL trực tiếp/reload và JS/CSS đã kiểm tra HTTP 200.
 - Chuyển các route cũ sang Blueprint tương thích; `/` và `/legacy/` vẫn mở công cụ cũ. Factory độc lập không đăng ký API cũ. Đã khởi động lại các tiến trình ứng dụng local đã xác minh để phục vụ mã mới.
 - Build TypeScript đạt; 61 kiểm thử Python, 6 React và 34 Node đạt. Chưa QA trực quan/responsive, chưa nối bản đồ thật hoặc luồng dự đoán mới; không tuyên bố CV-06/CV-07 đã nghiệm thu.
-- Hướng dẫn và phạm vi còn lại: [CV07_TRIEN_KHAI_KHUNG.md](docs/CV07_TRIEN_KHAI_KHUNG.md). Chưa triển khai public, SQLite/workspace, chuyển đổi bản lưu hoặc chính sách mô hình/kết quả mới.
+- Hướng dẫn và phạm vi còn lại: [CV07_TRIEN_KHAI_KHUNG.md](CV07_TRIEN_KHAI_KHUNG.md). Chưa triển khai public, SQLite/workspace, chuyển đổi bản lưu hoặc chính sách mô hình/kết quả mới.
 
 ## 2026-10-26 — Dựng bản xem trước CV-06
 
@@ -419,7 +419,7 @@
 ## 2026-10-26 — Tham khảo được DC Solution cho CV-06
 
 - Theo yêu cầu thử lại, đã đọc được nội dung trang chủ `https://dcsolution.vn/`, trang Sứ mệnh và Dự án; HTTP trang chủ trả 200. Trang giới thiệu chi tiết có lần timeout. Chưa xác nhận bằng ảnh chụp/toàn bộ thao tác responsive.
-- Tham khảo cách chia nội dung và danh mục, đối chiếu style trắng/xanh lá và font Inter trong CSS ứng dụng. Soạn [định hướng CV-06](docs/CV06_DINH_HUONG_GIAO_DIEN.md), cập nhật note ở trạng thái chờ duyệt mẫu.
+- Tham khảo cách chia nội dung và danh mục, đối chiếu style trắng/xanh lá và font Inter trong CSS ứng dụng. Soạn [định hướng CV-06](CV06_DINH_HUONG_GIAO_DIEN.md), cập nhật note ở trạng thái chờ duyệt mẫu.
 - Không sao chép nguyên layout/ảnh/thương hiệu, không gửi form hoặc sửa website tham khảo. Chưa sửa ứng dụng, tạo frontend React hoặc đánh dấu CV-06 hoàn thành.
 
 ## 2026-10-26 — Chốt phạm vi public, hoàn thành thiết kế CV-05
@@ -436,7 +436,7 @@
 
 ## 2026-10-26 — Soạn đề xuất CV-05, chờ duyệt
 
-- Viết [CV05_KIEN_TRUC_BACKEND_FRONTEND.md](docs/CV05_KIEN_TRUC_BACKEND_FRONTEND.md): đề xuất frontend React/TypeScript/Vite, backend Python/Flask module hóa; cấu trúc thư mục, route/API v1, dữ liệu riêng theo workspace, quản lý mô hình và khôi phục bản lưu cũ.
+- Viết [CV05_KIEN_TRUC_BACKEND_FRONTEND.md](CV05_KIEN_TRUC_BACKEND_FRONTEND.md): đề xuất frontend React/TypeScript/Vite, backend Python/Flask module hóa; cấu trúc thư mục, route/API v1, dữ liệu riêng theo workspace, quản lý mô hình và khôi phục bản lưu cũ.
 - Đề xuất SQLite cho metadata và filesystem riêng cho file lớn, IndexedDB cho tự lưu phía trình duyệt; chưa tạo database hay chọn dịch vụ cloud. Phạm vi cá nhân/nhiều người và stack vẫn chờ người dùng duyệt.
 - Đọc code hiện tại và tài liệu chính thức, ghi rõ điểm phải bỏ: fallback `RESULT_CSV` chung và nhận model upload qua API. Không tự nâng thư viện hoặc thay mô hình.
 - Hoàn tất đối chiếu bảng màu CV-04 với AST code, sửa tham chiếu tên hàm GPKG đúng là `gis.py:predicted_geojson`. Chỉ cập nhật tài liệu/cấu hình đặc tả, chưa sửa app hoặc renderer.
@@ -446,7 +446,7 @@
 - Người dùng đồng ý ghép phần số trong cùng dự án, không ghép khóa mơ hồ/trùng hoặc số gần nhất.
 - Đối chiếu code hiện tại: Y=0 đỏ #ff0000, Y=1 cam #ffa500, Y=2 xanh #008000; fillOpacity nguồn 0,6, tên nhóm chỉ là “Kết quả Y = …”. Giữ nguyên, không tự thêm ý nghĩa nghiệp vụ.
 - Phú Quốc được gộp hình học trùng hoàn toàn trong bộ nhớ, giữ file gốc/handle. Mã 1232 không tô, không áp dụng kết quả và không cảnh báo người xem; giữ chẩn đoán nội bộ.
-- Tạo [biên bản CV-04](docs/CV04_QUY_TAC_GHEP_VA_MAU.md) và đặc tả JSON, cập nhật note. Hoàn thành chốt quy tắc; không công bố tỷ lệ ghép hình học chỉ từ tập mã. Triển khai/kiểm chứng MTEXT, ghép và gộp trùng ở CV-12/CV-14; chưa sửa bộ ghép/renderer hoặc áp dụng CRS.
+- Tạo [biên bản CV-04](CV04_QUY_TAC_GHEP_VA_MAU.md) và đặc tả JSON, cập nhật note. Hoàn thành chốt quy tắc; không công bố tỷ lệ ghép hình học chỉ từ tập mã. Triển khai/kiểm chứng MTEXT, ghép và gộp trùng ở CV-12/CV-14; chưa sửa bộ ghép/renderer hoặc áp dụng CRS.
 - Tiếp theo CV-05: tổ chức backend–frontend và hợp đồng API.
 
 ## 2026-10-26 — Kiểm tra mã hệ tọa độ người dùng nhớ là 9201
@@ -460,13 +460,13 @@
 - Khảo sát ba DXF, xác định layer lưới và loại nhãn: TP.HCM `DTL-1D`/MTEXT, Bắc Kạn `00.Ranh gioi`/MTEXT, Phú Quốc `Docao`/TEXT; nhãn đều trên layer `0`.
 - Tái hiện các vấn đề: MTEXT đặt điểm chèn trên biên và nhiễu nhãn nền; Phú Quốc có 58 polygon trùng dư, nhãn 1232 ngoài lưới và header đơn vị mm. Không tự snap/gộp/xóa hoặc ghép gần nhất.
 - Người dùng xác nhận VN-2000; chưa xác nhận EPSG hoặc kinh tuyến trục/múi chiếu từng nguồn. Đã hỏi thông số chi tiết, không tự gán EPSG chung.
-- Tạo [biên bản CV-03](docs/CV03_KHAO_SAT_DXF.md), cấu hình nguồn, công cụ chỉ đọc và 5 kiểm thử DXF. 13 kiểm thử DXF/Excel đạt; hash nguồn không đổi. Đánh dấu hoàn thành phần khảo sát CV-03, giữ rõ các vướng mắc trước khi xử lý dữ liệu công khai.
+- Tạo [biên bản CV-03](CV03_KHAO_SAT_DXF.md), cấu hình nguồn, công cụ chỉ đọc và 5 kiểm thử DXF. 13 kiểm thử DXF/Excel đạt; hash nguồn không đổi. Đánh dấu hoàn thành phần khảo sát CV-03, giữ rõ các vướng mắc trước khi xử lý dữ liệu công khai.
 
 ## 2026-10-26 — Hoàn thành CV-02: kiểm kê Excel tham khảo
 
 - Đọc toàn bộ ba sheet dự án: TP.HCM 297 dòng, Bắc Kạn 400 dòng, Phú Quốc 1.677 dòng. Định vị cột B tên ô, C:K là x1–x9, L là Y; cột A chỉ là số mẫu.
 - Bắc Kạn có 20 mã BK1–BK20 thiếu x1–x9 và Y; 380 mã còn lại đủ dữ liệu. TP.HCM thiếu mã TP267 trong dãy tên và công thức tổng kết L302 bỏ qua L4 nên đếm thiếu 1 dòng Y=0. Không sửa nguồn hoặc tự tạo kết quả.
-- Tạo [biên bản CV-02](docs/CV02_KIEM_KE_EXCEL.md), cấu hình tham khảo `docs/cv02_excel_sources.json`, công cụ kiểm kê chỉ đọc và 8 kiểm thử dữ liệu giả. Đối chiếu cấu hình với kiểm kê thực tế; xác nhận hash workbook không thay đổi.
+- Tạo [biên bản CV-02](CV02_KIEM_KE_EXCEL.md), cấu hình tham khảo `docs/cv02_excel_sources.json`, công cụ kiểm kê chỉ đọc và 8 kiểm thử dữ liệu giả. Đối chiếu cấu hình với kiểm kê thực tế; xác nhận hash workbook không thay đổi.
 - Cập nhật [note công việc](NOTE_CONG_VIEC.md), đánh dấu CV-02 hoàn thành. Chưa tích hợp bộ đọc Excel vào ứng dụng, chưa khảo sát DXF/CRS hoặc tự ghép ô. Tiếp theo CV-03.
 
 ## 2026-10-26 — Hoàn thành CV-01
@@ -914,3 +914,14 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Khôi phục các bản xem cũ chỉ có 200 dòng bằng cách đọc lại file đã lưu, kiểm tra dữ liệu chưa thay đổi trước khi cập nhật; trang đánh giá React cũng khôi phục bản xem cũ và dùng phân trang hiện có
 - Kiểm tra Chrome với CSV 10.000 dòng, đến được dòng cuối, tải lại giữ trang và khôi phục đủ từ bản xem cũ, không lỗi JavaScript; kiểm thử API, trợ lý, lưu phiên và build frontend đều đạt
 
+
+
+## 2026-11-08 Sắp xếp lại thư mục dự án
+
+- Gom tài liệu, nhật ký và kế hoạch vào Tailieuthamkhao/docs, giữ các nguồn tham khảo riêng ngoài Git
+- Chuyển các module CAD, GIS, phân tích độ dịch và ghép lưới vào backend/map_predict/geospatial
+- Chuyển pipeline dự đoán vào backend/map_predict/services/pipeline.py
+- Chuyển GeoPackage kiểm thử vào tests/fixtures, lưu nội dung backup cấu hình tại Tailieuthamkhao/docs/archive
+- Cập nhật import, Docker, công cụ audit và đóng gói theo đường dẫn mới
+- Giữ nguyên các chỉnh sửa giao diện chưa commit của người dùng
+- Kiểm thử backend và gói ZIP giải nén đều đạt, lệnh dọn file sinh tự động bị cơ chế duyệt công cụ chặn nên giữ chúng trong danh sách bỏ qua của Git

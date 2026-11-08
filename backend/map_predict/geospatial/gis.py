@@ -15,8 +15,8 @@ from shapely.affinity import translate
 from shapely.geometry import mapping, shape
 from shapely.ops import transform
 
-from cad_to_geojson import _entity_features, _read_dxf
-from dwg_to_dxf import ODA_DOWNLOAD_URL, _configure_oda_path, _find_oda_converter
+from backend.map_predict.geospatial.cad_to_geojson import _entity_features, _read_dxf
+from backend.map_predict.geospatial.dwg_to_dxf import ODA_DOWNLOAD_URL, _configure_oda_path, _find_oda_converter
 
 
 def _identifier(name):
@@ -231,7 +231,7 @@ def base_geojson(path, source_crs=None, offset_x=0, offset_y=0):
 
 def predicted_geojson(path, rows, gpkg_join, csv_join, source_crs=None,
                       offset_x=0, offset_y=0, join_mode="exact"):
-    from result_join import apply_results
+    from backend.map_predict.geospatial.result_join import apply_results
     with closing(sqlite3.connect(path)) as connection:
         layers = _layers(connection)
         if not layers:

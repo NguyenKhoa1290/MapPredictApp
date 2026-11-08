@@ -48,7 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --uid 10001 --no-create-home appuser
 COPY --from=dependencies /install/ /usr/local/
-COPY app.py ai_app.py gis.py cad_diagnostics.py cad_to_geojson.py dwg_to_dxf.py prediction_grid.py result_join.py predict_pkl.py ./
+COPY app.py ai_app.py ./
 COPY backend/ ./backend/
 COPY config/ ./config/
 COPY templates/ ./templates/

@@ -12,7 +12,7 @@ from pyproj import Transformer
 from shapely.geometry import shape
 
 import app as python_app
-from gis import base_geojson, gpkg_diagnostics
+from backend.map_predict.geospatial.gis import base_geojson, gpkg_diagnostics
 
 
 class PythonAppTests(unittest.TestCase):
@@ -111,7 +111,7 @@ class PythonAppTests(unittest.TestCase):
             self.assertEqual(response.status_code, 413)
 
     def test_geopackage_columns_and_prediction_layer(self):
-        data = (python_app.ROOT / "layer_du_doan.gpkg").read_bytes()
+        data = (python_app.ROOT / "tests/fixtures/layer_du_doan.gpkg").read_bytes()
         columns_stream = io.BytesIO(data)
         response = self.client.post("/api/gpkg-columns", data={"gpkg": (columns_stream, "layer.gpkg")})
         columns_stream.close()
@@ -187,7 +187,7 @@ class PythonAppTests(unittest.TestCase):
             self.assertEqual(rejected.status_code, 400, rejected.json)
 
     def test_shared_crs_applies_to_dxf_and_prediction(self):
-        data = (python_app.ROOT / "layer_du_doan.gpkg").read_bytes()
+        data = (python_app.ROOT / "tests/fixtures/layer_du_doan.gpkg").read_bytes()
         path = Path(self.directory.name) / "base.dxf"
         document = ezdxf.new()
         source_xy = Transformer.from_crs("EPSG:4326", "EPSG:5897", always_xy=True).transform(105, 21)
@@ -229,7 +229,7 @@ class PythonAppTests(unittest.TestCase):
         self.assertEqual(second["offset_y"] - first["offset_y"], 200)
 
     def test_geopackage_is_not_accepted_as_background(self):
-        with (python_app.ROOT / "layer_du_doan.gpkg").open("rb") as source:
+        with (python_app.ROOT / "tests/fixtures/layer_du_doan.gpkg").open("rb") as source:
             response = self.client.post("/api/map", data={
                 "base": (source, "base.gpkg"), "source_crs": "EPSG:5897",
             })
@@ -238,7 +238,7 @@ class PythonAppTests(unittest.TestCase):
 
     def test_missing_geopackage_crs_can_be_diagnosed_and_overridden(self):
         path = Path(self.directory.name) / "unknown.gpkg"
-        shutil.copyfile(python_app.ROOT / "layer_du_doan.gpkg", path)
+        shutil.copyfile(python_app.ROOT / "tests/fixtures/layer_du_doan.gpkg", path)
         with closing(sqlite3.connect(path)) as connection:
             connection.execute("UPDATE gpkg_geometry_columns SET srs_id = 0")
             connection.execute("UPDATE gpkg_contents SET srs_id = 0")

@@ -2,7 +2,7 @@ import io
 import unittest
 
 import app as python_app
-from result_join import match_results, numeric_key
+from backend.map_predict.geospatial.result_join import match_results, numeric_key
 
 
 class ResultJoinTests(unittest.TestCase):
@@ -59,7 +59,7 @@ class ResultJoinTests(unittest.TestCase):
             match_results([], [], "id", "nearest")
 
     def test_gpkg_api_numeric_results_are_request_local(self):
-        data = (python_app.ROOT / "layer_du_doan.gpkg").read_bytes()
+        data = (python_app.ROOT / "tests/fixtures/layer_du_doan.gpkg").read_bytes()
         def request(client, label):
             return client.post("/api/map", data={
                 "source_crs": "EPSG:9208", "layer_join": "fid", "csv_join": "code", "join_mode": "numeric",

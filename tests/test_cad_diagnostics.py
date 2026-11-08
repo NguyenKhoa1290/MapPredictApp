@@ -7,7 +7,7 @@ import ezdxf
 from ezdxf.math import Matrix44
 
 from app import app
-from cad_diagnostics import cad_diagnostics
+from backend.map_predict.geospatial.cad_diagnostics import cad_diagnostics
 
 
 ANCHOR = [(515100, 2402100), (515300, 2402100),

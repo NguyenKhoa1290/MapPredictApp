@@ -10,12 +10,11 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = (
-    "app.py", "ai_app.py", "gis.py", "cad_diagnostics.py", "cad_to_geojson.py", "dwg_to_dxf.py",
-    "prediction_grid.py", "result_join.py", "predict_pkl.py", "requirements.txt", "requirements-ai.txt", "run_python.bat",
-    "tools/set_ai_admin_password.py", "README.md", "NHAT_KY_DU_AN.md", "NOTE_CONG_VIEC.md", "models/README.md",
+    "app.py", "ai_app.py", "requirements.txt", "requirements-ai.txt", "run_python.bat",
+    "tools/set_ai_admin_password.py", "README.md", "models/README.md",
     "models/rf_model_rating_pipeline.pkl", "tools/audit_reference_excel.py", "tools/audit_reference_dxf.py",
 )
-FOLDERS = ("backend", "config", "templates", "wwwroot", "frontend/dist", "docs")
+FOLDERS = ("backend", "config", "templates", "wwwroot", "frontend/dist", "Tailieuthamkhao/docs")
 
 
 def sources():

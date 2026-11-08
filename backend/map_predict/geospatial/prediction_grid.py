@@ -11,8 +11,8 @@ from shapely import STRtree
 from shapely.errors import GEOSException
 from shapely.geometry import Point, Polygon, mapping
 
-from cad_to_geojson import _entity_features, _read_dxf
-from gis import _to_wgs84, _transformer
+from backend.map_predict.geospatial.cad_to_geojson import _entity_features, _read_dxf
+from backend.map_predict.geospatial.gis import _to_wgs84, _transformer
 
 
 GRID_COLUMNS = ("grid_id", "handle", "layer")
@@ -117,7 +117,7 @@ def dxf_grid_metadata(path):
 
 def predicted_dxf_grid(path, rows, layer_join, csv_join, source_crs, offset_x=0, offset_y=0,
                        join_mode="exact"):
-    from result_join import apply_results
+    from backend.map_predict.geospatial.result_join import apply_results
     collection = read_dxf_grid(path)
     if layer_join and layer_join not in GRID_COLUMNS:
         raise ValueError(f"Không tìm thấy cột {layer_join} trong lưới DXF.")

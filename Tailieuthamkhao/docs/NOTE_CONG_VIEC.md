@@ -2,12 +2,12 @@
 
 ## Trạng thái mới nhất ngày 2026-10-27
 
-- Theo yêu cầu mới đã triển khai Docker Compose blue/green và tunnel riêng trên máy hiện tại tại danhgiaquyhoach.top, hướng dẫn tại [DOCKER_DEPLOYMENT.md](docs/DOCKER_DEPLOYMENT.md)
+- Theo yêu cầu mới đã triển khai Docker Compose blue/green và tunnel riêng trên máy hiện tại tại danhgiaquyhoach.top, hướng dẫn tại [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
 - Token và cấu hình riêng nằm ngoài Git, model và nguồn dự án mount chỉ đọc, cổng local 8765 được giữ cố định
 
-- Đã đưa mã nguồn lên origin GitHub, CI Windows/Ubuntu và job phân phối ZIP đều đạt ở lần chạy [40472565755](https://github.com/NguyenKhoa1290/MapPredictApp/actions/runs/40472565755), chưa tự triển khai lên hosting, hướng dẫn tại [GITHUB_ACTIONS.md](docs/GITHUB_ACTIONS.md)
+- Đã đưa mã nguồn lên origin GitHub, CI Windows/Ubuntu và job phân phối ZIP đều đạt ở lần chạy [40472565755](https://github.com/NguyenKhoa1290/MapPredictApp/actions/runs/40472565755), chưa tự triển khai lên hosting, hướng dẫn tại [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md)
 
-- Đã dọn 51 file không còn dùng ra thư mục lưu trữ ngoài dự án, giữ nhật ký, tài liệu và dữ liệu gốc, chi tiết tại [CLEANUP_20261027.md](docs/CLEANUP_20261027.md)
+- Đã dọn 51 file không còn dùng ra thư mục lưu trữ ngoài dự án, giữ nhật ký, tài liệu và dữ liệu gốc, chi tiết tại [CLEANUP_20261027.md](CLEANUP_20261027.md)
 
 - Giao diện Giới thiệu, bốn dự án và bốn thành viên đã có, nội dung và ảnh thay qua cấu hình hoặc wwwroot/image
 - CV-21 đã nối vào công cụ legacy theo quyết định giữ công cụ hiện tại, có chọn cách ghép, xem trước và áp dụng riêng
@@ -16,7 +16,7 @@
 - Vị trí ba dự án vẫn chờ người dùng chốt, không mặc định xem thử EPSG:9208 là đã xác nhận
 - Đã chốt phần Đánh giá dùng không cần đăng nhập, người dùng chưa có hosting và ưu tiên hoàn thiện bản local trước, phần public cùng các quyết định môi trường và hạn mức để sau
 - Chatbot đã được yêu cầu và duyệt phạm vi dùng server Gemini, xem trước rồi áp dụng, triển khai tại CV-26 và CV-27
-- Chi tiết luồng mới tại [CV21_GHEP_KET_QUA.md](docs/CV21_GHEP_KET_QUA.md)
+- Chi tiết luồng mới tại [CV21_GHEP_KET_QUA.md](CV21_GHEP_KET_QUA.md)
 
 Cập nhật: 2026-10-26. Đây là kế hoạch làm lần lượt, chưa phải các chức năng đã triển khai.
 
@@ -30,14 +30,14 @@ Cập nhật: 2026-10-26. Đây là kế hoạch làm lần lượt, chưa phả
 
 ## 2. Tài liệu và kết quả đọc ban đầu
 
-- Yêu cầu chính: [yeucau.txt](Tailieuthamkhao/Giaodienfrontend/yeucau.txt), đã đọc toàn bộ.
-- Link tham khảo: [link.txt](Tailieuthamkhao/Giaodienfrontend/link.txt), trỏ tới https://dcsolution.vn/. Các lần đầu lỗi tải; lần thử lại ngày 2026-10-26 đã đọc được trang chủ, trang Sứ mệnh và Dự án, HTTP trang chủ 200. Đã kiểm tra nội dung/HTML, chưa xác nhận bằng ảnh chụp toàn trang hoặc test responsive. Xem [định hướng CV-06](docs/CV06_DINH_HUONG_GIAO_DIEN.md).
+- Yêu cầu chính: [yeucau.txt](../Giaodienfrontend/yeucau.txt), đã đọc toàn bộ.
+- Link tham khảo: [link.txt](../Giaodienfrontend/link.txt), trỏ tới https://dcsolution.vn/. Các lần đầu lỗi tải; lần thử lại ngày 2026-10-26 đã đọc được trang chủ, trang Sứ mệnh và Dự án, HTTP trang chủ 200. Đã kiểm tra nội dung/HTML, chưa xác nhận bằng ảnh chụp toàn trang hoặc test responsive. Xem [định hướng CV-06](CV06_DINH_HUONG_GIAO_DIEN.md).
 - Thư mục lưới: `Tailieuthamkhao/Giaodienfrontend/luoi/`, có `luoi_hcm.dxf`, `bắc kan.dxf`, `phú quốc.dxf` và `File ex.xlsx`.
-- Workbook có 10 sheet; ba sheet dự án là `data tp. HCM`, `bắc kan`, `data Phú Quốc`, tiêu đề nhiều dòng. CV-02 đã kiểm kê toàn bộ dữ liệu ba sheet, mã trùng, giá trị thiếu và Y; xem [biên bản CV-02](docs/CV02_KIEM_KE_EXCEL.md). Chưa kiểm tra tỷ lệ khớp với DXF (CV-03/CV-04).
-- CV-03 đã khảo sát hình học, layer, nhãn và metadata ba DXF; xem [biên bản CV-03](docs/CV03_KHAO_SAT_DXF.md). Người dùng xác nhận VN-2000; chưa có EPSG/kinh tuyến trục/múi chiếu từng file, không mặc định dùng EPSG của Yên Bái.
+- Workbook có 10 sheet; ba sheet dự án là `data tp. HCM`, `bắc kan`, `data Phú Quốc`, tiêu đề nhiều dòng. CV-02 đã kiểm kê toàn bộ dữ liệu ba sheet, mã trùng, giá trị thiếu và Y; xem [biên bản CV-02](CV02_KIEM_KE_EXCEL.md). Chưa kiểm tra tỷ lệ khớp với DXF (CV-03/CV-04).
+- CV-03 đã khảo sát hình học, layer, nhãn và metadata ba DXF; xem [biên bản CV-03](CV03_KHAO_SAT_DXF.md). Người dùng xác nhận VN-2000; chưa có EPSG/kinh tuyến trục/múi chiếu từng file, không mặc định dùng EPSG của Yên Bái.
 - Yêu cầu có nhắc “báo cáo” để lấy nội dung nhóm, nhưng chưa xác định tài liệu báo cáo chuyên môn tương ứng. Không coi báo cáo vận hành server là báo cáo nhóm.
 - `Tailieuthamkhao/gemini-agent/` là nguồn tham khảo riêng cho giai đoạn agent sau này; chưa chạy script, chưa đọc thông tin tài khoản/cookie và chưa tích hợp vào ứng dụng.
-- Mốc hệ thống cũ: [NHAT_KY_DU_AN.md](NHAT_KY_DU_AN.md). Chi tiết vận hành: [README.md](README.md).
+- Mốc hệ thống cũ: [NHAT_KY_DU_AN.md](NHAT_KY_DU_AN.md). Chi tiết vận hành: [README.md](../../README.md).
 
 ## 3. Phạm vi đích theo yêu cầu
 
@@ -76,7 +76,7 @@ Cập nhật: 2026-10-26. Đây là kế hoạch làm lần lượt, chưa phả
 - Giữ bảng màu từ code hiện tại: Y=0 đỏ `#ff0000`, Y=1 cam `#ffa500`, Y=2 xanh lá `#008000`, độ tô nguồn 0,6. Chú giải dùng `Kết quả Y = 0/1/2`; code chưa có tên mức nghiệp vụ nên không tự đặt thêm.
 - Phú Quốc: được gộp hình học trùng hoàn toàn trong bộ nhớ, giữ handle nguồn và không sửa DXF. Không gộp chồng lấn một phần.
 - Mã Phú Quốc `1232`: không áp dụng kết quả, không tô, **không hiển thị cảnh báo cho người xem**, giữ chẩn đoán nội bộ. Không tự tạo ô, dịch nhãn hoặc ghép với ô gần nhất.
-- Chi tiết và ví dụ: [biên bản CV-04](docs/CV04_QUY_TAC_GHEP_VA_MAU.md), [đặc tả có cấu trúc](docs/cv04_join_render_policy.json). Đây là quyết định triển khai, chưa phải thuật toán mới đã được tích hợp.
+- Chi tiết và ví dụ: [biên bản CV-04](CV04_QUY_TAC_GHEP_VA_MAU.md), [đặc tả có cấu trúc](cv04_join_render_policy.json). Đây là quyết định triển khai, chưa phải thuật toán mới đã được tích hợp.
 
 ### Các điểm chốt ở đề mục tiếp theo
 
@@ -104,7 +104,7 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
   - Đọc toàn bộ 3 sheet liên quan; xác định dòng dữ liệu, cột tên ô/ID, x1–x9, Y; đếm thiếu, trùng và Y không hợp lệ. Không lấy nhầm sheet huấn luyện hoặc sheet Yên Bái.
   - Hoàn thành khi: có cấu hình đọc riêng từng sheet và ví dụ mã thực tế; các dòng không dùng được có lý do.
   - Phụ thuộc: không; không sửa file gốc.
-  - Kết quả: [biên bản kiểm kê](docs/CV02_KIEM_KE_EXCEL.md), [định nghĩa nguồn từng sheet](docs/cv02_excel_sources.json) và công cụ chỉ đọc `tools/audit_reference_excel.py`.
+  - Kết quả: [biên bản kiểm kê](CV02_KIEM_KE_EXCEL.md), [định nghĩa nguồn từng sheet](cv02_excel_sources.json) và công cụ chỉ đọc `tools/audit_reference_excel.py`.
   - TP.HCM: 297 dòng đủ dữ liệu; tổng trực tiếp Y=0/1/2 là 135/162/0. Công thức L302 đếm thiếu 1 dòng Y=0; mã `TP267` không có trong nguồn.
   - Bắc Kạn: 400 mã, 380 dòng đủ dữ liệu; `BK1`–`BK20` (hàng 4–23) thiếu x1–x9 và Y. Số mẫu cột A bị trùng, không dùng làm ID ghép mặc định. Không tự gán Y=0 cho ô thiếu.
   - Phú Quốc: 1.677 dòng đủ dữ liệu; mã B là số Excel, cần giữ kiểu gốc khi chuẩn bị khóa.
@@ -115,7 +115,7 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
   - Kiểm tra polyline kín, block, TEXT/MTEXT, mã ô, extent và tọa độ. Đối chiếu địa phương để xác nhận EPSG/độ dịch với người dùng khi thiếu bằng chứng.
   - Hoàn thành khi: từng dự án có kết luận về cách đọc, trường ghép, CRS đã xác nhận hoặc vướng mắc cụ thể. Không đánh dấu đúng vị trí chỉ vì hình học đã vẽ được.
   - Phụ thuộc: không.
-  - Kết quả: [biên bản khảo sát](docs/CV03_KHAO_SAT_DXF.md), [định nghĩa nguồn](docs/cv03_dxf_sources.json), công cụ chỉ đọc `tools/audit_reference_dxf.py` và 5 kiểm thử không sửa DXF.
+  - Kết quả: [biên bản khảo sát](CV03_KHAO_SAT_DXF.md), [định nghĩa nguồn](cv03_dxf_sources.json), công cụ chỉ đọc `tools/audit_reference_dxf.py` và 5 kiểm thử không sửa DXF.
   - Chọn hình học/nhãn ứng viên: TP.HCM `DTL-1D` + MTEXT layer `0` (1.695 ô); Bắc Kạn `00.Ranh gioi` + MTEXT layer `0` (400 ô); Phú Quốc `Docao` + TEXT layer `0` (1.734 polygon, 1.676 hình học khác nhau, 58 bản trùng dư).
   - Đã tái hiện vấn đề bộ đọc hiện tại: lẫn đường bao/nhãn nền, điểm chèn MTEXT trên biên, hình học Phú Quốc trùng và nhãn 1232 ngoài lưới. Chưa áp dụng snap, gộp trùng, ghép gần nhất hoặc sửa nguồn.
   - Người dùng xác nhận VN-2000; chưa có EPSG/phép chiếu cụ thể. Cả ba không có GEODATA; Phú Quốc có header đơn vị mm và XREF ngoài chưa được cung cấp. Đã hỏi thêm EPSG/kinh tuyến trục/múi chiếu; chưa duyệt chuyển tọa độ.
@@ -126,7 +126,7 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
   - Hoàn thành khi: có mẫu đối chiếu người dùng kiểm tra được; không tự chọn một kết quả khi nhiều ô cùng phần số.
   - Phụ thuộc: CV-02, CV-03.
   - Bổ sung từ khảo sát: chốt cách xác định vị trí nhãn MTEXT và xử lý trùng/nhãn ngoài Phú Quốc trước khi hứa tỷ lệ ghép. `BK1`–`BK20` đã được duyệt không xét, hiện lưới không tô; không cần hỏi lại quy tắc này.
-  - Đã chốt bốn quyết định của người dùng: ghép phần số trong từng dự án, dùng bảng màu hiện có, gộp polygon trùng trong bộ nhớ, không tô/không cảnh báo mã 1232. Chi tiết tại [biên bản CV-04](docs/CV04_QUY_TAC_GHEP_VA_MAU.md).
+  - Đã chốt bốn quyết định của người dùng: ghép phần số trong từng dự án, dùng bảng màu hiện có, gộp polygon trùng trong bộ nhớ, không tô/không cảnh báo mã 1232. Chi tiết tại [biên bản CV-04](CV04_QUY_TAC_GHEP_VA_MAU.md).
   - Đã kiểm tra bảng màu trong `prediction_grid.py`/`gis.py` và nhãn nhóm trong `wwwroot/layer_manager.js`; đặc tả JSON được đối chiếu với code, không tự thêm tên mức đánh giá.
   - Phạm vi mã số ứng viên đủ chứa 297 mã Excel TP.HCM, 400 mã Bắc Kạn (380 được xét), 1.677 mã Phú Quốc (1232 không áp dụng). Không coi số lượng mã là tỷ lệ ghép hình học thành công.
   - Hoàn thành phần chốt quy tắc; xác định vị trí MTEXT và kiểm chứng tỷ lệ ghép thực được chuyển thành tiêu chí triển khai CV-12/CV-14. Chưa sửa bộ ghép/renderer, chưa áp dụng CRS chưa xác nhận.
@@ -137,7 +137,7 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
   - Đề xuất kiến trúc backend–frontend: trách nhiệm từng phần, route cho 3 trang/bản đồ chi tiết và hợp đồng API. Phân tách dữ liệu công khai cố định, phiên đánh giá và thư mục mô hình riêng; đánh giá tận dụng Python/GIS/Leaflet hiện tại, chốt framework với người dùng trước khi chuyển đổi.
   - Hoàn thành khi: có cấu trúc mã backend/frontend, danh sách route, nơi đặt cấu hình dự án, hợp đồng API chỉ đọc/đánh giá và phương án chuyển đổi từ ứng dụng hiện tại được duyệt.
   - Phụ thuộc: CV-01.
-  - **Đã được đồng ý về công nghệ/lưu trữ:** [kiến trúc CV-05](docs/CV05_KIEN_TRUC_BACKEND_FRONTEND.md). Frontend React + TypeScript + Vite; backend Python/Flask theo factory/Blueprint; API `/api/v1`; SQLite metadata + file riêng + IndexedDB autosave. Chưa áp dụng vào ứng dụng.
+  - **Đã được đồng ý về công nghệ/lưu trữ:** [kiến trúc CV-05](CV05_KIEN_TRUC_BACKEND_FRONTEND.md). Frontend React + TypeScript + Vite; backend Python/Flask theo factory/Blueprint; API `/api/v1`; SQLite metadata + file riêng + IndexedDB autosave. Chưa áp dụng vào ứng dụng.
   - Có cấu trúc thư mục, route, trách nhiệm từng module, hợp đồng API dự kiến, quyền workspace, loại bỏ fallback kết quả chung/upload mô hình, migration bản lưu và lộ trình chuyển đổi không xóa mã/dữ liệu cũ.
   - Người dùng đã xác nhận sẽ public. Chốt phạm vi nhiều người truy cập: dự án xem chung, file/kết quả đánh giá tách riêng từng workspace; public không có nghĩa tự chia sẻ dữ liệu người dùng.
   - Hoàn thành thiết kế nền tảng để sang CV-06. Cập nhật 2026-10-27 đã chốt dùng ẩn danh, quota, thời hạn lưu và tải đồng thời còn mở ở CV-25. Ghi chú chưa tạo frontend/API/database ở giai đoạn thiết kế không còn phản ánh trạng thái triển khai hiện tại
@@ -146,7 +146,7 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
   - Tham khảo trang mẫu khi truy cập được hoặc dùng ảnh chụp người dùng cung cấp. Chọn màu, chữ, khoảng cách, thẻ dự án/thành viên theo phong cách Đánh giá quỹ đất hiện tại.
   - Hoàn thành khi: người dùng duyệt một mẫu nhất quán; không sao chép layout trang mẫu trái yêu cầu.
   - Phụ thuộc: CV-05; nguồn trang mẫu/ảnh tham khảo.
-  - Đã đọc lại được website tham khảo, đối chiếu CSS hiện tại và soạn [định hướng CV-06](docs/CV06_DINH_HUONG_GIAO_DIEN.md). Chỉ tham khảo cấu trúc nội dung, không sao chép thương hiệu, ảnh hoặc toàn bộ layout.
+  - Đã đọc lại được website tham khảo, đối chiếu CSS hiện tại và soạn [định hướng CV-06](CV06_DINH_HUONG_GIAO_DIEN.md). Chỉ tham khảo cấu trúc nội dung, không sao chép thương hiệu, ảnh hoặc toàn bộ layout.
   - Đề xuất trang Giới thiệu: header 3 mục → phần mở đầu → giới thiệu nhóm → 3 ý Tầm nhìn → 4 dự án → 4 thành viên → thông tin cuối trang. Dùng Inter, nền trắng/xanh lá theo công cụ hiện tại; không bịa thông tin nhóm.
   - Đã dựng prototype riêng tại `wwwroot/preview/index.html`, xem ở `http://127.0.0.1:8765/static/preview/index.html`: 3 mục header, Giới thiệu đầy đủ các khối, 4 dự án với bộ lọc/hộp thông tin, 4 thành viên mẫu, bố cục Đánh giá hai tab.
   - Prototype HTML/CSS/JS không gọi API/ghi dữ liệu, không thay app.py hoặc giao diện cũ. Sơ đồ SVG có nhãn minh họa; thông tin thành viên/nội dung nhóm chưa được giả làm thông tin thật. React/API triển khai ở CV-07 trở đi sau khi duyệt.
@@ -156,7 +156,7 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
 - [ ] **CV-07 — Làm bộ khung và header 3 mục.**
   - 2026-10-26 người dùng chốt header luôn hiện khi cuộn, đã thêm sticky header dùng chung và tính chiều cao động để chừa khoảng cho bản đồ và nội dung
   - 2026-10-26: đã triển khai khung React/TypeScript và Flask factory/API v1 theo yêu cầu tiếp tục. Xem `/portal/`; ba mục header, danh mục/bộ lọc, trang chi tiết và khung Đánh giá đã nối API nội dung. Reload các route hợp lệ được phục vụ đúng bản build.
-  - Đã đạt build TypeScript, 6 kiểm thử React, 61 kiểm thử Python và 34 kiểm thử Node. Chưa QA trực quan/responsive; CV-06 vẫn chờ duyệt. Chế độ tương thích giữ công cụ cũ tại `/` và `/legacy/`, chưa chuyển trang gốc sang giao diện mới. Chi tiết: [CV07_TRIEN_KHAI_KHUNG.md](docs/CV07_TRIEN_KHAI_KHUNG.md).
+  - Đã đạt build TypeScript, 6 kiểm thử React, 61 kiểm thử Python và 34 kiểm thử Node. Chưa QA trực quan/responsive; CV-06 vẫn chờ duyệt. Chế độ tương thích giữ công cụ cũ tại `/` và `/legacy/`, chưa chuyển trang gốc sang giao diện mới. Chi tiết: [CV07_TRIEN_KHAI_KHUNG.md](CV07_TRIEN_KHAI_KHUNG.md).
   - Hiển thị trạng thái đang chọn, điều hướng bàn phím, tên truy cập rõ ràng; header không che bản đồ, thanh bên hoặc bảng dữ liệu.
   - Hoàn thành khi: mở địa chỉ gốc vào Giới thiệu; chuyển đủ 3 mục, reload trang đang mở được, bố cục không tràn ở màn hình nhỏ.
   - Phụ thuộc: CV-05, CV-06.
@@ -207,7 +207,7 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
 ### Giai đoạn E — Ba bản đồ dự án chỉ xem
 
 - [ ] **CV-15 — Làm trình xem bản đồ dự án dùng chung.**
-  - 2026-10-26: theo đính chính, đã thay trang chi tiết thông tin bằng trang Leaflet có lưới thật/tô Y, nền đường phố/vệ tinh, chú giải, thanh độ đậm và thông tin ô. Tự nạp bộ DXF–Excel có sẵn; không có upload hoặc chạy AI. Người dùng yêu cầu thử EPSG:9208; đã mặc định xem thử và cho chọn CRS, chưa duyệt vị trí thực địa. Chi tiết: [PROJECT_MAP_VIEWER.md](docs/PROJECT_MAP_VIEWER.md). Các mục CV-16/17/18 chưa nghiệm thu chỉ vì đã tải được lưới.
+  - 2026-10-26: theo đính chính, đã thay trang chi tiết thông tin bằng trang Leaflet có lưới thật/tô Y, nền đường phố/vệ tinh, chú giải, thanh độ đậm và thông tin ô. Tự nạp bộ DXF–Excel có sẵn; không có upload hoặc chạy AI. Người dùng yêu cầu thử EPSG:9208; đã mặc định xem thử và cho chọn CRS, chưa duyệt vị trí thực địa. Chi tiết: [PROJECT_MAP_VIEWER.md](PROJECT_MAP_VIEWER.md). Các mục CV-16/17/18 chưa nghiệm thu chỉ vì đã tải được lưới.
   - Lưới tô màu theo kết quả có sẵn, chú giải, nền bản đồ, zoom và thông tin khi bấm ô. Không có form nạp layer/Excel hoặc nút chạy AI; API dữ liệu dự án cũng không dựa vào upload từ người xem.
   - Hoàn thành khi: route chi tiết tự mở dữ liệu dự án và chỉ gọi API đọc; thiếu dữ liệu/mạng có thông báo.
   - Phụ thuộc: CV-07, CV-10, CV-14.
@@ -232,14 +232,14 @@ Quyết định ngày 2026-10-26: người dùng sẽ chốt vị trí ba lướ
 
 - [x] **CV-19 — Chuyển mô hình sang thư mục máy chủ cố định.**
   - Đã có bộ cố định trong `models`, API mới và API cũ từ chối nạp model/scaler từ trình duyệt, có mã phiên bản và lỗi thiếu/không tương thích rõ ràng
-  - Trang Đánh giá mới đã nạp CSV, xem trước, chạy dự đoán và xuất CSV trực tiếp, không dùng file kết quả chung trong API mới. Lưu/khôi phục qua reload và bỏ fallback của công cụ cũ vẫn thuộc CV-20/CV-22. Chi tiết tại [CV19_MO_HINH_CO_DINH.md](docs/CV19_MO_HINH_CO_DINH.md)
+  - Trang Đánh giá mới đã nạp CSV, xem trước, chạy dự đoán và xuất CSV trực tiếp, không dùng file kết quả chung trong API mới. Lưu/khôi phục qua reload và bỏ fallback của công cụ cũ vẫn thuộc CV-20/CV-22. Chi tiết tại [CV19_MO_HINH_CO_DINH.md](CV19_MO_HINH_CO_DINH.md)
   - Chốt thư mục, tên file mô hình/scaler và cách thay phiên bản; bỏ trường upload và chặn nhận mô hình qua API. Chỉ chủ máy chủ được đặt file đáng tin cậy vì `.pkl` có thể thực thi mã khi nạp.
   - Hoàn thành khi: đặt bộ mô hình hợp lệ thì dự đoán được; thiếu/không tương thích báo lỗi rõ; mô hình không được phục vụ như file tĩnh.
   - Phụ thuộc: CV-05.
 
 - [x] **CV-20 — Bỏ tự dùng kết quả mặc định.**
   - Đã có nạp CSV kết quả riêng, giữ Y trống, xuất đúng kết quả và tự lưu/khôi phục phiên Đánh giá mới qua IndexedDB
-  - Đã bỏ đọc/ghi/fallback file kết quả chung ở công cụ cũ, không xóa file thật có sẵn. Kiểm thử giao dịch, xung đột tab và lỗi CSV đã đạt. Chi tiết tại [CV20_KET_QUA_VA_TU_LUU.md](docs/CV20_KET_QUA_VA_TU_LUU.md)
+  - Đã bỏ đọc/ghi/fallback file kết quả chung ở công cụ cũ, không xóa file thật có sẵn. Kiểm thử giao dịch, xung đột tab và lỗi CSV đã đạt. Chi tiết tại [CV20_KET_QUA_VA_TU_LUU.md](CV20_KET_QUA_VA_TU_LUU.md)
   - Không tự đọc `KetQua.csv` mặc định trên máy chủ. Nhận file kết quả CSV người dùng chủ động nạp, lưu và khôi phục đúng phiên; tách khỏi kết quả phiên khác. Không xóa `KetQua.csv` thật và không để API export tải nhầm kết quả.
   - Hoàn thành khi: mở phiên mới không nạp kết quả mặc định; nạp CSV hợp lệ thì hiển thị/ghép được, reload giữ đúng dữ liệu đã nạp. Luồng dự đoán chủ động hiện có vẫn hoạt động, không tự chạy mô hình khi mở trang.
   - Phụ thuộc: CV-01, CV-05, CV-19.

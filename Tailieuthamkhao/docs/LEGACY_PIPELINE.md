@@ -31,7 +31,7 @@ API cũ và API v1 cùng đọc pipeline cố định. Chuẩn bị DataFrame th
 
 Mã phiên bản mặc định có tiền tố pipeline-v1 và dấu vân tay của file pipeline. Kết quả đã lưu từ phiên trước vẫn được giữ, chỉ dự đoán lại khi người dùng bấm nút
 
-CLI cũng hỗ trợ `python predict_pkl.py <pipeline.pkl> <data.json>`, lời gọi ba tham số model/scaler/data cũ chỉ giữ để tương thích ngoài API
+CLI cũng hỗ trợ `python -m backend.map_predict.services.pipeline <pipeline.pkl> <data.json>`, lời gọi ba tham số model/scaler/data cũ chỉ giữ để tương thích ngoài API
 
 ## Kiểm tra
 

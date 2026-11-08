@@ -13,13 +13,6 @@
 !requirements-ai.txt
 !app.py
 !ai_app.py
-!gis.py
-!cad_diagnostics.py
-!cad_to_geojson.py
-!dwg_to_dxf.py
-!prediction_grid.py
-!result_join.py
-!predict_pkl.py
 !backend/
 !backend/**
 !config/

@@ -4,7 +4,8 @@
 /frontend/coverage/
 /frontend/.vite/
 /backend/**/__pycache__/
-/Tailieuthamkhao/
+/Tailieuthamkhao/*
+!/Tailieuthamkhao/docs/
 # Python bytecode and local verification output.
 __pycache__/
 *.py[cod]

@@ -11,7 +11,7 @@ import ezdxf
 from shapely.geometry import shape
 
 import app as python_app
-from gis import cad_geojson, gpkg_columns, predicted_geojson
+from backend.map_predict.geospatial.gis import cad_geojson, gpkg_columns, predicted_geojson
 
 
 def sample_drawing(path):
@@ -80,7 +80,7 @@ class MapLayerTests(unittest.TestCase):
 
     def test_multiple_prediction_files_and_dxf_have_stable_source_ids(self):
         path = self.root / "mixed.dxf"; sample_drawing(path)
-        data = (python_app.ROOT / "layer_du_doan.gpkg").read_bytes()
+        data = (python_app.ROOT / "tests/fixtures/layer_du_doan.gpkg").read_bytes()
         response = self.client.post("/api/map", data={
             "source_crs": "EPSG:9208", "cad": (io.BytesIO(path.read_bytes()), "mixed.dxf"),
             "cad_id": "cad-one", "layer_id": ["prediction-one", "prediction-two"],
@@ -94,7 +94,7 @@ class MapLayerTests(unittest.TestCase):
 
     def test_prediction_keeps_attributes_and_every_geometry_table(self):
         path = self.root / "multiple-tables.gpkg"
-        shutil.copyfile(python_app.ROOT / "layer_du_doan.gpkg", path)
+        shutil.copyfile(python_app.ROOT / "tests/fixtures/layer_du_doan.gpkg", path)
         with closing(sqlite3.connect(path)) as connection:
             table, column, kind, srs = connection.execute("SELECT table_name,column_name,geometry_type_name,srs_id FROM gpkg_geometry_columns LIMIT 1").fetchone()
             quote = lambda text: '"' + text.replace('"', '""') + '"'

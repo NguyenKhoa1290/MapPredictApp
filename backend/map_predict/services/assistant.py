@@ -136,7 +136,7 @@ def describe(document, layer_filter=''):
             continue
         item = {'handle': entity.dxf.handle, 'type': entity.dxftype(), 'layer': layer,
                 'color': entity.dxf.get('color', 256)}
-        from cad_to_geojson import read_assistant_attributes
+        from backend.map_predict.geospatial.cad_to_geojson import read_assistant_attributes
         item['attributes'] = read_assistant_attributes(entity)
         if entity.dxftype() in ('TEXT', 'MTEXT'):
             item['text'] = (entity.dxf.text if entity.dxftype() == 'TEXT' else entity.plain_text())[:1000]
@@ -167,7 +167,7 @@ def load(path, dxf, csv):
     if csv:
         rows = read_csv(csv, 10000, allow_empty=True)
     elif dxf:
-        from prediction_grid import read_dxf_grid
+        from backend.map_predict.geospatial.prediction_grid import read_dxf_grid
         try:
             grid = read_dxf_grid(path)
             rows = [{'grid_id': item['properties']['grid_id'], **{f'x{i}': '' for i in range(1, 10)}}
@@ -268,7 +268,7 @@ def valid_edit(document, edit, visible):
             raise ValueError('Chỉ sửa nội dung TEXT và MTEXT tối đa 1000 ký tự')
         before = entity.dxf.text if entity.dxftype() == 'TEXT' else entity.text
     elif operation == 'attribute':
-        from cad_to_geojson import read_assistant_attributes
+        from backend.map_predict.geospatial.cad_to_geojson import read_assistant_attributes
         if (not isinstance(value, dict) or set(value) != {'name', 'value'}
                 or not isinstance(value['name'], str) or not re.fullmatch(r'[\w -]{1,64}', value['name'])
                 or not isinstance(value['value'], (str, int, float, bool))
@@ -565,7 +565,7 @@ def apply(path, dxf, csv, token, config, resources=None):
             continue
         entity = target.entitydb[action['handle']]
         if operation == 'attribute':
-            from cad_to_geojson import read_assistant_attributes
+            from backend.map_predict.geospatial.cad_to_geojson import read_assistant_attributes
             properties = read_assistant_attributes(entity)
             properties[value['name']] = value['value']
             text = json.dumps(properties, ensure_ascii=True)

@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 from backend.map_predict import create_app
 from backend.map_predict.config import ROOT
-from predict_pkl import FEATURES
+from backend.map_predict.services.pipeline import FEATURES
 
 CSV = b'id,x1,x2,x3,x4,x5,x6,x7,x8,x9\nlot-1,0,0,0,0,0,0,0,0,0\n'
 

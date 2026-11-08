@@ -11,7 +11,7 @@ FEATURES = [f'x{i}' for i in range(1, 10)]
 
 def predict_rows(*args, **kwargs):
     # The standalone AI service does not need to import the random-forest stack.
-    from predict_pkl import predict_rows as implementation
+    from backend.map_predict.services.pipeline import predict_rows as implementation
     return implementation(*args, **kwargs)
 
 
