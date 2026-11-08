@@ -8,7 +8,8 @@
 - `backend/map_predict/services` xử lý đánh giá, pipeline dự đoán và kết nối tới AI service
 - `ai_service` API, cấu hình, prompt, chatbot và quản trị của service AI
 - `shared` đọc CSV, xử lý GIS và cấu hình kết nối dùng chung
-- `frontend` giao diện React của portal và trang quản trị
+- `frontend/src/pages` giao diện React chia theo trang about, projects, assessment và ai-admin
+- `frontend/tests` kiểm thử React, tách khỏi mã nguồn giao diện
 - `assessment` ứng dụng bản đồ và dự đoán, gồm điểm khởi động, template và tài nguyên tĩnh
 - `integrations` kết nối và duy trì phiên Gemini
 - `frontend/config` nội dung website và danh mục dự án, backend đọc để phục vụ API

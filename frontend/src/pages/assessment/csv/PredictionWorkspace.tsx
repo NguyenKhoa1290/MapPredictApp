@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { getModelStatus, importResultCSV, previewPredictionCSV, runPrediction } from '../../shared/api/client';
-import type { Dataset, ModelStatus } from '../../shared/api/types';
-import { PlanIllustration } from '../../shared/ui/PlanIllustration';
+import { getModelStatus, importResultCSV, previewPredictionCSV, runPrediction } from '../../../shared/api/client';
+import type { Dataset, ModelStatus } from '../../../shared/api/types';
+import { PlanIllustration } from './components/PlanIllustration';
 import { useAssessmentSession } from './useAssessmentSession';
 
 export function predictionCSV(dataset: Dataset): string {

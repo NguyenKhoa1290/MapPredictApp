@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type * as Leaflet from 'leaflet';
-import type { CellProperties, ProjectMapData } from '../api/types';
+import type { CellProperties, ProjectMapData } from '../../../shared/api/types';
 
 declare global {
   interface Window {

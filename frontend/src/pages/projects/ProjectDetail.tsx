@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { usePublicData } from '../app/PublicData';
-import { getProjectMap } from '../shared/api/client';
-import type { CellProperties, ProjectMapData } from '../shared/api/types';
-import { ProjectMapCanvas } from '../shared/ui/ProjectMapCanvas';
+import { usePublicData } from '../../app/PublicData';
+import { getProjectMap } from '../../shared/api/client';
+import type { CellProperties, ProjectMapData } from '../../shared/api/types';
+import { ProjectMapCanvas } from './components/ProjectMapCanvas';
 
 const LABELS = [0, 1, 2, null] as const;
 const COLORS = ['#ff0000', '#ffa500', '#008000', '#52666a'];

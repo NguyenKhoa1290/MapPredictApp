@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { usePublicData } from './PublicData';
-import { Assessment } from '../pages/Assessment';
+import { Assessment } from '../pages/assessment/Assessment';
 
 export function Layout() {
   const { loading, error, retry, content } = usePublicData();

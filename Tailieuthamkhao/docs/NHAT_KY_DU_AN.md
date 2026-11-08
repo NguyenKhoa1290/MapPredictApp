@@ -960,3 +960,12 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Gom script khảo sát Excel và DXF vào quality/analysis
 - Cập nhật đường dẫn CI/CD, Docker, import và công cụ đóng gói
 - Các kiểm thử React đặt cạnh component tiếp tục chạy bằng npm trong frontend
+
+## 2026-11-08 Sắp xếp frontend theo trang
+
+- Chia src/pages thành about, projects, assessment và ai-admin
+- Gom nghiệp vụ phiên CSV và component bản đồ riêng vào trang tương ứng
+- Chuyển toàn bộ kiểm thử React ra frontend/tests, chia theo app và nhóm trang
+- CSS quản trị nằm trong trang ai-admin, CSS dùng chung giữ trong src/styles
+- Cập nhật import, cấu hình Vitest và phạm vi kiểm tra TypeScript
+- Giữ nguyên các thay đổi nội dung và giao diện chưa commit của người dùng

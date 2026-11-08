@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as Leaflet from 'leaflet';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { ProjectMapCanvas } from './ProjectMapCanvas';
-import type { CellProperties, ProjectMapData } from '../api/types';
+import { ProjectMapCanvas } from '../../../src/pages/projects/components/ProjectMapCanvas';
+import type { CellProperties, ProjectMapData } from '../../../src/shared/api/types';
 
 const leafletSource = readFileSync(resolve('..', 'assessment/static/leaflet/leaflet.js'), 'utf8');
 const basemapsSource = readFileSync(resolve('..', 'assessment/static/basemaps.js'), 'utf8');

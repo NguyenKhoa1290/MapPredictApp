@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { predictionCSV, PredictionWorkspace } from './PredictionWorkspace';
+import { predictionCSV, PredictionWorkspace } from '../../../src/pages/assessment/csv/PredictionWorkspace';
 
 const preview = { rows: [{ id: 'lot-1', x1: '0' }], columns: ['id', 'x1'], count: 1 };
 const output = { rows: [{ id: 'lot-1', x1: '0', Y: 2 }], columns: ['id', 'x1', 'Y'], count: 1, model_version: 'fixed-v1' };

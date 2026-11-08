@@ -1,5 +1,5 @@
-import { isAssessmentResult, isDataset } from '../../shared/api/client';
-import type { AssessmentResult, Dataset } from '../../shared/api/types';
+import { isAssessmentResult, isDataset } from '../../../shared/api/client';
+import type { AssessmentResult, Dataset } from '../../../shared/api/types';
 
 export interface AssessmentState {
   inputFile: File | null; resultFile: File | null;

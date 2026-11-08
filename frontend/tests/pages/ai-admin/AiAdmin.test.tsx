@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { AiAdmin } from './AiAdmin';
+import { AiAdmin } from '../../../src/pages/ai-admin/AiAdmin';
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it('requires service authentication and never stores the password in browser storage', async () => {

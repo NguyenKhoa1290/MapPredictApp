@@ -1,11 +1,11 @@
 import { Route, Routes, Link } from 'react-router';
 import { PublicDataProvider } from './PublicData';
 import { Layout } from './Layout';
-import { About } from '../pages/About';
-import { Projects } from '../pages/Projects';
-import { ProjectDetail } from '../pages/ProjectDetail';
-import { SavedAssessment } from '../pages/SavedAssessment';
-import { AiAdmin } from '../pages/AiAdmin';
+import { About } from '../pages/about/About';
+import { Projects } from '../pages/projects/Projects';
+import { ProjectDetail } from '../pages/projects/ProjectDetail';
+import { SavedAssessment } from '../pages/assessment/SavedAssessment';
+import { AiAdmin } from '../pages/ai-admin/AiAdmin';
 
 export function App() {
   return <PublicDataProvider><Routes><Route element={<Layout />}>

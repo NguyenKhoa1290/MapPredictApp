@@ -1,4 +1,4 @@
-import { usePublicData } from '../app/PublicData';
+import { usePublicData } from '../../app/PublicData';
 import { Link, useNavigate } from 'react-router';
 import { useEffect, useRef } from 'react';
 

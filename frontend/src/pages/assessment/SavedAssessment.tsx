@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
-import { usePublicData } from '../app/PublicData';
-import { PredictionWorkspace } from '../features/assessment/PredictionWorkspace';
+import { usePublicData } from '../../app/PublicData';
+import { PredictionWorkspace } from './csv/PredictionWorkspace';
 
 /** Retains access to previously saved CSV sessions without changing their database. */
 export function SavedAssessment() {

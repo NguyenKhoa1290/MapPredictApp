@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
-import { usePublicData } from '../app/PublicData';
-import { ProjectCards } from '../shared/ui/ProjectCards';
+import { usePublicData } from '../../app/PublicData';
+import { ProjectCards } from '../../shared/ui/ProjectCards';
 
 export function About() {
   const { content, projects } = usePublicData();

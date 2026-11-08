@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import '../styles/ai-admin.css';
+import './ai-admin.css';
 
 type Model = { label: string; provider: 'gemini' | 'compatible'; model: string; url: string; api_key?: string; has_api_key?: boolean; clear_api_key?: boolean };
 type Settings = { models: Record<'fast' | 'smart', Model>; embedding: { url: string; model: string } };

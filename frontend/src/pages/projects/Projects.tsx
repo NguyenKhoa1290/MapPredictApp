@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { usePublicData } from '../app/PublicData';
-import { ProjectCards } from '../shared/ui/ProjectCards';
+import { usePublicData } from '../../app/PublicData';
+import { ProjectCards } from '../../shared/ui/ProjectCards';
 
 export function Projects() {
   const { projects } = usePublicData();

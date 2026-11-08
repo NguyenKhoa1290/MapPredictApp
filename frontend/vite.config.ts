@@ -13,5 +13,10 @@ export default defineConfig({
       '/static': 'http://127.0.0.1:8765',
     },
   },
-  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], restoreMocks: true },
+  test: {
+    include: ['tests/**/*.test.{ts,tsx}'],
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.ts'],
+    restoreMocks: true,
+  },
 });
