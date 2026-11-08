@@ -20,7 +20,7 @@ from shared.geospatial.prediction_grid import dxf_grid_metadata, predicted_dxf_g
 from backend.map_predict import create_app
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / "MapPredictApp"
 RESULT_CSV = DATA_DIR / "KetQua.csv"
 legacy = Blueprint("legacy", __name__)
@@ -110,7 +110,7 @@ def home():
         return redirect('/portal/')
     if request.args.get('embedded') != '1':
         return redirect('/portal/assessment')
-    asset_version = max((ROOT / "wwwroot" / filename).stat().st_mtime_ns
+    asset_version = max((ROOT / "assessment" / "static" / filename).stat().st_mtime_ns
                         for filename in ("app.css", "app.js", "basemaps.js", "color_adjustments.js", "layer_manager.js",
                                          "workspace_store.js", "workspace.js", "pdf_export.js", "join_preview.js",
                                          "assistant.js", "assistant.css"))

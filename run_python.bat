@@ -5,4 +5,4 @@ if not exist "venv\Scripts\python.exe" (
     echo Sau do chay: venv\Scripts\python.exe -m pip install -r requirements.txt
     exit /b 1
 )
-"venv\Scripts\python.exe" app.py
+"venv\Scripts\python.exe" -m assessment.app

@@ -10,7 +10,7 @@ from unittest.mock import patch
 import ezdxf
 from shapely.geometry import shape
 
-import app as python_app
+import assessment.app as python_app
 from shared.geospatial.gis import cad_geojson, gpkg_columns, predicted_geojson
 
 

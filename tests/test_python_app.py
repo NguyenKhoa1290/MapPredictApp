@@ -11,7 +11,7 @@ import ezdxf
 from pyproj import Transformer
 from shapely.geometry import shape
 
-import app as python_app
+import assessment.app as python_app
 from shared.geospatial.gis import base_geojson, gpkg_diagnostics
 
 

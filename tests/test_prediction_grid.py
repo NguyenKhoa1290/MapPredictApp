@@ -7,7 +7,7 @@ from unittest.mock import patch
 import ezdxf
 from shapely.geometry import shape
 
-import app as python_app
+import assessment.app as python_app
 from shared.geospatial.prediction_grid import dxf_grid_metadata, predicted_dxf_grid, read_dxf_grid
 
 

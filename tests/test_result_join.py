@@ -1,7 +1,7 @@
 import io
 import unittest
 
-import app as python_app
+import assessment.app as python_app
 from shared.geospatial.result_join import match_results, numeric_key
 
 

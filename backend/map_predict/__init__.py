@@ -10,8 +10,8 @@ from .config import Config, ROOT
 
 
 def create_app(config=None, *, legacy_blueprint=None, legacy_error_handler=None):
-    application = Flask(__name__, static_folder=str(ROOT / "wwwroot"), static_url_path="/static",
-                        template_folder=str(ROOT / "templates"))
+    application = Flask(__name__, static_folder=str(ROOT / "assessment" / "static"), static_url_path="/static",
+                        template_folder=str(ROOT / "assessment" / "templates"))
     application.config.from_object(Config)
     if config:
         application.config.update(config)

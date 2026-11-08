@@ -48,13 +48,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --uid 10001 --no-create-home appuser
 COPY --from=dependencies /install/ /usr/local/
-COPY app.py ./
+COPY assessment/ ./assessment/
 COPY backend/ ./backend/
 COPY ai_service/ ./ai_service/
 COPY shared/ ./shared/
 COPY frontend/config/ ./frontend/config/
-COPY templates/ ./templates/
-COPY wwwroot/ ./wwwroot/
 COPY tools/audit_reference_excel.py tools/audit_reference_dxf.py tools/auto_deploy.py tools/docker_stack.py tools/install_linux.py tools/configure_cloudflare.py ./tools/
 COPY tools/import_qdrant_migration.py ./tools/
 COPY --from=frontend /build/frontend/dist/ ./frontend/dist/
@@ -63,7 +61,7 @@ USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=3s --retries=4 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "2", "--timeout", "180", "--graceful-timeout", "30", "--worker-tmp-dir", "/dev/shm", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "2", "--timeout", "180", "--graceful-timeout", "30", "--worker-tmp-dir", "/dev/shm", "--access-logfile", "-", "--error-logfile", "-", "assessment.app:app"]
 
 FROM python:3.11-slim-bookworm AS ai
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONUTF8=1 HOME=/tmp XDG_CACHE_HOME=/tmp/cache \

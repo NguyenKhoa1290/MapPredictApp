@@ -940,3 +940,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Chuyển public_content.json và projects.json từ config vào frontend/config
 - Backend tiếp tục phục vụ nội dung qua API, đọc file từ đường dẫn mới
 - Cập nhật import kiểm thử React, Docker, Compose và công cụ đóng gói
+
+## 2026-11-08 Gom ứng dụng đánh giá vào assessment
+
+- Chuyển app.py, templates và wwwroot ở thư mục gốc thành assessment/app.py, assessment/templates và assessment/static
+- Đường dẫn URL static và các API hiện có được giữ để portal và dữ liệu trình duyệt tiếp tục sử dụng
+- Cập nhật điểm chạy thành python -m assessment.app và WSGI assessment.app:app
+- Cập nhật Docker, launcher Windows, đóng gói và đường dẫn kiểm thử

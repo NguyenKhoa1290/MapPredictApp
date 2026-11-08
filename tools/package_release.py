@@ -10,11 +10,11 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = (
-    "app.py", "requirements.txt", "run_python.bat",
+    "requirements.txt", "run_python.bat",
     "tools/set_ai_admin_password.py", "README.md", "models/README.md",
     "models/rf_model_rating_pipeline.pkl", "tools/audit_reference_excel.py", "tools/audit_reference_dxf.py",
 )
-FOLDERS = ("backend", "ai_service", "shared", "frontend/config", "templates", "wwwroot", "frontend/dist", "Tailieuthamkhao/docs")
+FOLDERS = ("backend", "ai_service", "assessment", "shared", "frontend/config", "frontend/dist", "Tailieuthamkhao/docs")
 
 
 def sources():
@@ -45,7 +45,7 @@ def package(destination):
 def smoke_test(destination):
     script = '''
 import io
-from app import app
+from assessment.app import app
 client = app.test_client()
 assert client.get('/').location == '/portal/'
 for route in ('/portal/', '/portal/projects', '/portal/assessment', '/legacy/?embedded=1'):

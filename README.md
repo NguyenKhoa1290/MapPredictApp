@@ -9,7 +9,7 @@
 - `ai_service` API, cấu hình, prompt, chatbot và quản trị của service AI
 - `shared` đọc CSV, xử lý GIS và cấu hình kết nối dùng chung
 - `frontend` giao diện React của portal và trang quản trị
-- `templates`, `wwwroot` giao diện bản đồ và dự đoán đang dùng trong công cụ đánh giá
+- `assessment` ứng dụng bản đồ và dự đoán, gồm điểm khởi động, template và tài nguyên tĩnh
 - `integrations` kết nối và duy trì phiên Gemini
 - `frontend/config` nội dung website và danh mục dự án, backend đọc để phục vụ API
 - `models` pipeline dự đoán đang dùng
@@ -17,7 +17,7 @@
 - `tests` kiểm thử, dữ liệu mẫu nằm trong `tests/fixtures`
 - `Tailieuthamkhao/docs` tài liệu, nhật ký, kế hoạch công việc và bằng chứng kiểm tra
 
-`app.py` là điểm khởi động web, `ai_service/app.py` là điểm khởi động service AI
+`assessment/app.py` là điểm khởi động web, `ai_service/app.py` là điểm khởi động service AI
 Trong Docker, backend web gọi AI qua mạng nội bộ, image AI chỉ chứa `ai_service` và `shared`
 
 ## Chạy trên máy
@@ -29,7 +29,7 @@ py -3.11 -m venv venv
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
 npm --prefix frontend ci
 npm --prefix frontend run build
-.\venv\Scripts\python.exe -m app
+.\venv\Scripts\python.exe -m assessment.app
 ```
 
 Mở http://127.0.0.1:8765/portal/

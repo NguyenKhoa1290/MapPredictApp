@@ -16,15 +16,15 @@ const element = <T extends HTMLElement>(id: string) => document.getElementById(i
 const submit = () => element('map-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 
 beforeEach(() => {
-  document.body.innerHTML = source('templates/index.html').split('<body')[1].replace(/^[^>]*>/, '').split('</body>')[0];
-  window.eval(source('wwwroot/join_preview.js'));
-  window.eval(source('wwwroot/workspace_store.js'));
+  document.body.innerHTML = source('assessment/templates/index.html').split('<body')[1].replace(/^[^>]*>/, '').split('</body>')[0];
+  window.eval(source('assessment/static/join_preview.js'));
+  window.eval(source('assessment/static/workspace_store.js'));
   // jsdom does not expose DataTransfer, use an actual empty FileList for clearing inputs.
   vi.stubGlobal('DataTransfer', class {
     get files() { const input = document.createElement('input'); input.type = 'file'; return input.files; }
     items = { add: vi.fn() };
   });
-  window.eval(source('wwwroot/app.js').replace(/\ninitializeMap\(\);\s*$/, '') + `
+  window.eval(source('assessment/static/app.js').replace(/\ninitializeMap\(\);\s*$/, '') + `
     let selectedLayerId = null, inspectorScope = null, componentPage = 0, attributePage = 0;
     window.legacyHarness = {
       rendered: [],
@@ -51,7 +51,7 @@ beforeEach(() => {
             groups:styles?.[index]?.groups || new Map(), adjustments:styles?.[index]?.adjustments || {},
             style:styles?.[index]?.style || {},visible:true,opacity:.7}));
         };
-        ${source('wwwroot/workspace.js')}
+        ${source('assessment/static/workspace.js')}
       }
     };
   `);

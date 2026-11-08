@@ -6,7 +6,7 @@ import { IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { AssessmentStorage, emptyAssessment } from './persistence';
 import type { AssessmentState } from './persistence';
 
-const source = readFileSync(resolve('..', 'wwwroot/workspace_store.js'), 'utf8');
+const source = readFileSync(resolve('..', 'assessment/static/workspace_store.js'), 'utf8');
 let factory: IDBFactory;
 let opened: AssessmentStorage[];
 const open = () => { const store = new AssessmentStorage(factory); opened.push(store); return store; };
