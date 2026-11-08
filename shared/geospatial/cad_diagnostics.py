@@ -10,8 +10,8 @@ from ezdxf import DXFError
 from ezdxf.math import Matrix44
 from shapely.geometry import MultiPoint
 
-from backend.map_predict.geospatial.cad_to_geojson import _entity_features, _read_dxf
-from backend.map_predict.geospatial.gis import _transformer, parse_source_crs
+from shared.geospatial.cad_to_geojson import _entity_features, _read_dxf
+from shared.geospatial.gis import _transformer, parse_source_crs
 
 
 def _bounds(points):

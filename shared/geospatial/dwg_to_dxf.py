@@ -1,6 +1,6 @@
 ﻿"""
 Chuyen doi file DWG sang DXF su dung ezdxf.addons.odafc (ODA File Converter).
-Usage: python -m backend.map_predict.geospatial.dwg_to_dxf <input.dwg> <output.dxf>
+Usage: python -m shared.geospatial.dwg_to_dxf <input.dwg> <output.dxf>
 
 Yeu cau: ODA File Converter phai duoc cai dat.
 Download tai: https://www.opendesign.com/guestfiles/oda_file_converter
@@ -71,7 +71,7 @@ def _configure_oda_path(odafc_path):
 
 def main():
     if len(sys.argv) < 3:
-        _print_error("Usage: python -m backend.map_predict.geospatial.dwg_to_dxf <input.dwg> <output.dxf>")
+        _print_error("Usage: python -m shared.geospatial.dwg_to_dxf <input.dwg> <output.dxf>")
 
     input_path = sys.argv[1]
     output_path = sys.argv[2]

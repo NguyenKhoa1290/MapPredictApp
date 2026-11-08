@@ -7,7 +7,7 @@ Chatbot nằm trong cửa sổ nổi Trợ lý GIS của công cụ Đánh giá 
 
 - Mã adapter Gemini từ `Tailieuthamkhao/gemini-agent/server/gemini_web2api`, bản ghi phiên bản 1.1.0 trong mã nguồn
 - Bản sao chạy được nằm trong `integrations/gemini_web2api`, giữ giấy phép MIT tại `integrations/GEMINI_LICENSE`
-- Ngữ cảnh chấm điểm từ `Tailieuthamkhao/Thuchanh/data/Tieuchi.md`, bản triển khai tại `config/assistant/rubric.md`
+- Ngữ cảnh chấm điểm từ `Tailieuthamkhao/Thuchanh/data/Tieuchi.md`, bản triển khai tại `ai_service/prompts/rubric.md`
 - Tài liệu ghi nguồn bảng sửa ngày 1509, phạm vi A1:T14, giữ record_id, ô nguồn và ngưỡng gốc
 
 Không tích hợp Chainlit hoặc LangChain trong bản này, từ ngày 2026-10-28 có truy xuất Qdrant và service AI riêng, xem [hướng dẫn service AI](AI_SERVICE_QDRANT.md)

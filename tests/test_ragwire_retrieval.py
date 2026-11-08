@@ -9,7 +9,7 @@ try:
     from langchain_qdrant import QdrantVectorStore, RetrievalMode
     from langchain_qdrant.sparse_embeddings import SparseEmbeddings, SparseVector
     from qdrant_client import QdrantClient, models
-    from backend.map_predict.services import ragwire_search as search
+    from ai_service.services import ragwire_search as search
     AVAILABLE = True
 except ImportError:
     AVAILABLE = False

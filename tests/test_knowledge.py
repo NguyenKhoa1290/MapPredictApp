@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 
-from backend.map_predict.services import knowledge, assistant
+from ai_service.services import knowledge, assistant
 from backend.map_predict.services.prediction import PredictionError
 
 
@@ -128,7 +128,7 @@ class KnowledgeTests(unittest.TestCase):
         adapter = SimpleNamespace(retrieve=Mock(side_effect=ValueError('internal JSON /private/path')))
         replies = [{'result': {'config': {'params': {'vectors': {'size': 1024}}}, 'points_count': 1}},
                    {'result': {'points': [POINT], 'next_page_offset': None}}]
-        with patch.dict(sys.modules, {'backend.map_predict.services.ragwire_search': adapter}), \
+        with patch.dict(sys.modules, {'ai_service.services.ragwire_search': adapter}), \
                 patch.object(knowledge, 'json_request', side_effect=replies):
             result = knowledge.retrieve('x4', {**self.config, 'ASSISTANT_RETRIEVAL_MODE': 'ragwire'})
         self.assertEqual(result['mode'], 'keyword_fallback')

@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from backend.map_predict.services.assistant_json import model_result, json_object
+from ai_service.services.assistant_json import model_result, json_object
 
 
 class AssistantJsonTests(unittest.TestCase):

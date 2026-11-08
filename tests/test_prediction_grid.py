@@ -8,7 +8,7 @@ import ezdxf
 from shapely.geometry import shape
 
 import app as python_app
-from backend.map_predict.geospatial.prediction_grid import dxf_grid_metadata, predicted_dxf_grid, read_dxf_grid
+from shared.geospatial.prediction_grid import dxf_grid_metadata, predicted_dxf_grid, read_dxf_grid
 
 
 def grid_document(ids=("10", "1", "2")):

@@ -7,10 +7,10 @@ import unittest
 from unittest.mock import patch
 
 from werkzeug.security import generate_password_hash
-from ai_app import create_ai_app
+from ai_service.app import create_ai_app
 from backend.map_predict import create_app
-from backend.map_predict.api.v1.ai_admin import FAILURES, REVOKED, COOKIE
-from backend.map_predict.services import ai_settings, assistant, knowledge
+from ai_service.api.ai_admin import FAILURES, REVOKED, COOKIE
+from ai_service.services import ai_settings, assistant, knowledge
 
 
 class AiAdminTests(unittest.TestCase):
@@ -48,7 +48,7 @@ class AiAdminTests(unittest.TestCase):
         response = self.login()
         self.assertIn('HttpOnly', response.headers['Set-Cookie'])
         self.assertIn('SameSite=Strict', response.headers['Set-Cookie'])
-        with patch('backend.map_predict.api.v1.ai_admin.gemini_request', return_value={'state': 'ready'}):
+        with patch('ai_service.api.ai_admin.gemini_request', return_value={'state': 'ready'}):
             state = self.client.get('/api/v1/ai-admin/state', headers=self.headers)
         self.assertEqual(state.status_code, 200)
         self.assertEqual(state.json['data']['chatbot_retrieval'], 'qdrant_keyword')
@@ -74,7 +74,7 @@ class AiAdminTests(unittest.TestCase):
 
     def test_authenticated_session_refresh_targets_account_pool(self):
         self.login()
-        with patch('backend.map_predict.api.v1.ai_admin.gemini_request', return_value={'accounts': []}) as remote:
+        with patch('ai_service.api.ai_admin.gemini_request', return_value={'accounts': []}) as remote:
             response = self.post('tools/accounts-refresh', {})
         self.assertEqual(response.status_code, 200)
         remote.assert_called_once_with('/refresh', {}, accounts=True)
@@ -108,7 +108,7 @@ class AiAdminTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/v1/ai-admin/tools/embedding-test', json={'text': 'test'}, headers=self.headers).status_code, 401)
         self.login()
         self.app.config['ASSISTANT_EMBEDDING_ENABLED'] = True
-        with patch('backend.map_predict.api.v1.ai_admin.json_request', return_value={'embeddings': [[.1] * 1024]}) as call:
+        with patch('ai_service.api.ai_admin.json_request', return_value={'embeddings': [[.1] * 1024]}) as call:
             response = self.post('tools/embedding-test', {'text': 'test'})
         self.assertEqual(response.json['data']['dimensions'], 1024)
         self.assertEqual(call.call_args.args[1]['keep_alive'], '0s')
@@ -116,7 +116,7 @@ class AiAdminTests(unittest.TestCase):
 
     def test_disabled_embedding_never_calls_ollama(self):
         self.login()
-        with patch('backend.map_predict.api.v1.ai_admin.json_request') as call:
+        with patch('ai_service.api.ai_admin.json_request') as call:
             response = self.post('tools/embedding-test', {'text': 'test'})
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json['error']['code'], 'EMBEDDING_DISABLED')

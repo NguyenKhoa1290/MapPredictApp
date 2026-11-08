@@ -9,7 +9,7 @@ import threading
 import time
 
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
-from .prediction import PredictionError
+from shared.tabular import PredictionError
 
 TTL = 15 * 60
 MAX_BYTES = 64 * 1024 * 1024

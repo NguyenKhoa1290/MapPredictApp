@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 from werkzeug.security import generate_password_hash, check_password_hash
 from urllib.request import Request, build_opener, ProxyHandler
 
-from .prediction import PredictionError
+from shared.tabular import PredictionError
 
 LOCK = threading.RLock()
 ARGON = 'gemini-4-argon'

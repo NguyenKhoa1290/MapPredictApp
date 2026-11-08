@@ -14,8 +14,9 @@ RUN pip install --prefix=/install --no-compile --no-cache-dir -r requirements-pr
 
 FROM python:3.11-slim-bookworm AS ai-dependencies
 WORKDIR /build
-COPY requirements.txt requirements-ai.txt ./
-RUN pip install --prefix=/install --no-compile --no-cache-dir -c requirements.txt -r requirements-ai.txt
+COPY requirements.txt ./constraints.txt
+COPY ai_service/requirements.txt ./requirements-ai.txt
+RUN pip install --prefix=/install --no-compile --no-cache-dir -c constraints.txt -r requirements-ai.txt
 
 FROM python:3.11-slim-bookworm AS gemini
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HOME=/tmp
@@ -48,8 +49,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --uid 10001 --no-create-home appuser
 COPY --from=dependencies /install/ /usr/local/
-COPY app.py ai_app.py ./
+COPY app.py ./
 COPY backend/ ./backend/
+COPY ai_service/ ./ai_service/
+COPY shared/ ./shared/
 COPY config/ ./config/
 COPY templates/ ./templates/
 COPY wwwroot/ ./wwwroot/
@@ -63,13 +66,22 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=3s -
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "2", "--timeout", "180", "--graceful-timeout", "30", "--worker-tmp-dir", "/dev/shm", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
 
-FROM application AS ai
-USER root
+FROM python:3.11-slim-bookworm AS ai
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONUTF8=1 HOME=/tmp XDG_CACHE_HOME=/tmp/cache \
+    OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 10001 --no-create-home appuser \
+    && mkdir -p /var/lib/map-predict-ai && chown 10001:10001 /var/lib/map-predict-ai
+COPY --from=dependencies /install/ /usr/local/
 COPY --from=ai-dependencies /install/ /usr/local/
+COPY ai_service/ ./ai_service/
+COPY shared/ ./shared/
 USER 10001:10001
 EXPOSE 8001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --start-interval=2s --retries=4 \
     CMD python -c "from urllib.request import urlopen; urlopen('http://127.0.0.1:8001/health',timeout=3)"
-CMD ["gunicorn", "--bind", "0.0.0.0:8001", "--workers", "1", "--threads", "2", "--timeout", "180", "--graceful-timeout", "180", "--worker-tmp-dir", "/dev/shm", "--access-logfile", "-", "--error-logfile", "-", "ai_app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8001", "--workers", "1", "--threads", "2", "--timeout", "180", "--graceful-timeout", "180", "--worker-tmp-dir", "/dev/shm", "--access-logfile", "-", "--error-logfile", "-", "ai_service.app:app"]
 
 FROM application AS runtime

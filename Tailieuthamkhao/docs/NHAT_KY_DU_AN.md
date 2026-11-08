@@ -925,3 +925,12 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Cập nhật import, Docker, công cụ audit và đóng gói theo đường dẫn mới
 - Giữ nguyên các chỉnh sửa giao diện chưa commit của người dùng
 - Kiểm thử backend và gói ZIP giải nén đều đạt, lệnh dọn file sinh tự động bị cơ chế duyệt công cụ chặn nên giữ chúng trong danh sách bỏ qua của Git
+
+## 2026-11-08 Tách thư mục AI service
+
+- Tách API chatbot, quản trị, cấu hình, prompt và nghiệp vụ AI sang ai_service
+- Đặt khai báo thư viện AI tại ai_service/requirements.txt, WSGI tại ai_service.app:app
+- Backend web chuyển tiếp tới service AI qua API nội bộ, giữ cách chạy gộp cho local khi chưa cấu hình worker
+- Chuyển các hàm xử lý CSV, hình học và cấu hình dùng chung vào shared
+- Image AI chứa ai_service và shared, không sao chép backend web hoặc frontend
+- Cập nhật Compose, Docker, đóng gói và kiểm thử đường dẫn mới

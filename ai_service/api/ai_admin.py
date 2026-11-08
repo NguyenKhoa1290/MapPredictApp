@@ -15,9 +15,9 @@ from flask import Blueprint, current_app, g, jsonify, request
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from werkzeug.security import check_password_hash
 
-from ...services import ai_settings
-from ...services.knowledge import json_request, retrieve
-from ...services.prediction import PredictionError
+from ..services import ai_settings
+from ..services.knowledge import json_request, retrieve
+from shared.tabular import PredictionError
 
 admin_api = Blueprint('ai_admin', __name__, url_prefix='/api/v1/ai-admin')
 COOKIE = 'map_ai_admin'
@@ -51,11 +51,8 @@ def protect():
             origin = request.headers.get('Origin')
             if request.headers.get('Sec-Fetch-Site') == 'cross-site' or (origin and (urlsplit(origin).netloc != request.host or urlsplit(origin).scheme != request.scheme)):
                 raise PredictionError('ORIGIN_NOT_ALLOWED', 'Gửi yêu cầu từ cùng website', 403)
-        if not current_app.config.get('ASSISTANT_SERVICE_URL'):
-            raise PredictionError('AI_SERVICE_REQUIRED', 'Trang quản trị cần service AI riêng', 503)
-        from ...services.assistant_gateway import forward
-        return forward(request.path.removeprefix('/api/v1/ai-admin/'), admin=True)
-    # Internal Bearer authentication has already run in ai_app.py.
+        raise PredictionError('AI_SERVICE_REQUIRED', 'Trang quản trị cần service AI riêng', 503)
+    # Internal Bearer authentication has already run in ai_service/app.py.
     if request.endpoint == 'ai_admin.login':
         return
     try:
@@ -183,7 +180,7 @@ def tools(action):
         elif action.startswith('session-'):
             result = gemini_request('/import' if action == 'session-import' else '/refresh', body)
         elif action == 'model-test':
-            from ...services.assistant import call_model
+            from ..services.assistant import call_model
             config = ai_settings.model_config(current_app.config, body.get('mode', 'fast'))
             result = call_model([{'role': 'user', 'content': 'Trả JSON {"answer":"Kết nối thành công","sources":[],"edits":[],"scores":[]}'}], config)
             result = {'answer': result['answer'][:2000]}

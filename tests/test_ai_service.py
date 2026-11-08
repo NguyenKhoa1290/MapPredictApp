@@ -2,14 +2,46 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
+import subprocess
+import sys
 
-from ai_app import create_ai_app
+from ai_service.app import create_ai_app
 from backend.map_predict import create_app
-from backend.map_predict.api.v1.assistant import RATES
+from ai_service.api.assistant import RATES
 from backend.map_predict.services import assistant_gateway
 
 
 class AIServiceTests(unittest.TestCase):
+    def test_worker_can_start_without_importing_web_backend(self):
+        script = '''
+import importlib.abc
+import sys
+class BlockWebBackend(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'backend' or fullname.startswith('backend.'):
+            raise ImportError('Worker must not import the web backend')
+sys.meta_path.insert(0, BlockWebBackend())
+from ai_service.app import create_ai_app
+app = create_ai_app({'TESTING': True})
+assert app.test_client().get('/health').status_code == 200
+'''
+        subprocess.run([sys.executable, '-B', '-c', script], check=True, timeout=45)
+
+    def test_web_gateway_can_start_without_importing_ai_worker(self):
+        script = '''
+import importlib.abc
+import sys
+class BlockAIWorker(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'ai_service' or fullname.startswith('ai_service.'):
+            raise ImportError('Remote web gateway must not import the worker')
+sys.meta_path.insert(0, BlockAIWorker())
+from backend.map_predict import create_app
+app = create_app({'TESTING': True, 'ASSISTANT_SERVICE_URL': 'http://ai-assistant:8001'})
+assert app.test_client().get('/api/v1/health').status_code == 200
+'''
+        subprocess.run([sys.executable, '-B', '-c', script], check=True, timeout=45)
+
     def setUp(self):
         RATES.clear()
         self.folder = tempfile.TemporaryDirectory()

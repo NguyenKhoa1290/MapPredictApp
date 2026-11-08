@@ -13,9 +13,9 @@ from urllib.parse import urlsplit
 
 from flask import Blueprint, current_app, jsonify, request, g, send_file
 
-from ...services import assistant
-from ...services import assistant_files
-from ...services.prediction import PredictionError
+from ..services import assistant
+from ..services import assistant_files
+from shared.tabular import PredictionError
 
 assistant_api = Blueprint('assistant_v1', __name__, url_prefix='/api/v1/assistant')
 BUSY = threading.BoundedSemaphore(1)
@@ -69,10 +69,7 @@ def limits():
 
 @assistant_api.get('/status')
 def status():
-    if current_app.config['ASSISTANT_ENABLED'] and current_app.config.get('ASSISTANT_SERVICE_URL'):
-        from ...services.assistant_gateway import forward
-        return forward('status')
-    from ...services.ai_settings import load, is_argon, argon_availability, COOKIE_MESSAGE, supported_efforts
+    from ..services.ai_settings import load, is_argon, argon_availability, COOKIE_MESSAGE, supported_efforts
     modes = load(current_app.config)['models']
     availability = argon_availability(current_app.config) if current_app.config['ASSISTANT_ENABLED'] else 'unknown'
     return jsonify(data={'enabled': current_app.config['ASSISTANT_ENABLED'],
@@ -105,11 +102,8 @@ def uploaded(name, extension, limit):
 def execute(action):
     if action not in ('preview', 'apply', 'export', 'authorize'):
         raise PredictionError('UNKNOWN_ACTION', 'Thao tác chưa được hỗ trợ', 404)
-    if current_app.config.get('ASSISTANT_SERVICE_URL'):
-        from ...services.assistant_gateway import forward
-        return forward(action)
     if action == 'authorize':
-        from ...services.ai_settings import model_config, authorize_pro
+        from ..services.ai_settings import model_config, authorize_pro
         config = model_config(current_app.config, 'smart')
         authorize_pro(config, request.form.get('passcode', ''))
         return jsonify(data={'authorized': True})

@@ -10,9 +10,11 @@
 !integrations/GEMINI_LICENSE
 !requirements.txt
 !requirements-production.txt
-!requirements-ai.txt
 !app.py
-!ai_app.py
+!ai_service/
+!ai_service/**
+!shared/
+!shared/**
 !backend/
 !backend/**
 !config/

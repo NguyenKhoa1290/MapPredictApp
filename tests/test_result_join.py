@@ -2,7 +2,7 @@ import io
 import unittest
 
 import app as python_app
-from backend.map_predict.geospatial.result_join import match_results, numeric_key
+from shared.geospatial.result_join import match_results, numeric_key
 
 
 class ResultJoinTests(unittest.TestCase):

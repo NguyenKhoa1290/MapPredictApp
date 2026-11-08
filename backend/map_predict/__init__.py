@@ -45,10 +45,15 @@ def create_app(config=None, *, legacy_blueprint=None, legacy_error_handler=None)
     application.register_blueprint(frontend)
     application.register_blueprint(public_api)
     application.register_blueprint(predictions)
-    from .api.v1.assistant import assistant_api
-    application.register_blueprint(assistant_api)
-    from .api.v1.ai_admin import admin_api
-    application.register_blueprint(admin_api)
+    if application.config.get('ASSISTANT_SERVICE_URL'):
+        from .api.v1.ai_gateway import ai_gateway
+        application.register_blueprint(ai_gateway)
+    else:
+        # Local development can run the worker APIs in the same process.
+        from ai_service.api.assistant import assistant_api
+        from ai_service.api.ai_admin import admin_api
+        application.register_blueprint(assistant_api)
+        application.register_blueprint(admin_api)
 
     if legacy_blueprint is not None:
         application.register_blueprint(legacy_blueprint)

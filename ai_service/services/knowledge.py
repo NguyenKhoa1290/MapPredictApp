@@ -7,7 +7,7 @@ import unicodedata
 from urllib.parse import quote
 from urllib.request import Request, build_opener, ProxyHandler
 
-from .prediction import PredictionError
+from shared.tabular import PredictionError
 
 
 def json_request(url, body=None, *, key='', timeout=10):

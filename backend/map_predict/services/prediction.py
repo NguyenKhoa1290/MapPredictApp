@@ -1,10 +1,11 @@
 """Predictions using the operator's fixed model bundle, with no result-file writes."""
-import csv
 import hashlib
 import io
 import math
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+
+from shared.tabular import PredictionError, read_csv
 
 FEATURES = [f'x{i}' for i in range(1, 10)]
 
@@ -13,12 +14,6 @@ def predict_rows(*args, **kwargs):
     # The standalone AI service does not need to import the random-forest stack.
     from backend.map_predict.services.pipeline import predict_rows as implementation
     return implementation(*args, **kwargs)
-
-
-class PredictionError(ValueError):
-    def __init__(self, code, message, status=422):
-        super().__init__(message)
-        self.code, self.status = code, status
 
 
 def bundle(config):
@@ -40,34 +35,6 @@ def model_status(config):
                 "message": "Đã có mô hình pipeline trên máy chủ"}
     except PredictionError as error:
         return {"ready": False, "model_version": None, "features": FEATURES, "message": str(error)}
-
-
-def read_csv(data, max_rows, *, allow_empty=False, with_columns=False):
-    for encoding in ("utf-8-sig", "cp1258", "cp1252"):
-        try:
-            content = data.decode(encoding)
-            break
-        except UnicodeDecodeError:
-            continue
-    else:
-        raise PredictionError("INVALID_CSV", "Không đọc được mã hóa CSV")
-    try:
-        reader = csv.DictReader(io.StringIO(content, newline=""))
-        names = reader.fieldnames
-        if not names or any(not name.strip() for name in names) or len(set(names)) != len(names):
-            raise PredictionError("INVALID_CSV", "CSV cần hàng tiêu đề với tên cột rõ ràng và không trùng")
-        rows = []
-        for row in reader:
-            if None in row:
-                raise PredictionError("INVALID_CSV", "Số cột dữ liệu vượt quá hàng tiêu đề")
-            if len(rows) >= max_rows:
-                raise PredictionError("TOO_MANY_ROWS", f"Mỗi lần dự đoán hỗ trợ tối đa {max_rows} dòng", 413)
-            rows.append({name: value if value is not None else "" for name, value in row.items()})
-    except (csv.Error, UnicodeError) as error:
-        raise PredictionError("INVALID_CSV", "Không đọc được cấu trúc CSV") from error
-    if not rows and not allow_empty:
-        raise PredictionError("EMPTY_CSV", "CSV chưa có dòng dữ liệu")
-    return (rows, names) if with_columns else rows
 
 
 def run_prediction(rows, config):

@@ -11,8 +11,8 @@ from unittest.mock import patch
 
 import ezdxf
 from backend.map_predict import create_app
-from backend.map_predict.api.v1.assistant import RATES
-from backend.map_predict.services import assistant, assistant_files, assistant_dxf
+from ai_service.api.assistant import RATES
+from ai_service.services import assistant, assistant_files, assistant_dxf
 from backend.map_predict.services.prediction import PredictionError
 
 
@@ -69,7 +69,7 @@ class AssistantFileTests(unittest.TestCase):
             self.code('ASSISTANT_RESOURCE_EXPIRED', lambda: assistant_files.resolve(ref['token'], 'file-a', self.config))
 
     def test_worker_health_expires_private_files_and_summary_cache(self):
-        from ai_app import create_ai_app
+        from ai_service.app import create_ai_app
         assistant_files.store(self.resource(), self.config)
         path = next((self.root / 'cache').glob('*.dxf'))
         os.utime(path, (time.time() - 1000,) * 2)

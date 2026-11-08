@@ -11,7 +11,7 @@ import ezdxf
 from shapely.geometry import shape
 
 import app as python_app
-from backend.map_predict.geospatial.gis import cad_geojson, gpkg_columns, predicted_geojson
+from shared.geospatial.gis import cad_geojson, gpkg_columns, predicted_geojson
 
 
 def sample_drawing(path):

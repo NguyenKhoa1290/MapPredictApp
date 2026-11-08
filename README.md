@@ -5,18 +5,20 @@
 ## Cấu trúc thư mục
 
 - `backend/map_predict/api` các API của web và trang quản trị
-- `backend/map_predict/services` xử lý đánh giá, pipeline dự đoán và trợ lý AI
-- `backend/map_predict/geospatial` đọc CAD, chuyển hệ tọa độ, phân tích độ dịch và ghép lưới
+- `backend/map_predict/services` xử lý đánh giá, pipeline dự đoán và kết nối tới AI service
+- `ai_service` API, cấu hình, prompt, chatbot và quản trị của service AI
+- `shared` đọc CSV, xử lý GIS và cấu hình kết nối dùng chung
 - `frontend` giao diện React của portal và trang quản trị
 - `templates`, `wwwroot` giao diện bản đồ và dự đoán đang dùng trong công cụ đánh giá
 - `integrations` kết nối và duy trì phiên Gemini
-- `config` nội dung website, danh mục dự án và prompt
+- `config` nội dung website và danh mục dự án
 - `models` pipeline dự đoán đang dùng
 - `deploy`, `tools`, `.github` cấu hình triển khai, công cụ vận hành và CI/CD
 - `tests` kiểm thử, dữ liệu mẫu nằm trong `tests/fixtures`
 - `Tailieuthamkhao/docs` tài liệu, nhật ký, kế hoạch công việc và bằng chứng kiểm tra
 
-`app.py` là điểm khởi động web, `ai_app.py` là điểm khởi động service AI
+`app.py` là điểm khởi động web, `ai_service/app.py` là điểm khởi động service AI
+Trong Docker, backend web gọi AI qua mạng nội bộ, image AI chỉ chứa `ai_service` và `shared`
 
 ## Chạy trên máy
 

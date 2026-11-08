@@ -12,11 +12,11 @@ from urllib.parse import urlsplit
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 from werkzeug.exceptions import HTTPException
 
-from backend.map_predict.geospatial.cad_diagnostics import cad_diagnostics
-from backend.map_predict.geospatial.gis import (cad_geojson, gpkg_columns, gpkg_diagnostics, parse_source_crs,
+from shared.geospatial.cad_diagnostics import cad_diagnostics
+from shared.geospatial.gis import (cad_geojson, gpkg_columns, gpkg_diagnostics, parse_source_crs,
                  predicted_geojson, source_crs_options)
 from backend.map_predict.services.prediction import PredictionError, run_prediction
-from backend.map_predict.geospatial.prediction_grid import dxf_grid_metadata, predicted_dxf_grid
+from shared.geospatial.prediction_grid import dxf_grid_metadata, predicted_dxf_grid
 from backend.map_predict import create_app
 
 

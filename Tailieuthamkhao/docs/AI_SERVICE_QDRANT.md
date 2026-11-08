@@ -82,11 +82,11 @@ Khi không cấu hình URL Qdrant, chế độ tài liệu local vẫn được 
 - Chỉ phần answer hiển thị trong chat, đề xuất sửa vẫn qua whitelist, chữ ký và bước xác nhận
 - Phản hồi bị cắt, nhiều kế hoạch mâu thuẫn hoặc schema sai bị từ chối, không cố ghép lại thành thao tác
 - CSV lấy từ bảng đã kiểm tra, DXF lấy từ đối tượng ezdxf đã áp dụng đề xuất, không xuất nguyên phản hồi model
-- requirements-ai.txt chỉ được cài vào image AI, image web giữ bộ phụ thuộc hiện có
+- ai_service/requirements.txt chỉ được cài vào image AI, image web giữ bộ phụ thuộc hiện có
 
 ## Prompt có thể sửa
 
-File `config/assistant/system_prompt.txt` được mount chỉ đọc vào AI, sửa trên host sẽ có hiệu lực từ lượt chat tiếp theo
+File `ai_service/prompts/system_prompt.txt` được mount chỉ đọc vào AI, sửa trên host sẽ có hiệu lực từ lượt chat tiếp theo
 Prompt đã bổ sung quyền đề xuất sửa DXF, handle/hình học thực tế, nguồn Qdrant và quy trình xuất bản sao
 Code vẫn kiểm tra whitelist thao tác, điểm đơn, bằng chứng, hash file và chữ ký dù prompt được chỉnh
 Không coi nội dung DXF, CSV hoặc tài liệu truy xuất là lệnh có quyền chạy code hay sửa dữ liệu máy chủ

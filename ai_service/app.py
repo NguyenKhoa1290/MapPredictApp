@@ -7,7 +7,7 @@ from uuid import uuid4
 from flask import Flask, g, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from backend.map_predict.config import Config
+from .config import Config
 
 
 def create_ai_app(config=None):
@@ -29,8 +29,8 @@ def create_ai_app(config=None):
 
     @application.get('/health')
     def health():
-        from backend.map_predict.services.assistant_files import prune
-        from backend.map_predict.services.assistant_dxf import prune as prune_summaries
+        from ai_service.services.assistant_files import prune
+        from ai_service.services.assistant_dxf import prune as prune_summaries
         try:
             prune(application.config)
             prune_summaries()
@@ -46,9 +46,9 @@ def create_ai_app(config=None):
         application.logger.exception('AI request failed')
         return jsonify(error={'code': 'AI_ERROR', 'message': 'Service AI không thể xử lý yêu cầu'}), 500
 
-    from backend.map_predict.api.v1.assistant import assistant_api
+    from ai_service.api.assistant import assistant_api
     application.register_blueprint(assistant_api)
-    from backend.map_predict.api.v1.ai_admin import admin_api
+    from ai_service.api.ai_admin import admin_api
     application.register_blueprint(admin_api)
     return application
 

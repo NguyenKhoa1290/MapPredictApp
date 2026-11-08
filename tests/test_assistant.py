@@ -10,8 +10,8 @@ from unittest.mock import Mock, patch
 import ezdxf
 
 from backend.map_predict import create_app
-from backend.map_predict.api.v1.assistant import RATES
-from backend.map_predict.services import assistant, assistant_sources
+from ai_service.api.assistant import RATES
+from ai_service.services import assistant, assistant_sources
 
 
 class AssistantTests(unittest.TestCase):
@@ -31,7 +31,7 @@ class AssistantTests(unittest.TestCase):
         self.app = create_app({'TESTING': True, 'ASSISTANT_ENABLED': True,
                                'ASSISTANT_SECRET_FILE': str(secret)})
         self.client = self.app.test_client()
-        availability = patch('backend.map_predict.services.ai_settings.argon_availability', return_value='ready')
+        availability = patch('ai_service.services.ai_settings.argon_availability', return_value='ready')
         availability.start()
         self.addCleanup(availability.stop)
 
@@ -67,7 +67,7 @@ class AssistantTests(unittest.TestCase):
                 self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
 
     def test_smart_accepts_all_levels_and_status_reports_real_route_capabilities(self):
-        from backend.map_predict.services import ai_settings
+        from ai_service.services import ai_settings
         with patch.object(ai_settings, 'argon_availability', return_value='ready'):
             modes = {row['id']: row for row in self.client.get('/api/v1/assistant/status').json['data']['modes']}
         self.assertEqual(modes['fast']['efforts'], ['auto', 'low'])
@@ -82,7 +82,7 @@ class AssistantTests(unittest.TestCase):
             self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
 
     def test_passcode_confirmation_checks_service_hash_without_model_or_files(self):
-        from backend.map_predict.services.ai_settings import set_passcode
+        from ai_service.services.ai_settings import set_passcode
         self.app.config['AI_SETTINGS_FILE'] = str(Path(self.folder.name) / 'settings.json')
         set_passcode(self.app.config, 'temporary-test-passcode')
         with patch.object(assistant, 'call_model') as model:
@@ -407,7 +407,7 @@ class AssistantTests(unittest.TestCase):
         self.assertEqual(output['file-b'].entitydb[self.handle].dxf.color, 3)
         self.assertEqual(len(output['file-a'].modelspace().query('LINE')), 0)
         self.assertEqual(len(output['file-b'].modelspace().query('LINE')), 1)
-        from backend.map_predict.geospatial.cad_to_geojson import read_assistant_attributes
+        from shared.geospatial.cad_to_geojson import read_assistant_attributes
         self.assertEqual(read_assistant_attributes(output['file-a'].entitydb[self.handle])['tenlodat'], 'Lô A1')
         response = self.client.post('/api/v1/assistant/apply', data={'scope': 'map', 'resource_ids': '["file-a"]',
             'dxf': (io.BytesIO(self.dxf), 'a.dxf'), 'token': preview['token']})

@@ -12,7 +12,7 @@ from pyproj import Transformer
 from shapely.geometry import shape
 
 import app as python_app
-from backend.map_predict.geospatial.gis import base_geojson, gpkg_diagnostics
+from shared.geospatial.gis import base_geojson, gpkg_diagnostics
 
 
 class PythonAppTests(unittest.TestCase):
