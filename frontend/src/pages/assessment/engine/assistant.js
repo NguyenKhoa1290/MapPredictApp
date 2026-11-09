@@ -121,6 +121,12 @@ export function installAssistant(ctx) {
       notice = get('notice'),
       preview = get('preview');
     const historyKey = 'mapPredict.assistant.history.v1';
+    const conversationKey = 'mapPredict.assistant.conversation.v1';
+    let conversation = crypto.randomUUID();
+    try {
+      conversation = localStorage.getItem(conversationKey) || conversation;
+      localStorage.setItem(conversationKey, conversation);
+    } catch {/* Storage can be disabled. */}
     const effortKey = 'mapPredict.assistant.effort.v1';
     try {
       const saved = localStorage.getItem(effortKey);
@@ -371,6 +377,7 @@ export function installAssistant(ctx) {
       return form;
     }
     async function request(action, form, signal, retry = true) {
+      form.set('conversation', conversation);
       const result = await fetch('/api/v1/assistant/' + action, {
         method: 'POST',
         body: form,
@@ -670,6 +677,7 @@ export function installAssistant(ctx) {
     });
     get('clear').addEventListener('click', () => {
       if (busy || window.assistantWorkspace.hasDraft()) return;
+      conversation = crypto.randomUUID();
       history = [];
       lastContext = null;
       messages.replaceChildren();
@@ -677,6 +685,7 @@ export function installAssistant(ctx) {
       notice.textContent = '';
       try {
         localStorage.removeItem(historyKey);
+        localStorage.setItem(conversationKey, conversation);
       } catch {/* Storage can be disabled. */}
       updateContext();
     });

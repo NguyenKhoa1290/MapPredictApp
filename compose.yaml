@@ -110,6 +110,7 @@ services:
     secrets: [assistant_key]
     environment:
       GEMINI_STATE_DIR: /var/lib/gemini-session
+      GEMINI_CHAT_IDLE_SECONDS: '${GEMINI_CHAT_IDLE_SECONDS:-3600}'
     volumes: [gemini_session:/var/lib/gemini-session]
     read_only: true
     tmpfs: ['/tmp:rw,nosuid,noexec,size=33554432']

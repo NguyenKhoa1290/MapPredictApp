@@ -19,7 +19,8 @@ EVENTS = frozenset(('service_start', 'maintenance_tick', 'maintenance_complete',
     'baseline', 'rotation_due', 'refresh_start', 'refresh_cooldown', 'google_response',
     'network_error', 'auth_failure', 'auth_ready', 'cookie_saved', 'cookie_save_conflict',
     'rotation_success', 'rotation_cookie_renewed', 'rotation_no_renewal',
-    'cookie_import', 'account_scan', 'generation_start', 'generation_response', 'generation_complete', 'generation_error'))
+    'cookie_import', 'account_scan', 'generation_start', 'generation_response', 'generation_complete', 'generation_error',
+    'chat_cleanup_complete', 'chat_cleanup_error'))
 ENUMS = {
     'endpoint': {'gemini_page', 'rotate_cookies', 'quota_rpc', 'models_rpc', 'other_rpc', 'generate'},
     'reason': {'login_redirect', 'redirect_loop', 'missing_xsrf', 'identity_mismatch',

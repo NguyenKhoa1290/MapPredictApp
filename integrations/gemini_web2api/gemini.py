@@ -225,10 +225,21 @@ def extract_response_text(raw: str) -> str:
     return clean_text(last_text)
 
 
-def read_response(response, deadline=None):
+def read_response(response, deadline=None, observer=None):
     """Bound an account request even when the upstream keeps streaming heartbeats."""
+    def read():
+        if observer is None:
+            return response.read()
+        chunks = []
+        while True:
+            chunk = response.read1(65536)
+            if not chunk:
+                observer(b'\n')
+                return b''.join(chunks)
+            chunks.append(chunk)
+            observer(chunk)
     if deadline is None:
-        return response.read()
+        return read()
     expired = threading.Event()
     def abort():
         expired.set()
@@ -244,7 +255,7 @@ def read_response(response, deadline=None):
     timer.daemon = True
     timer.start()
     try:
-        data = response.read()
+        data = read()
         if expired.is_set():
             raise TimeoutError('Account generation deadline exceeded')
         return data
@@ -292,7 +303,11 @@ def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None
             emit('generation_response', CONFIG.get('audit_config_path'), endpoint='generate',
                  status=getattr(resp, 'status', None), received_auth_cookies=received,
                  elapsed_ms=(time.monotonic() - started) * 1000)
-            raw = read_response(resp, deadline).decode("utf-8", errors="replace")
+            observer = None
+            if not CONFIG.get('temporary_chats') and CONFIG.get('audit_config_path'):
+                from .chat_retention import ChatRetention
+                observer = ChatRetention(CONFIG['audit_config_path']).observer(CONFIG.get('chat_group', 'unscoped'))
+            raw = read_response(resp, deadline, observer).decode("utf-8", errors="replace")
             if metadata is not None:
                 metadata.clear()
                 metadata['requested_level'] = think_mode

@@ -19,7 +19,7 @@ from gemini_web2api.session_audit import emit, session_event, error_type
 token = Path('/run/secrets/assistant_key').read_text().strip()
 CONFIG.update(host='0.0.0.0', port=8081, api_keys=[token], cookie_file=None,
               auth_user=None, xsrf_token=None, log_requests=False,
-              retry_attempts=1, request_timeout_sec=80, temporary_chats=True)
+              retry_attempts=1, request_timeout_sec=80, temporary_chats=False)
 manager = SessionManager(os.environ.get('GEMINI_STATE_DIR', '/tmp/gemini-session'))
 pool = AccountPool(manager.folder, manager.lock)
 
@@ -99,7 +99,15 @@ class ManagedGeminiHandler(GeminiHandler):
             reasoning = {}
             level = thinking_depth(request.get('reasoning_effort'), 1)
             def generate_argon(mode, think):
-                text = generate(prompt, mode, level, metadata=reasoning)
+                from gemini_web2api.chat_retention import ChatRetention
+                group = getattr(self, 'headers', {}).get('X-Map-Predict-Conversation', '')[:128] or uuid.uuid4().hex
+                CONFIG['chat_group'] = group
+                if CONFIG.get('audit_config_path'):
+                    ChatRetention(CONFIG['audit_config_path']).touch(group)
+                try:
+                    text = generate(prompt, mode, level, metadata=reasoning)
+                finally:
+                    CONFIG.pop('chat_group', None)
                 if reasoning.get('applied_level', None if model != ARGON else level) != level:
                     raise QuotaRejected('Gemini chưa xác nhận mức effort đã chọn', status=503, code='effort_not_applied')
                 return text
@@ -145,4 +153,17 @@ if __name__ == '__main__':
                 emit('maintenance_error', error_type=error_type(error))
             time.sleep(SESSION_POLL_INTERVAL)
     threading.Thread(target=maintain_accounts, name='argon-account-maintenance', daemon=True).start()
+    def cleanup_chats():
+        from gemini_web2api.chat_retention import ChatRetention
+        while True:
+            if manager.lock.acquire(blocking=False):
+                try:
+                    for entry in pool.store.registry()['accounts']:
+                        ChatRetention(pool.store.path(entry['id'])).cleanup()
+                except Exception as error:
+                    emit('chat_cleanup_error', error_type=error_type(error))
+                finally:
+                    manager.lock.release()
+            time.sleep(60)
+    threading.Thread(target=cleanup_chats, name='gemini-chat-cleanup', daemon=True).start()
     ThreadedServer(('0.0.0.0', 8081), ManagedGeminiHandler).serve_forever()

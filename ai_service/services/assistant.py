@@ -216,6 +216,8 @@ def call_model(messages, config, *, response_kind='assistant'):
     elif path:
         headers['Authorization'] = 'Bearer ' + Path(path).read_text().strip()
         headers['X-Map-Predict-Timeout'] = str(max(1, min(120, config.get('ASSISTANT_CALL_TIMEOUT', 150) - 5)))
+        if config.get('ASSISTANT_CONVERSATION'):
+            headers['X-Map-Predict-Conversation'] = config['ASSISTANT_CONVERSATION']
     try:
         with build_opener(ProxyHandler({})).open(Request(base + '/chat/completions', data=body,
                                                        headers=headers), timeout=config.get('ASSISTANT_CALL_TIMEOUT', 150)) as response:
@@ -358,6 +360,9 @@ def preview(path, dxf, csv, options, config, resources=None):
     deadline = time.monotonic() + 90
     from .ai_settings import model_config
     config = model_config(config, options.get('mode', 'fast'))
+    conversation = options.get('conversation', '')
+    if re.fullmatch(r'[A-Za-z0-9_-]{16,128}', conversation):
+        config['ASSISTANT_CONVERSATION'] = conversation
     effort = options.get('effort', 'auto')
     if effort not in ('auto', 'low', 'medium', 'high'):
         raise PredictionError('INVALID_EFFORT', 'Chọn effort mặc định, thấp, trung bình hoặc cao', 400)

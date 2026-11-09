@@ -1058,6 +1058,16 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-09 Hội thoại Google và thời hạn tự xóa
+
+- Chuyển adapter có tài khoản sang hội thoại thường theo yêu cầu, giữ mô hình ghép ngữ cảnh ở ứng dụng
+- GEMINI_CHAT_IDLE_SECONDS mặc định 3600, kiểm tra mỗi 60 giây, chỉ xóa mã hội thoại do ứng dụng ghi nhận
+- Theo dõi mã hội thoại từ luồng trả lời trước khi timeout, lưu mã và mốc hoạt động trên volume, không lưu nội dung trong danh sách dọn dẹp
+- Xóa bằng hai RPC GzXR5e và qWymEb, chỉ bỏ mã khỏi hàng đợi khi có phản hồi xác nhận, lỗi giữ lại để thử lại và ghi log không chứa nội dung
+- Nút Xóa hội thoại xóa lịch sử chat và đổi mã nhóm, giữ dữ liệu cùng lịch sử thao tác CSV và DXF
+- Không quét xóa các hội thoại cá nhân của tài khoản Google
+- Tham khảo giao thức tại xwteam/gemini2api d1555d7203df8932d4cae4b31ad20ba96d10482c và zinda2000/gemini-web2api-argon 1c2526f0b986874a1f3e99d53257d43bfad43f58
+
 ## 2026-11-09 Thêm 3.1 Pro và 3.8 Flash
 
 - Thêm hai model vào lựa chọn Nhanh và Thông minh trong admin, lưu nguyên lựa chọn sau reload
