@@ -35,7 +35,7 @@ export function installLayers(ctx) {
       fillColor: adjustColors ? ctx.adjustedLayerColor(overlay, fillColor) : fillColor,
       weight: style.weight,
       opacity: overlay.opacity,
-      fillOpacity: (style.fillOpacity ?? properties.fillOpacity ?? 0.28) * overlay.opacity,
+      fillOpacity: (style.fillOpacity ?? properties.fillOpacity ?? 0) * overlay.opacity,
       radius: style.radius,
       dashArray: style.dashArray || null
     };
@@ -119,7 +119,8 @@ export function installLayers(ctx) {
         opacity: saved?.opacity ?? 1,
         style: saved?.style || {
           weight: item.kind === "prediction" ? 1 : 2,
-          radius: 5,
+          radius: 1,
+          fillOpacity: 0,
           dashArray: ""
         },
         groups: new Map(),
@@ -291,13 +292,13 @@ export function installLayers(ctx) {
       color: overlay.color,
       fillColor: overlay.color,
       weight: 2,
-      radius: 5,
-      fillOpacity: 0.28
+      radius: 1,
+      fillOpacity: 0
     };
     ctx.$("style-source").checked = style.color == null && style.fillColor == null;
     ctx.$("style-stroke").value = effective.color;
     ctx.$("style-fill").value = effective.fillColor;
-    for (const [id, value, suffix] of [["style-weight", effective.weight, " px"], ["style-radius", effective.radius, " px"], ["style-fill-opacity", Math.round((style.fillOpacity ?? overlay.style.fillOpacity ?? first?.feature.properties?.fillOpacity ?? 0.28) * 100), "%"]]) {
+    for (const [id, value, suffix] of [["style-weight", effective.weight, " px"], ["style-radius", effective.radius, " px"], ["style-fill-opacity", Math.round((style.fillOpacity ?? overlay.style.fillOpacity ?? first?.feature.properties?.fillOpacity ?? 0) * 100), "%"]]) {
       ctx.$(id).value = value;
       ctx.$(`${id}-value`).textContent = `${value}${suffix}`;
     }
@@ -501,7 +502,8 @@ export function installLayers(ctx) {
     } else {
       overlay.style = {
         weight: overlay.item.kind === "prediction" ? 1 : 2,
-        radius: 5,
+        radius: 1,
+        fillOpacity: 0,
         dashArray: ""
       };
       for (const group of overlay.groups.values()) group.style = {};
