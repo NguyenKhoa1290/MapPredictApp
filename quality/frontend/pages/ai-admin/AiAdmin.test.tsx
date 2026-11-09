@@ -3,6 +3,13 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { AiAdmin } from '../../../../frontend/src/pages/ai-admin/AiAdmin';
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+it('shows a useful service error when a proxy returns HTML instead of JSON', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 502, ok: false,
+    json: async () => { throw new SyntaxError('Unexpected token <'); } }));
+  render(<AiAdmin />);
+  await screen.findByText(/HTTP 502/);
+  expect(screen.queryByText(/Unexpected token/)).toBeNull();
+});
 it('requires service authentication and never stores the password in browser storage', async () => {
   const fetch = vi.fn().mockResolvedValueOnce({ status: 401, ok: false });
   vi.stubGlobal('fetch', fetch);

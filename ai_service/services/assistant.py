@@ -231,6 +231,8 @@ def call_model(messages, config, *, response_kind='assistant'):
             code = json.loads(error.read(8192)).get('error', {}).get('code')
         except Exception:
             code = None
+        if code == 'generation_timeout':
+            raise PredictionError('ASSISTANT_TIMEOUT', 'Model chưa hoàn tất trong thời gian cho phép, dữ liệu chưa thay đổi. Hãy thử lại sau hoặc giảm nỗ lực', 504) from None
         if code == 'effort_not_applied':
             raise PredictionError('EFFORT_NOT_APPLIED', 'Gemini chưa áp dụng được mức effort đã chọn, dữ liệu chưa thay đổi', 503) from None
         if config['ASSISTANT_MODEL'] == 'gemini-3.5-flash-lite' and code in ('cookie_required', 'model_unavailable', 'accounts_busy'):
@@ -353,7 +355,7 @@ def new_table(value):
 
 def preview(path, dxf, csv, options, config, resources=None):
     started = time.monotonic()
-    deadline = time.monotonic() + 145
+    deadline = time.monotonic() + 90
     from .ai_settings import model_config
     config = model_config(config, options.get('mode', 'fast'))
     effort = options.get('effort', 'auto')
@@ -434,7 +436,7 @@ def preview(path, dxf, csv, options, config, resources=None):
         raise PredictionError('ASSISTANT_TIMEOUT', 'Tra cứu dữ liệu quá thời gian, hãy thử lại', 503)
     from .assistant_context import bound
     messages, context_usage = bound(messages)
-    result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': min(150, remaining)})
+    result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': min(80, remaining)})
     model_ready = time.monotonic()
     sources = [verify_source(source) for source in (result.get('sources') or [])[:3]
                if isinstance(source, dict)] if context['web_search'] else []

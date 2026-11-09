@@ -8,6 +8,23 @@ import contextlib
 
 
 class GeminiSessionTests(unittest.TestCase):
+    def test_status_does_not_wait_for_an_active_generation_lock(self):
+        import threading
+        with tempfile.TemporaryDirectory() as folder:
+            manager = self.manager_type(folder)
+            manager.lock = threading.Lock()
+            manager.lock.acquire()
+            finished = threading.Event()
+            result = []
+            worker = threading.Thread(target=lambda: (result.append(manager.status()), finished.set()), daemon=True)
+            worker.start()
+            try:
+                self.assertTrue(finished.wait(0.5), 'Admin status must not wait for generation')
+                self.assertEqual(result[0]['state'], 'not_configured')
+            finally:
+                manager.lock.release()
+                worker.join(timeout=1)
+
     @classmethod
     def setUpClass(cls):
         try:

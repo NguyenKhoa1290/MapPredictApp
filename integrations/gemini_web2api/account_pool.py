@@ -14,7 +14,7 @@ from .quota_guard import QuotaGuard, QuotaRejected
 
 ARGON = 'gemini-4-argon'
 FLASH = 'gemini-3.5-flash-lite'
-SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models', 'audit_config_path')
+SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models', 'audit_config_path', 'generation_deadline')
 
 
 class AccountPool:
@@ -121,7 +121,7 @@ class AccountPool:
                 else:
                     CONFIG.pop(key, None)
 
-    def run(self, generate):
+    def run(self, generate, timeout=120):
         if not self.lock.acquire(blocking=False):
             raise QuotaRejected('Đang xử lý yêu cầu khác, hãy thử lại', code='accounts_busy')
         try:
@@ -129,7 +129,7 @@ class AccountPool:
             if not entries:
                 raise QuotaRejected('Thông minh cần cookie hợp lệ', status=503, code='cookie_required')
             exhausted = 0
-            deadline = time.monotonic() + 120
+            deadline = time.monotonic() + timeout
             for entry in entries:
                 if time.monotonic() >= deadline:
                     break
@@ -147,6 +147,7 @@ class AccountPool:
                     if not settings.get('model_available') or not route or not headers or not settings.get('xsrf_token'):
                         raise ValueError('Argon access not verified')
                     with self.profile(settings, path):
+                        CONFIG['generation_deadline'] = deadline
                         result = generate(route['mode'], route.get('think', 4))
                         if not isinstance(result, str) or not result.strip():
                             raise ValueError('Empty upstream response')
@@ -154,12 +155,16 @@ class AccountPool:
                         usage = guard.check()
                     self.rows[identifier] = {'status': 'ready', 'usage': usage, 'model_available': True}
                     return result
+                except TimeoutError:
+                    raise QuotaRejected('Model chưa hoàn tất trong thời gian cho phép, hãy thử lại sau', status=504, code='generation_timeout') from None
                 except QuotaRejected as error:
                     if error.code == 'quota_exhausted':
                         exhausted += 1
                     self.rows[identifier] = {'status': 'exhausted' if error.code == 'quota_exhausted' else 'needs_login' if error.code == 'cookie_required' else 'unavailable', 'usage': None}
                 except Exception:
                     self.rows[identifier] = {'status': 'needs_attention', 'usage': None}
+            if time.monotonic() >= deadline:
+                raise QuotaRejected('Model chưa hoàn tất trong thời gian cho phép, hãy thử lại sau', status=504, code='generation_timeout')
             if exhausted == len(entries):
                 raise QuotaRejected('Thông minh đã hết quota trên mọi tài khoản, không chuyển sang Nhanh', code='quota_exhausted')
             if all(self.rows.get(entry['id'], {}).get('status') == 'needs_login' for entry in entries):

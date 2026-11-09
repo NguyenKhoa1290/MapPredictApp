@@ -131,7 +131,7 @@ def gemini_request(action='', body=None, accounts=False):
     key = Path(current_app.config['ASSISTANT_SECRET_FILE']).read_text().strip()
     payload = json.dumps(body).encode() if body is not None else None
     with build_opener(ProxyHandler({})).open(Request(base + ('/_internal/accounts' if accounts else '/_internal/session') + action,
-            data=payload, headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'}), timeout=150 if accounts and body is not None else 60) as response:
+            data=payload, headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'}), timeout=(150 if accounts else 60) if body is not None else 3) as response:
         return json.loads(response.read(65536))
 
 

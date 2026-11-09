@@ -41,8 +41,8 @@ class SessionManager:
         self.details['renewal_state'] = settings.get('session_renewal_state')
 
     def status(self):
-        with self.lock:
-            return dict(self.details)
+        # Return the last completed status without waiting for generation/refresh.
+        return dict(self.details)
 
     def refresh(self, rotate=False):
         with self.lock:

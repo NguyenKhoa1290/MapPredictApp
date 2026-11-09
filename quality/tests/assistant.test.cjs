@@ -449,6 +449,18 @@ test('selected inspector sends bounded metadata without files and stages only la
     } finally { f.close(); }
 });
 
+test('HTML proxy errors are displayed as a service timeout without changing resources', async () => {
+    const f = fixture();
+    try {
+        await tick();
+        f.window.fetch = async () => ({ ok: false, status: 524, json: async () => { throw new SyntaxError('Unexpected token <'); } });
+        await f.submit();
+        assert.match(f.get('notice').textContent, /HTTP 524/);
+        assert.doesNotMatch(f.get('notice').textContent, /Unexpected token|DOCTYPE/);
+        assert.equal(f.commits.length, 0);
+    } finally { f.close(); }
+});
+
 test('context button compacts chat without attachments or workspace mutations', async () => {
     const f = fixture();
     try {

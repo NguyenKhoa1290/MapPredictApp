@@ -41,6 +41,9 @@ class ManagedGeminiHandler(GeminiHandler):
         if self.command != 'POST' or self.path not in ('/_internal/session/import', '/_internal/session/refresh', '/_internal/accounts/import', '/_internal/accounts/scan', '/_internal/accounts/refresh'):
             self.send_json({'error': 'Not found'}, 404)
             return
+        if not manager.lock.acquire(blocking=False):
+            self.send_json({'error': {'code': 'accounts_busy', 'message': 'Gemini đang xử lý yêu cầu, hãy cập nhật phiên sau'}}, 429)
+            return
         try:
             length = int(self.headers.get('Content-Length', 0))
             if not 0 < length <= 65536:
@@ -57,6 +60,8 @@ class ManagedGeminiHandler(GeminiHandler):
             self.send_json(result)
         except (ValueError, KeyError, TypeError):
             self.send_json({'error': 'Cookie không hợp lệ'}, 400)
+        finally:
+            manager.lock.release()
 
     def do_GET(self):
         if self.path.startswith('/_internal/'):
@@ -98,14 +103,14 @@ class ManagedGeminiHandler(GeminiHandler):
                 if reasoning.get('applied_level', None if model == FLASH else level) != level:
                     raise ValueError('Argon thinking level was not honored')
                 return text
+            try:
+                budget = max(1, min(75, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', 75))))
+            except (ValueError, TypeError):
+                budget = 75
             if model == FLASH:
-                try:
-                    budget = max(1, min(120, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', 120))))
-                except (ValueError, TypeError):
-                    budget = 120
                 text = pool.run_flash(generate_argon, timeout=budget)
             else:
-                text = pool.run(generate_argon)
+                text = pool.run(generate_argon, timeout=budget)
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
                             'created': int(time.time()), 'model': model,
                             'reasoning': reasoning,

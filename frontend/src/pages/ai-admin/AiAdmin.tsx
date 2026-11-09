@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import './ai-admin.css';
 
+async function readAdminResponse(response: Response) {
+  try { return await response.json(); }
+  catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error;
+    throw new Error(`Chưa kết nối được service AI hoặc máy chủ quá thời gian chờ (HTTP ${response.status}). Vui lòng thử lại, phiên đăng nhập vẫn được giữ`);
+  }
+}
+
 type Model = { label: string; provider: 'gemini' | 'compatible'; model: string; url: string; api_key?: string; has_api_key?: boolean; clear_api_key?: boolean };
 type Settings = { models: Record<'fast' | 'smart', Model>; embedding: { url: string; model: string } };
 type Pool = { accounts: { id: string; label: string; email?: string | null; checked_at?: number; rotated_at?: number; rotation_checked_at?: number; renewal_state?: 'renewed' | 'not_renewed' | null; refresh_attempt_at?: number; status: string; usage?: { current_5h?: { used_percent: number | null; reset_at?: string }; weekly?: { used_percent: number | null; reset_at?: string } } }[]; unavailable?: boolean;
@@ -48,7 +56,7 @@ export function AiAdmin() {
       headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-Admin-CSRF': csrf } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    const payload = await response.json();
+    const payload = await readAdminResponse(response);
     if (response.status === 401) clearSession();
     if (!response.ok) throw new Error(payload.error?.message || 'Không thực hiện được yêu cầu');
     return payload.data;
@@ -58,7 +66,7 @@ export function AiAdmin() {
     fetch('/api/v1/ai-admin/state', { cache: 'no-store', credentials: 'same-origin' })
       .then(async response => {
         if (response.status === 401) return;
-        const payload = await response.json();
+        const payload = await readAdminResponse(response);
         if (!response.ok) throw new Error(payload.error?.message || 'Chưa kết nối service AI');
         if (active) { setState(payload.data); setSettings(payload.data.settings); }
       }).catch(error => { if (active) setNotice(error.message); })
@@ -79,7 +87,7 @@ export function AiAdmin() {
         if (!active) return;
         if (response.status === 401) { clearSession(); return; }
         if (!response.ok) return;
-        const payload = await response.json();
+        const payload = await readAdminResponse(response);
         if (active) setState(previous => previous ? { ...previous, account_pool: payload.data.account_pool, gemini: payload.data.gemini } : null);
       } catch { /* Keep the last state during a transient connection failure. */ }
       finally { polling = false; }

@@ -376,7 +376,12 @@ export function installAssistant(ctx) {
         body: form,
         signal
       });
-      const payload = await result.json();
+      let payload;
+      try { payload = await result.json(); }
+      catch (error) {
+        if (error.name === 'AbortError') throw error;
+        throw new Error(`Máy chủ AI chưa trả lời được hoặc đã quá thời gian chờ (HTTP ${result.status || 0}). Hãy thử lại sau, dữ liệu chưa thay đổi`);
+      }
       const files = formSources.get(form);
       for (const cached of payload.data?.resource_cache || payload.resource_cache || []) {
         const item = files?.resources.find(item => item.id === cached.source_id);

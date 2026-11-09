@@ -8,6 +8,21 @@ from unittest.mock import Mock, patch
 
 
 class ArgonRoutingTests(unittest.TestCase):
+    def test_smart_deadline_is_installed_and_restored_without_switching_model(self):
+        from gemini_web2api.config import CONFIG
+        from gemini_web2api.quota_guard import QuotaRejected
+        previous = CONFIG.get('generation_deadline')
+        def stalled(mode, think):
+            self.assertIsInstance(CONFIG['generation_deadline'], float)
+            raise TimeoutError('stalled stream')
+        with patch('gemini_web2api.account_pool.QuotaGuard.check', return_value={}):
+            with self.assertRaises(QuotaRejected) as error:
+                self.pool.run(stalled, timeout=5)
+        self.assertEqual(error.exception.code, 'generation_timeout')
+        self.assertEqual(CONFIG.get('generation_deadline'), previous)
+        self.assertTrue(self.pool.lock.acquire(blocking=False))
+        self.pool.lock.release()
+
     @classmethod
     def setUpClass(cls):
         try:
@@ -263,7 +278,7 @@ class ArgonRoutingTests(unittest.TestCase):
                 patch('gemini_web2api.session_manager.SessionManager'), \
                 patch('gemini_web2api.account_pool.AccountPool'):
             spec.loader.exec_module(runner)
-        runner.pool.run.side_effect = lambda callback: callback(71, 4)
+        runner.pool.run.side_effect = lambda callback, **kwargs: callback(71, 4)
         runner.pool.run_flash.side_effect = lambda callback, **kwargs: callback(6, 1)
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
@@ -285,7 +300,7 @@ class ArgonRoutingTests(unittest.TestCase):
                     untouched.assert_not_called()
                     self.assertEqual(handler.send_json.call_args.args[0]['model'], model)
                     if model == 'gemini-3.5-flash-lite':
-                        self.assertEqual(runner.pool.run_flash.call_args.kwargs['timeout'], 120)
+                        self.assertEqual(runner.pool.run_flash.call_args.kwargs['timeout'], 75)
                         runner.pool.run_anonymous.assert_not_called()
             with patch('gemini_web2api.server.generate') as fast, patch.object(runner, 'generate') as smart:
                 handler._handle_chat(json.dumps({'model': model, 'reasoning_effort': 'invalid'}).encode())

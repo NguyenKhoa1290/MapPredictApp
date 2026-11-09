@@ -1036,3 +1036,13 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Bỏ biểu tượng sấm sét và nút đặt lại, có thể chọn Mặc định bằng thanh kéo
 - Đóng popup bằng Escape hoặc bấm ra ngoài, giữ thao tác bàn phím và xác thực model Thông minh
 - Kiểm tra Chrome trên desktop và màn hình rộng 390px, 37 kiểm thử JavaScript đạt
+
+## 2026-11-09 Chống nghẽn quản trị khi dùng effort cao
+
+- Log VPS ghi nhận yêu cầu chờ bị ngắt và lỗi 502 lúc web thay container, không ghi nhận OOM ở AI hoặc Gemini
+- Trạng thái phiên trả bản trạng thái gần nhất, không chờ khóa dùng khi sinh câu trả lời
+- Luồng Argon nhận cùng deadline như Flash, phục hồi cấu hình khi kết thúc, timeout không chuyển model hoặc làm sai trạng thái cookie
+- Giới hạn gọi model khoảng 80 giây, adapter tối đa 75 giây, lượt CSV có ngân sách tổng khoảng 90 giây
+- GET trạng thái nội bộ timeout 3 giây, thao tác cập nhật phiên từ chối ngay nếu đang giữ khóa sinh câu trả lời
+- Chatbot và quản trị hiển thị lỗi service kèm mã HTTP khi gateway trả HTML, không hiện lỗi phân tích JSON
+- Đã đạt 240 Python, 45 React và 68 JavaScript, gồm kiểm tra khóa đang giữ, phục hồi deadline và HTML lỗi từ proxy
