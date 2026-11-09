@@ -71,6 +71,7 @@ export function installPersistence(ctx) {
           color: overlay.color,
           opacity: overlay.opacity,
           visible: overlay.visible,
+          predictionFillVersion: overlay.predictionFillVersion,
           style: {
             ...overlay.style
           },

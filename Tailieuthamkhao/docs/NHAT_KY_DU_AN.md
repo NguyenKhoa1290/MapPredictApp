@@ -1058,6 +1058,16 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-09 Sửa màu layer kết quả DXF
+
+- Sửa mặc định fillOpacity bằng 0 của layer nền ghi đè độ tô từ kết quả dự đoán
+- Layer kết quả lấy màu và độ tô từ nhãn Y, ô chưa có dữ liệu luôn chỉ hiện đường lưới
+- Khôi phục các layer cũ từng lưu mặc định độ tô bằng 0, vẫn giữ lựa chọn cố ý chỉnh về 0 sau bản sửa
+- Reset kiểu hiển thị trả về màu theo kết quả, giữ màu sau reload và sau khi nạp lưới chưa có kết quả rồi ghép CSV
+- Hiển thị nguyên nhân đọc DXF khi gửi bản đồ thay cho thông báo chờ chung, CSV thiếu Y hướng dẫn chạy ở tab Dự đoán
+- Kiểm tra trực tiếp luoki.dxf gồm 357 ô và CSV người dùng gồm 338 dòng x1 đến x9 chưa có Y
+- Trình duyệt chạy mô hình, ghép grid_id với TenLoDat bằng phần số, xác nhận 338 ô có màu và 19 ô chỉ hiện lưới, giữ đúng sau reload
+
 ## 2026-11-09 Hội thoại Google và thời hạn tự xóa
 
 ### Điều phối nhiều người dùng

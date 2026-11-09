@@ -83,6 +83,50 @@ test('joined parcel clicks show a safe name popup without zoom while base layer 
     } finally { w.close(); }
 });
 
+test('result fills survive loading an unscored grid, old saved zero defaults, reset and explicit opacity edits', () => {
+    const dom = new JSDOM(readAssessmentSource('quality/fixtures/assessment.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, ''),
+        { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
+    const w = dom.window;
+    const bounds = () => ({ isValid: () => true, getCenter: () => ({ lat: 21 }), extend() { return this; } });
+    const paths = [];
+    w.map = { removeLayer() {}, getSize: () => ({ x: 1200 }), fitBounds() {} };
+    w.L = { latLngBounds: bounds, geoJSON(data, options) {
+        const children = data.features.map(feature => {
+            const layer = { on() {}, bindPopup() {}, getBounds: bounds, setStyle(value) { this.style = value; } };
+            paths.push(layer); options.onEachFeature(feature, layer); return layer;
+        });
+        return { getBounds: bounds, getLayers: () => children, hasLayer: () => true, addTo() {}, addLayer() {}, removeLayer() {} };
+    } };
+    try {
+        w.eval(`const $ = id => document.getElementById(id); let overlays = [], cadFiles = [], predictionFiles = [], pendingMapBounds = null;\n`
+            + readAssessmentSource('frontend/public/color_adjustments.js') + '\n' + readAssessmentSource('frontend/src/pages/assessment/engine/layers.js'));
+        const grid = scored => ({ kind: 'prediction', name: 'grid.dxf', source_id: 'grid', crs: 'EPSG:9208', data: { features:
+            [0, 1, 2, null].map(Y => ({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [] }, properties:
+                { Y: scored ? Y : null, grid_id: String(Y), fillColor: ({ 0: '#ff0000', 1: '#ffa500', 2: '#008000' })[Y] || '#cccccc',
+                    fillOpacity: scored && Y != null ? 0.6 : 0 } })) } });
+        w.renderManagedLayers([grid(false)]);
+        assert.deepEqual(paths.slice(-4).map(path => path.style.fillOpacity), [0, 0, 0, 0]);
+        w.renderManagedLayers([grid(true)]);
+        assert.deepEqual(paths.slice(-4).map(path => path.style.fillOpacity), [0.6, 0.6, 0.6, 0]);
+        assert.deepEqual(paths.slice(-4).map(path => path.style.fillColor), ['#ff0000', '#ffa500', '#008000', '#cccccc']);
+        const legacy = { id: 'grid', opacity: 1, style: { weight: 1, radius: 1, fillOpacity: 0 }, groups: new Map() };
+        w.renderManagedLayers([grid(true)], [legacy]);
+        assert.equal(paths.at(-4).style.fillOpacity, 0.6);
+        assert.equal(legacy.style.fillOpacity, 0); // Migration does not mutate the saved snapshot.
+        w.selectManagedLayer('grid', null, false);
+        w.changeStyle({ fillOpacity: 0 });
+        assert.equal(paths.at(-4).style.fillOpacity, 0);
+        w.renderManagedLayers([grid(true)]);
+        assert.equal(paths.at(-4).style.fillOpacity, 0); // A new intentional zero is retained.
+        w.selectManagedLayer('grid', null, false);
+        w.document.getElementById('style-reset').click();
+        assert.equal(paths.at(-4).style.fillOpacity, 0.6);
+        w.changeStyle({ fillOpacity: 0.9 });
+        assert.equal(paths.at(-4).style.fillOpacity, 0.9);
+        assert.equal(paths.at(-1).style.fillOpacity, 0); // No-data cells are always outlines.
+    } finally { w.close(); }
+});
+
 test('chat sends the full displayed prediction result and restores it after workspace travel', async () => {
     const path = require('node:path');
     const read = readAssessmentSource;

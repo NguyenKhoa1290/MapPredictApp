@@ -30,12 +30,13 @@ export function installLayers(ctx) {
     const properties = feature.properties || {};
     const baseColor = style.color ?? (overlay.item.kind === "prediction" ? "#334155" : properties.color || overlay.color);
     const fillColor = style.fillColor ?? properties.fillColor ?? properties.color ?? overlay.color;
+    const unscored = overlay.item.kind === 'prediction' && properties.Y == null;
     return {
       color: adjustColors ? ctx.adjustedLayerColor(overlay, baseColor) : baseColor,
       fillColor: adjustColors ? ctx.adjustedLayerColor(overlay, fillColor) : fillColor,
       weight: style.weight,
       opacity: overlay.opacity,
-      fillOpacity: (style.fillOpacity ?? properties.fillOpacity ?? 0) * overlay.opacity,
+      fillOpacity: unscored ? 0 : (style.fillOpacity ?? properties.fillOpacity ?? 0) * overlay.opacity,
       radius: style.radius,
       dashArray: style.dashArray || null
     };
@@ -111,16 +112,24 @@ export function installLayers(ctx) {
     for (const [index, item] of items.entries()) {
       const id = ctx.layerIdentity(item, index);
       const saved = previous.get(id);
+      const restoreStyle = value => {
+        const style = { ...value };
+        // Older builds persisted the CAD default zero on prediction overlays.
+        // Keep explicit zero from the corrected editor, but repair old defaults.
+        if (item.kind === 'prediction' && !saved?.predictionFillVersion && style.fillOpacity === 0) delete style.fillOpacity;
+        return style;
+      };
       const overlay = {
         id,
         item,
         color: saved?.color || ctx.layerPalette[index % ctx.layerPalette.length],
         visible: saved?.visible ?? true,
         opacity: saved?.opacity ?? 1,
-        style: saved?.style || {
+        predictionFillVersion: 1,
+        style: saved?.style ? restoreStyle(saved.style) : {
           weight: item.kind === "prediction" ? 1 : 2,
           radius: 1,
-          fillOpacity: 0,
+          ...(item.kind === 'prediction' ? {} : { fillOpacity: 0 }),
           dashArray: ""
         },
         groups: new Map(),
@@ -136,7 +145,7 @@ export function installLayers(ctx) {
             name: key,
             count: 0,
             visible: oldGroup?.visible ?? true,
-            style: oldGroup?.style || {}
+            style: restoreStyle(oldGroup?.style)
           });
         }
         overlay.groups.get(key).count++;
@@ -298,7 +307,7 @@ export function installLayers(ctx) {
     ctx.$("style-source").checked = style.color == null && style.fillColor == null;
     ctx.$("style-stroke").value = effective.color;
     ctx.$("style-fill").value = effective.fillColor;
-    for (const [id, value, suffix] of [["style-weight", effective.weight, " px"], ["style-radius", effective.radius, " px"], ["style-fill-opacity", Math.round((style.fillOpacity ?? overlay.style.fillOpacity ?? first?.feature.properties?.fillOpacity ?? 0) * 100), "%"]]) {
+    for (const [id, value, suffix] of [["style-weight", effective.weight, " px"], ["style-radius", effective.radius, " px"], ["style-fill-opacity", Math.round(effective.fillOpacity / (overlay.opacity || 1) * 100), "%"]]) {
       ctx.$(id).value = value;
       ctx.$(`${id}-value`).textContent = `${value}${suffix}`;
     }
@@ -503,7 +512,7 @@ export function installLayers(ctx) {
       overlay.style = {
         weight: overlay.item.kind === "prediction" ? 1 : 2,
         radius: 1,
-        fillOpacity: 0,
+        ...(overlay.item.kind === 'prediction' ? {} : { fillOpacity: 0 }),
         dashArray: ""
       };
       for (const group of overlay.groups.values()) group.style = {};

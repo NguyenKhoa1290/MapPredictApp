@@ -179,7 +179,7 @@ def result_columns():
     finally:
         uploaded.close()
     if "Y" not in rows[0]:
-        raise ValueError("File kết quả phải có cột Y.")
+        raise ValueError("CSV chưa có cột kết quả Y. Nạp file ở tab Dự đoán và bấm Bắt đầu dự đoán trước khi ghép màu lên bản đồ.")
     return jsonify(columns=[name for name in rows[0] if name != "Y"], count=len(rows))
 
 
@@ -235,7 +235,7 @@ def map_layers():
             finally:
                 result.close()
             if "Y" not in rows[0]:
-                raise ValueError("File kết quả phải có cột Y.")
+                raise ValueError("CSV chưa có cột kết quả Y. Nạp file ở tab Dự đoán và bấm Bắt đầu dự đoán trước khi ghép màu lên bản đồ.")
         else:
             rows = []
 

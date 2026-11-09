@@ -879,6 +879,8 @@ export function installCore(ctx) {
       if (ctx.predictionFiles.length && !ctx.$("result-file").files.length && ctx.predictionRows.length) {
         form.set("result", ctx.resultsCsvFile(ctx.predictionRows));
       }
+      const failedGrid = ctx.predictionFiles.find(entry => entry.error);
+      if (failedGrid) throw new Error(`${failedGrid.file.name}: ${failedGrid.error}`);
       if (ctx.predictionFiles.some(entry => entry.loading || !entry.columns)) {
         throw new Error("Chờ đọc xong lưới DXF/GPKG hoặc gỡ file đang báo lỗi trước khi hiển thị.");
       }
