@@ -210,7 +210,7 @@ export function installAssistant(ctx) {
       authorizing = true;
       get('passcode-submit').disabled = true;
       const form = new FormData();
-      form.append('mode', 'smart');
+      form.append('mode', get('mode').value);
       form.append('passcode', value);
       try {
         const result = await request('authorize', form);

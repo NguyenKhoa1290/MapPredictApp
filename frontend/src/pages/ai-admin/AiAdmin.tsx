@@ -153,13 +153,13 @@ export function AiAdmin() {
           const model = settings.models[mode];
           if (!model) return null;
           return <section className="admin-card" key={mode}><h2>{model.label}</h2>
-            <label>Nguồn chạy<select value={model.provider} onChange={event => editModel(mode, { provider: event.target.value as Model['provider'] })} disabled={busy || mode === 'smart'}>
+            <label>Nguồn chạy<select value={model.provider} onChange={event => editModel(mode, { provider: event.target.value as Model['provider'], ...(event.target.value === 'gemini' && !['gemini-3.5-flash-lite', 'gemini-4-argon'].includes(model.model) ? { model: mode === 'fast' ? 'gemini-3.5-flash-lite' : 'gemini-4-argon' } : {}) })} disabled={busy}>
               <option value="gemini">Gemini Web trong Docker</option><option value="compatible">API tương thích OpenAI</option></select></label>
-            <label>Tên model<input required maxLength={150} value={model.model} onChange={event => editModel(mode, { model: event.target.value })} disabled={busy || mode === 'smart'} /></label>
-            {mode === 'smart' ? <p className="admin-help">Thông minh dùng 4 Argon, cần cookie hợp lệ và quota, thiếu cookie thì báo lỗi và không chuyển sang Nhanh</p> : null}
+            <label>Tên model{model.provider === 'gemini' ? <select value={model.model} onChange={event => editModel(mode, { model: event.target.value })} disabled={busy}><option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option><option value="gemini-4-argon">Gemini 4 Argon</option></select> : <input required maxLength={150} value={model.model} onChange={event => editModel(mode, { model: event.target.value })} disabled={busy} />}</label>
+            {mode === 'smart' ? <p className="admin-help">Chọn model cho chế độ Thông minh, vẫn yêu cầu passcode và không tự chuyển sang model khác khi lỗi</p> : null}
             {model.provider === 'compatible' ? <><label>Địa chỉ API, gồm /v1<input type="url" required value={model.url} onChange={event => editModel(mode, { url: event.target.value })} disabled={busy} /></label>
               <label>Khóa API mới<input type="password" autoComplete="new-password" value={model.api_key || ''} onChange={event => editModel(mode, { api_key: event.target.value })} placeholder={model.has_api_key ? 'Đã lưu khóa, để trống để giữ lại' : 'Nhập nếu API yêu cầu'} disabled={busy} /></label>
-              <label className="admin-check"><input type="checkbox" checked={model.clear_api_key || false} onChange={event => editModel(mode, { clear_api_key: event.target.checked })} />Xóa khóa API đã lưu</label></> : <p className="admin-help">Tên model theo adapter được cung cấp, Thông minh dùng gemini-4-argon</p>}
+              <label className="admin-check"><input type="checkbox" checked={model.clear_api_key || false} onChange={event => editModel(mode, { clear_api_key: event.target.checked })} />Xóa khóa API đã lưu</label></> : <p className="admin-help">Dùng pool tài khoản Gemini đã đăng nhập, Argon cần quyền truy cập và quota của tài khoản</p>}
             <button type="button" className="button" disabled={busy} onClick={() => action(() => tool('model-test', { mode }))}>Kiểm tra cấu hình đã lưu</button>
           </section>;
         })}</div>

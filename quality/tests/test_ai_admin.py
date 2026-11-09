@@ -131,6 +131,26 @@ class AiAdminTests(unittest.TestCase):
         self.assertEqual(config['ASSISTANT_EMBEDDING_MODEL'], ai_settings.load(self.app.config)['embedding']['model'])
         self.assertEqual(config['ASSISTANT_EMBEDDING_URL'], ai_settings.load(self.app.config)['embedding']['url'])
 
+    def test_admin_can_assign_each_model_without_automatic_fallback(self):
+        self.login()
+        settings = ai_settings.defaults(self.app.config)
+        settings['models']['smart']['model'] = ai_settings.FLASH
+        settings['models']['fast']['model'] = ai_settings.ARGON
+        self.assertEqual(self.post('settings', settings).status_code, 200)
+        loaded = ai_settings.load(self.app.config)
+        self.assertEqual(loaded['models']['smart']['model'], ai_settings.FLASH)
+        self.assertEqual(loaded['models']['fast']['model'], ai_settings.ARGON)
+        self.assertTrue(ai_settings.model_config(self.app.config, 'smart')['ASSISTANT_REQUIRE_PASSCODE'])
+        settings['models']['smart'].update(provider='compatible', model='gemini-pro', url='http://gemini2api:8000/v1', api_key='external-test-key')
+        self.assertEqual(self.post('settings', settings).status_code, 200)
+        model = ai_settings.model_config(self.app.config, 'smart')
+        self.assertEqual(model['ASSISTANT_MODEL'], 'gemini-pro')
+        self.assertEqual(model['ASSISTANT_PROVIDER'], 'compatible')
+        self.assertEqual(model['ASSISTANT_URL'], 'http://gemini2api:8000/v1')
+        with patch.object(ai_settings, 'argon_availability') as local_cookie:
+            ai_settings.require_argon_cookie(model)
+        local_cookie.assert_not_called()
+
     def test_external_model_does_not_receive_internal_service_secret(self):
         settings = ai_settings.defaults(self.app.config)
         settings['models']['fast'].update(provider='compatible', url='https://example.test/v1', api_key='external-private-key')

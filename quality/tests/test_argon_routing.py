@@ -361,7 +361,8 @@ class ArgonRoutingTests(unittest.TestCase):
             self.assertNotEqual(value[16], 'old-client-id')
             self.assertEqual(json.loads(CONFIG['model_headers']['71']['x-goog-ext-525001261-jspb']), original)
             body = json.loads(json.loads(parse_qs(gemini._build_payload('test', 71, level))['f.req'][0])[1])
-            self.assertEqual(body[17], [[expected]])
+            self.assertEqual(body[17], [[0]])
+            self.assertEqual(body[80], expected)
 
     def test_fast_route_also_sends_native_thinking_level_metadata(self):
         from gemini_web2api import gemini

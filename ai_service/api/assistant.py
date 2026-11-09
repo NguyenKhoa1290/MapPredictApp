@@ -71,12 +71,13 @@ def limits():
 def status():
     from ..services.ai_settings import load, is_argon, argon_availability, COOKIE_MESSAGE, supported_efforts
     modes = load(current_app.config)['models']
-    availability = argon_availability(current_app.config) if current_app.config['ASSISTANT_ENABLED'] else 'unknown'
+    needs_local_argon = any(row['provider'] == 'gemini' and is_argon(row['model']) for row in modes.values())
+    availability = argon_availability(current_app.config) if current_app.config['ASSISTANT_ENABLED'] and needs_local_argon else 'unknown'
     return jsonify(data={'enabled': current_app.config['ASSISTANT_ENABLED'],
-                         'modes': [{'id': key, 'label': modes[key]['label'], 'requires_passcode': is_argon(modes[key]['model']),
+                         'modes': [{'id': key, 'label': modes[key]['label'], 'requires_passcode': key == 'smart' or is_argon(modes[key]['model']),
                                     'efforts': supported_efforts(modes[key]),
-                                    'availability': availability if is_argon(modes[key]['model']) else 'ready',
-                                    'message': COOKIE_MESSAGE if availability == 'cookie_required' and is_argon(modes[key]['model']) else ''}
+                                    'availability': availability if modes[key]['provider'] == 'gemini' and is_argon(modes[key]['model']) else 'ready',
+                                    'message': COOKIE_MESSAGE if availability == 'cookie_required' and modes[key]['provider'] == 'gemini' and is_argon(modes[key]['model']) else ''}
                                    for key in ('fast', 'smart')],
                          'retrieval': 'qdrant_keyword',
                          'features': ['dxf_references', 'dxf_gzip', 'full_csv'],
@@ -104,7 +105,8 @@ def execute(action):
         raise PredictionError('UNKNOWN_ACTION', 'Thao tác chưa được hỗ trợ', 404)
     if action == 'authorize':
         from ..services.ai_settings import model_config, authorize_pro
-        config = model_config(current_app.config, 'smart')
+        config = model_config(current_app.config, request.form.get('mode', 'smart'))
+        config['ASSISTANT_REQUIRE_PASSCODE'] = True
         authorize_pro(config, request.form.get('passcode', ''))
         return jsonify(data={'authorized': True})
     if set(request.files) - {'dxf', 'csv'}:

@@ -1046,3 +1046,14 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - GET trạng thái nội bộ timeout 3 giây, thao tác cập nhật phiên từ chối ngay nếu đang giữ khóa sinh câu trả lời
 - Chatbot và quản trị hiển thị lỗi service kèm mã HTTP khi gateway trả HTML, không hiện lỗi phân tích JSON
 - Đã đạt 240 Python, 45 React và 68 JavaScript, gồm kiểm tra khóa đang giữ, phục hồi deadline và HTML lỗi từ proxy
+
+## 2026-11-09 Đối chiếu xwteam/gemini2api và mở cấu hình model
+
+- Đối chiếu mã nguồn tại commit d1555d7203df8932d4cae4b31ad20ba96d10482c của https://github.com/xwteam/gemini2api
+- Hai adapter cùng ánh xạ effort low=1, medium=4, high=2, nhưng thinking route của repo tham khảo dùng payload[17]=[[0]] và payload[80]=mức effort
+- Sửa route đã xác thực trong adapter nội bộ để header và payload cùng mức effort, giữ route cũ không xác thực riêng
+- Repo tham khảo có kiến trúc bất đồng bộ, budget Argon mặc định 300 giây và cơ chế fallback tùy chọn, không tăng thẳng timeout của ứng dụng hiện tại hoặc bật fallback sang model khác
+- Không thay toàn bộ adapter bằng mã nguồn repo tham khảo, repo dùng PolyForm Noncommercial 1.0.0
+- Admin có thể gán độc lập model cho Nhanh và Thông minh, chọn Flash-Lite hoặc Argon trong adapter hiện tại, hoặc nhập model và endpoint API tương thích OpenAI
+- Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
+- Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS

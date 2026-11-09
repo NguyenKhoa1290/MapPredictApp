@@ -3,6 +3,27 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { AiAdmin } from '../../../../frontend/src/pages/ai-admin/AiAdmin';
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+it('lets admin independently assign the two internal models', async () => {
+  const model = { label: 'Nhanh', model: 'gemini-3.5-flash-lite', provider: 'gemini', url: '', has_api_key: false };
+  const data = { csrf: 'admin-csrf', settings: { models: { fast: model, smart: { ...model, label: 'Thông minh', model: 'gemini-4-argon' } },
+    embedding: { url: 'http://ai-embedding:11434', model: 'test' } }, gemini: { state: 'ready' }, services: [] };
+  const fetch = vi.fn().mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data }) })
+    .mockResolvedValue({ status: 200, ok: true, json: async () => ({ data: data.settings }) });
+  vi.stubGlobal('fetch', fetch);
+  render(<AiAdmin />);
+  await screen.findByRole('tab', { name: 'Model' });
+  const selectors = screen.getAllByLabelText('Tên model') as HTMLSelectElement[];
+  expect(selectors.every(node => !node.disabled)).toBe(true);
+  fireEvent.change(selectors[0], { target: { value: 'gemini-4-argon' } });
+  fireEvent.change(selectors[1], { target: { value: 'gemini-3.5-flash-lite' } });
+  fireEvent.submit(screen.getByRole('button', { name: 'Lưu cấu hình' }).closest('form')!);
+  await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/v1/ai-admin/settings', expect.objectContaining({
+    body: expect.stringContaining('gemini-4-argon')
+  })));
+  const posted = JSON.parse(fetch.mock.calls.find(call => call[0].endsWith('/settings'))![1].body);
+  expect(posted.models.fast.model).toBe('gemini-4-argon');
+  expect(posted.models.smart.model).toBe('gemini-3.5-flash-lite');
+});
 it('shows a useful service error when a proxy returns HTML instead of JSON', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 502, ok: false,
     json: async () => { throw new SyntaxError('Unexpected token <'); } }));
@@ -66,7 +87,7 @@ it('sets a separate Pro passcode only through the authenticated service', async 
 });
 
 it('navigates tabs by keyboard, preserves drafts and saves only the active configuration group', async () => {
-  const model = { label: 'Nhanh', model: 'test-fast', provider: 'gemini', url: '', has_api_key: false };
+  const model = { label: 'Nhanh', model: 'test-fast', provider: 'compatible', url: 'https://example.test/v1', has_api_key: false };
   const data = { csrf: 'admin-csrf', settings: { models: { fast: model, smart: { ...model, label: 'Thông minh', model: 'gemini-4-argon' } },
     embedding: { url: 'http://ai-embedding:11434', model: 'saved-embedding' } }, gemini: { state: 'ready' }, services: ['ai-assistant'], embedding_enabled: true };
   const fetch = vi.fn().mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ data }) });

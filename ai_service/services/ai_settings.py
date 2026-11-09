@@ -52,7 +52,7 @@ def set_passcode(config, value, disable=False):
 
 
 def authorize_pro(config, value):
-    if not is_argon(config['ASSISTANT_MODEL']):
+    if not config.get('ASSISTANT_REQUIRE_PASSCODE', is_argon(config['ASSISTANT_MODEL'])):
         return
     path = passcode_file(config)
     if not has_passcode(config):
@@ -79,7 +79,7 @@ def argon_availability(config):
 
 
 def require_argon_cookie(config):
-    if not is_argon(config['ASSISTANT_MODEL']):
+    if config.get('ASSISTANT_PROVIDER') == 'compatible' or not is_argon(config['ASSISTANT_MODEL']):
         return
     state = argon_availability(config)
     if state == 'cookie_required':
@@ -107,8 +107,9 @@ def load(config):
                 result['models']['fast'].update(saved['models']['fast'])
                 if result['models']['fast']['provider'] == 'gemini' and result['models']['fast']['model'] in ('gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash'):
                     result['models']['fast']['model'] = FLASH
-            # Smart replaces the former separate Pro option, retaining its strict route.
-            # Never restore the legacy thinking/Flash model or a third client option.
+            smart = saved.get('models', {}).get('smart', {})
+            if smart.get('provider') == 'compatible' or smart.get('model') in (FLASH, ARGON):
+                result['models']['smart'].update(smart)
             result['embedding'].update(saved.get('embedding', {}))
     return result
 
@@ -141,10 +142,8 @@ def save(config, incoming):
             if not isinstance(row, dict) or row.get('provider') not in ('gemini', 'compatible'):
                 raise ValueError('Nguồn model không hợp lệ')
             model = row.get('model', '')
-            if key == 'smart' and (model != ARGON or row['provider'] != 'gemini'):
-                raise ValueError('Thông minh cố định dùng gemini-4-argon và pool tài khoản Gemini')
-            if is_argon(str(model)) and (model != ARGON or row['provider'] != 'gemini'):
-                raise ValueError('4 Argon chỉ dùng đúng route Gemini đã xác minh')
+            if row['provider'] == 'gemini' and model not in (FLASH, ARGON):
+                raise ValueError('Adapter Gemini nội bộ chỉ hỗ trợ 3.5 Flash-Lite và 4 Argon, dùng API tương thích cho model khác')
             if not isinstance(model, str) or not re.fullmatch(r'[a-zA-Z0-9_./:@+=-]{1,150}', model):
                 raise ValueError('Tên model không hợp lệ')
             api_key = row.get('api_key')
@@ -190,6 +189,7 @@ def model_config(config, mode='fast'):
     row = settings['models'][mode]
     result = dict(config)
     result.update(ASSISTANT_MODEL=row['model'], ASSISTANT_PROVIDER=row['provider'],
+                  ASSISTANT_REQUIRE_PASSCODE=mode == 'smart' or is_argon(row['model']),
                   ASSISTANT_API_KEY=row.get('api_key', ''), ASSISTANT_RETRIEVAL_MODE='keyword',
                   ASSISTANT_EMBEDDING_URL=settings['embedding']['url'],
                   ASSISTANT_EMBEDDING_MODEL=settings['embedding']['model'],
