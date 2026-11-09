@@ -316,6 +316,9 @@ class ArgonRoutingTests(unittest.TestCase):
                     if effort is not None:
                         body['reasoning_effort'] = effort
                     def verified(prompt, mode, level, metadata):
+                        if model == 'gemini-4-argon':
+                            from gemini_web2api.config import CONFIG
+                            self.assertEqual(CONFIG['request_timeout_sec'], 300)
                         metadata['applied_level'] = level
                         return 'verified response'
                     with patch('gemini_web2api.server.generate', return_value='fast') as fast, \
@@ -325,6 +328,8 @@ class ArgonRoutingTests(unittest.TestCase):
                     self.assertEqual(called.call_args.args[1:3], (mode, depth))
                     untouched.assert_not_called()
                     self.assertEqual(handler.send_json.call_args.args[0]['model'], model)
+                    if model == 'gemini-4-argon':
+                        self.assertEqual(runner.pool.run_chat.call_args.kwargs['timeout'], 300)
                     if model == 'gemini-3.5-flash-lite':
                         self.assertEqual(runner.pool.run_chat.call_args.kwargs['timeout'], 75)
                         runner.pool.run_anonymous.assert_not_called()

@@ -1058,6 +1058,17 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-09 Tăng thời gian chờ Argon lên 300 giây
+
+- Adapter giới hạn riêng Argon ở 300 giây, cấu hình socket theo từng yêu cầu để không ảnh hưởng model khác hoặc tài khoản đang chạy song song
+- Service AI chừa thời gian truyền nhận và kiểm tra quota ngoài thời gian model, áp dụng cho chat CSV, layer và thu gọn ngữ cảnh
+- Preview chạy nền theo yêu cầu của trình duyệt, trả mã tác vụ ngay và kiểm tra kết quả bằng các GET ngắn để không giữ kết nối công khai vượt giới hạn Cloudflare
+- Giữ hai tác vụ chạy đồng thời, giới hạn bốn tác vụ còn lưu và xóa kết quả sau hai phút kể từ khi hoàn tất
+- Không tự áp dụng dữ liệu hoặc chuyển sang model khác khi quá thời gian, giữ nút dừng chờ hiện tại
+- Mã tác vụ ngẫu nhiên 256 bit, API service vẫn yêu cầu khóa nội bộ, lỗi passcode và hết hạn tài nguyên giữ nguyên mã lỗi để giao diện xử lý
+- Tác vụ chờ nằm trong bộ nhớ service, nếu service khởi động lại trình duyệt báo gửi lại, dữ liệu dự án chưa bị thay đổi
+- Tham khảo giới hạn HTTP và hướng dẫn polling tại https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-5xx-errors/error-524/
+
 ## 2026-11-09 Sửa màu layer kết quả DXF
 
 - Sửa mặc định fillOpacity bằng 0 của layer nền ghi đè độ tô từ kết quả dự đoán

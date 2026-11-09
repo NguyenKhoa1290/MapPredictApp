@@ -103,6 +103,26 @@ def uploaded(name, extension, limit):
 def execute(action):
     if action not in ('preview', 'apply', 'export', 'authorize'):
         raise PredictionError('UNKNOWN_ACTION', 'Thao tác chưa được hỗ trợ', 404)
+    if action == 'preview' and request.headers.get('Prefer') == 'respond-async' and not getattr(g, 'assistant_job', False):
+        from ..services import assistant_jobs
+        application = current_app._get_current_object()
+        content = request.get_data()
+        content_type = request.content_type
+        request_id = g.request_id
+        def work():
+            with application.test_request_context('/api/v1/assistant/preview', method='POST', data=content, content_type=content_type):
+                g.assistant_job = True
+                g.request_id = request_id
+                try:
+                    response = application.make_response(execute('preview'))
+                except PredictionError as error:
+                    response = application.make_response(failed(error))
+                except Exception:
+                    application.logger.exception('Assistant background preview failed')
+                    return {'error': {'code': 'AI_ERROR', 'message': 'Service AI không thể xử lý yêu cầu'}}, 500
+                return response.get_json(), response.status_code
+        identifier = assistant_jobs.submit(work)
+        return jsonify(data={'job_id': identifier, 'state': 'pending'}), 202
     if action == 'authorize':
         from ..services.ai_settings import model_config, authorize_pro
         config = model_config(current_app.config, request.form.get('mode', 'smart'))
@@ -229,3 +249,10 @@ def execute(action):
         return jsonify(data=result)
     finally:
         BUSY.release()
+
+
+@assistant_api.get('/jobs/<identifier>')
+def poll_job(identifier):
+    from ..services.assistant_jobs import poll
+    payload, status = poll(identifier)
+    return jsonify(payload), status

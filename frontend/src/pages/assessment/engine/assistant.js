@@ -378,8 +378,9 @@ export function installAssistant(ctx) {
     }
     async function request(action, form, signal, retry = true) {
       form.set('conversation', conversation);
-      const result = await fetch('/api/v1/assistant/' + action, {
+      let result = await fetch('/api/v1/assistant/' + action, {
         method: 'POST',
+        headers: action === 'preview' ? { Prefer: 'respond-async' } : {},
         body: form,
         signal
       });
@@ -388,6 +389,24 @@ export function installAssistant(ctx) {
       catch (error) {
         if (error.name === 'AbortError') throw error;
         throw new Error(`Máy chủ AI chưa trả lời được hoặc đã quá thời gian chờ (HTTP ${result.status || 0}). Hãy thử lại sau, dữ liệu chưa thay đổi`);
+      }
+      const pollDeadline = Date.now() + 350000;
+      while (result.status === 202 && payload.data?.state === 'pending') {
+        const identifier = payload.data.job_id;
+        if (typeof identifier !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(identifier)) throw new Error('Mã yêu cầu AI không hợp lệ');
+        if (Date.now() >= pollDeadline) throw new Error('Đã hết thời gian chờ AI, dữ liệu chưa thay đổi');
+        await new Promise((resolve, reject) => {
+          if (signal?.aborted) return reject(new DOMException('Aborted', 'AbortError'));
+          const abort = () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); };
+          const timer = setTimeout(() => { signal?.removeEventListener('abort', abort); resolve(); }, 1500);
+          signal?.addEventListener('abort', abort, { once: true });
+        });
+        result = await fetch('/api/v1/assistant/jobs/' + identifier, { signal, cache: 'no-store' });
+        try { payload = await result.json(); }
+        catch (error) {
+          if (error.name === 'AbortError') throw error;
+          throw new Error(`Máy chủ AI chưa trả lời được (HTTP ${result.status || 0}), dữ liệu chưa thay đổi`);
+        }
       }
       const files = formSources.get(form);
       for (const cached of payload.data?.resource_cache || payload.resource_cache || []) {

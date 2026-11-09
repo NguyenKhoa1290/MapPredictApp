@@ -71,7 +71,7 @@ def preview(options, config):
                  if isinstance(row, dict) and row.get('role') in ('user', 'assistant') and isinstance(row.get('content'), str)]
     messages.append({'role': 'user', 'content': json.dumps(layer, ensure_ascii=False) + '\n' + options['message']})
     messages, usage = bound(messages)
-    result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': 80})
+    result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': config.get('ASSISTANT_CALL_TIMEOUT', 80)})
     patch = validate_patch(result['layer_patch']) if layer and not compact and result.get('layer_patch') else None
     return {'answer': result['answer'][:2000 if compact else 16000], 'sources': [], 'edits': [], 'scores': [],
             'table_edits': [], 'rejected': [], 'token': None, 'layer_patch': patch, 'context': usage,

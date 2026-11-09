@@ -493,6 +493,37 @@ test('selected inspector sends bounded metadata without files and stages only la
     } finally { f.close(); }
 });
 
+test('long previews poll without repeating uploads or applying unfinished work', async () => {
+    const f = fixture();
+    try {
+        await tick();
+        let submitted = 0, polled = 0;
+        const identifier = 'a'.repeat(43);
+        const timer = f.window.setTimeout.bind(f.window);
+        f.window.setTimeout = (fn, delay, ...args) => timer(fn, delay === 1500 ? 1 : delay, ...args);
+        f.window.fetch = async (url, options) => {
+            if (url.endsWith('/preview')) {
+                submitted++;
+                assert.equal(options.headers.Prefer, 'respond-async');
+                return { ok: true, status: 202, json: async () => ({ data: { job_id: identifier, state: 'pending' } }) };
+            }
+            assert.equal(url, '/api/v1/assistant/jobs/' + identifier);
+            assert.equal(options.body, undefined);
+            assert.equal(f.commits.length, 0);
+            polled++;
+            return polled < 2
+                ? { ok: true, status: 202, json: async () => ({ data: { job_id: identifier, state: 'pending' } }) }
+                : { ok: true, status: 200, json: async () => ({ data: { answer: 'complete', edits: [], scores: [], rejected: [], sources: [], scope: 'chat', token: null } }) };
+        };
+        await f.submit();
+        for (let count = 0; count < 20 && polled < 2; count++) await tick();
+        assert.equal(submitted, 1);
+        assert.equal(polled, 2);
+        assert.match(f.get('messages').textContent, /complete/);
+        assert.equal(f.commits.length, 0);
+    } finally { f.close(); }
+});
+
 test('HTML proxy errors are displayed as a service timeout without changing resources', async () => {
     const f = fixture();
     try {

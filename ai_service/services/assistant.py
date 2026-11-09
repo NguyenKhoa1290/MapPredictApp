@@ -215,7 +215,9 @@ def call_model(messages, config, *, response_kind='assistant'):
             headers['Authorization'] = 'Bearer ' + config['ASSISTANT_API_KEY']
     elif path:
         headers['Authorization'] = 'Bearer ' + Path(path).read_text().strip()
-        headers['X-Map-Predict-Timeout'] = str(max(1, min(120, config.get('ASSISTANT_CALL_TIMEOUT', 150) - 5)))
+        from .ai_settings import is_argon
+        ceiling = 300 if is_argon(config['ASSISTANT_MODEL']) else 120
+        headers['X-Map-Predict-Timeout'] = str(max(1, min(ceiling, config.get('ASSISTANT_CALL_TIMEOUT', 150) - 5)))
         if config.get('ASSISTANT_CONVERSATION'):
             headers['X-Map-Predict-Conversation'] = config['ASSISTANT_CONVERSATION']
     try:
@@ -357,9 +359,11 @@ def new_table(value):
 
 def preview(path, dxf, csv, options, config, resources=None):
     started = time.monotonic()
-    deadline = time.monotonic() + 90
-    from .ai_settings import model_config
+    from .ai_settings import model_config, is_argon
     config = model_config(config, options.get('mode', 'fast'))
+    call_timeout = 320 if is_argon(config['ASSISTANT_MODEL']) else 80
+    deadline = time.monotonic() + call_timeout + 10
+    config['ASSISTANT_CALL_TIMEOUT'] = call_timeout
     conversation = options.get('conversation', '')
     if re.fullmatch(r'[A-Za-z0-9_-]{16,128}', conversation):
         config['ASSISTANT_CONVERSATION'] = conversation
@@ -441,7 +445,7 @@ def preview(path, dxf, csv, options, config, resources=None):
         raise PredictionError('ASSISTANT_TIMEOUT', 'Tra cứu dữ liệu quá thời gian, hãy thử lại', 503)
     from .assistant_context import bound
     messages, context_usage = bound(messages)
-    result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': min(80, remaining)})
+    result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': min(call_timeout, remaining)})
     model_ready = time.monotonic()
     sources = [verify_source(source) for source in (result.get('sources') or [])[:3]
                if isinstance(source, dict)] if context['web_search'] else []

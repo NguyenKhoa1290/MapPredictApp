@@ -122,10 +122,17 @@ class ManagedGeminiHandler(GeminiHandler):
                     ChatRetention(CONFIG['audit_config_path']).complete(group, mode)
                 return text
             try:
-                budget = max(1, min(75, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', 75))))
+                ceiling = 300 if model == ARGON else 75
+                budget = max(1, min(ceiling, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', ceiling))))
             except (ValueError, TypeError):
-                budget = 75
-            text = pool.run_chat(generate_argon, model, group, timeout=budget)
+                budget = 300 if model == ARGON else 75
+            if model == ARGON:
+                # Request-local configuration, never extend other account/model calls.
+                with CONFIG.isolated():
+                    CONFIG['request_timeout_sec'] = 300
+                    text = pool.run_chat(generate_argon, model, group, timeout=budget)
+            else:
+                text = pool.run_chat(generate_argon, model, group, timeout=budget)
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
                             'created': int(time.time()), 'model': model,
                             'reasoning': reasoning,

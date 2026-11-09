@@ -11,6 +11,8 @@ def forward(action, admin=False):
     base = current_app.config['ASSISTANT_SERVICE_URL'].rstrip('/')
     key = Path(current_app.config['ASSISTANT_SECRET_FILE']).read_text().strip()
     headers = {'Authorization': 'Bearer ' + key}
+    if not admin and request.headers.get('Prefer') == 'respond-async':
+        headers['Prefer'] = 'respond-async'
     if admin:
         headers.update({'Cookie': request.headers.get('Cookie', ''),
                         'X-Admin-CSRF': request.headers.get('X-Admin-CSRF', ''),

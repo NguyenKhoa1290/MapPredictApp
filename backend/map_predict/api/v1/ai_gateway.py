@@ -2,6 +2,7 @@
 from collections import defaultdict, deque
 import threading
 import time
+import re
 from urllib.parse import urlsplit
 
 from flask import Blueprint, current_app, g, jsonify, request
@@ -63,6 +64,13 @@ def assistant(action):
     if action not in ('preview', 'apply', 'export', 'authorize'):
         raise PredictionError('UNKNOWN_ACTION', 'Thao tác chưa được hỗ trợ', 404)
     return assistant_gateway.forward(action)
+
+
+@ai_gateway.get('/api/v1/assistant/jobs/<identifier>')
+def poll_job(identifier):
+    if not re.fullmatch(r'[A-Za-z0-9_-]{43}', identifier):
+        raise PredictionError('ASSISTANT_JOB_EXPIRED', 'Không tìm thấy yêu cầu', 404)
+    return assistant_gateway.forward('jobs/' + identifier)
 
 
 @ai_gateway.get('/api/v1/ai-admin/state')

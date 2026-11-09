@@ -12,6 +12,31 @@ from backend.map_predict.services import assistant_gateway
 
 
 class AIServiceTests(unittest.TestCase):
+    def test_gateway_forwards_async_preference_and_job_poll_using_internal_key(self):
+        app = create_app({**self.config, 'ASSISTANT_SERVICE_URL': 'http://ai-assistant:8001'})
+        remote = Mock()
+        remote.__enter__ = Mock(return_value=remote)
+        remote.__exit__ = Mock(return_value=False)
+        remote.read.return_value = b'{"data":{"state":"pending"}}'
+        remote.code = 202
+        remote.headers = {'Content-Type': 'application/json'}
+        opener = Mock()
+        opener.open.return_value = remote
+        identifier = 'a' * 43
+        with patch.object(assistant_gateway, 'build_opener', return_value=opener):
+            response = app.test_client().post('/api/v1/assistant/preview', data={'message': 'hello'},
+                headers={'Prefer': 'respond-async', 'Authorization': 'Bearer browser-value'})
+            self.assertEqual(response.status_code, 202)
+            forwarded = opener.open.call_args.args[0]
+            self.assertEqual(forwarded.get_header('Prefer'), 'respond-async')
+            self.assertEqual(forwarded.get_header('Authorization'), 'Bearer private-test-key')
+            poll = app.test_client().get('/api/v1/assistant/jobs/' + identifier)
+            self.assertEqual(poll.status_code, 202)
+            forwarded = opener.open.call_args.args[0]
+            self.assertEqual(forwarded.full_url, 'http://ai-assistant:8001/api/v1/assistant/jobs/' + identifier)
+            self.assertEqual(forwarded.method, 'GET')
+            self.assertEqual(forwarded.get_header('Authorization'), 'Bearer private-test-key')
+
     def test_worker_can_start_without_importing_web_backend(self):
         script = '''
 import importlib.abc
