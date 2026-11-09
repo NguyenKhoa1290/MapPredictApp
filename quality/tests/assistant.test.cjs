@@ -209,7 +209,8 @@ test('real workspace restores DXF, empty CSV input and table across confirm undo
         assert.equal(await w.workspacePersistence.flush(), true);
         w.eval(script);
         const historySlot = w.document.querySelector('.assistant-actions .assistant-history-slot');
-        assert.equal(historySlot.nextElementSibling.type, 'submit');
+        assert.ok(historySlot.nextElementSibling.classList.contains('assistant-model-picker'));
+        assert.equal(historySlot.nextElementSibling.nextElementSibling.type, 'submit');
         for (const action of ['undo', 'redo']) {
             const control = historySlot.querySelector(`[data-action="${action}"]`);
             assert.ok(control.querySelector('svg[aria-hidden="true"]'));
@@ -466,7 +467,7 @@ test('context button compacts chat without attachments or workspace mutations', 
     } finally { f.close(); }
 });
 
-test('effort card slider follows supported levels, model changes and reset', async () => {
+test('effort popup follows supported levels and sits beside Send without decorative buttons', async () => {
     const f = fixture({ enabled: true, modes: [
         { id: 'fast', efforts: ['auto', 'low'] },
         { id: 'smart', efforts: ['auto', 'low', 'medium', 'high'] }
@@ -486,7 +487,11 @@ test('effort card slider follows supported levels, model changes and reset', asy
         assert.equal(f.get('effort').value, 'high');
         assert.equal(f.get('effort-slider').getAttribute('aria-valuetext'), 'Cao');
         assert.match(f.get('picker-summary').textContent, /Thông minh · Cao/);
-        f.get('effort-reset').click();
+        assert.equal(f.get('effort-reset'), null);
+        assert.equal(f.get('model-bolt'), null);
+        assert.equal(f.get('model-picker').nextElementSibling.type, 'submit');
+        f.get('effort-slider').value = '0';
+        f.get('effort-slider').dispatchEvent(new f.window.Event('input'));
         assert.equal(f.get('effort').value, 'auto');
         assert.equal(f.get('effort-slider').value, '0');
         assert.equal(f.window.localStorage.getItem('mapPredict.assistant.effort.v1'), 'auto');

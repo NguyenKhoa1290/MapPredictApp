@@ -1028,3 +1028,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Thanh kéo theo nấc chỉ dùng các mức được service xác nhận hỗ trợ, có nút đặt lại về Mặc định
 - Giữ lưu lựa chọn nỗ lực, xác thực passcode và cách gửi mode/effort hiện tại
 - Đã kiểm tra 37 kiểm thử JavaScript, Chrome với bàn phím, đặt lại, passcode, thu gọn và màn hình rộng 390px
+
+## 2026-11-09 Thu gọn lựa chọn cạnh nút gửi
+
+- Chuyển nút model và nỗ lực xuống cạnh nút Gửi, lựa chọn mở trong popup rộng 250px phía trên, không đẩy nội dung hội thoại
+- Tăng chiều rộng chatbot trên desktop từ 420px lên 580px, giữ vừa màn hình nhỏ
+- Bỏ biểu tượng sấm sét và nút đặt lại, có thể chọn Mặc định bằng thanh kéo
+- Đóng popup bằng Escape hoặc bấm ra ngoài, giữ thao tác bàn phím và xác thực model Thông minh
+- Kiểm tra Chrome trên desktop và màn hình rộng 390px, 37 kiểm thử JavaScript đạt

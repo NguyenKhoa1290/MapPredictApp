@@ -17,7 +17,7 @@ export function installAssistant(ctx) {
         <header class="assistant-header"><div><strong>Trợ lý GIS</strong><small>DXF và tiêu chí đánh giá</small></div><button type="button" class="assistant-close" aria-label="Thu nhỏ trợ lý">×</button></header>
         <div class="assistant-messages" role="log" aria-live="polite"></div>
         <details class="assistant-model-picker"><summary><span class="assistant-picker-summary">Nhanh · Mặc định</span><span aria-hidden="true">⌄</span></summary>
-          <div class="assistant-model-card"><span class="assistant-model-bolt" aria-hidden="true">ϟ</span><button type="button" class="assistant-effort-reset" aria-label="Đặt lại nỗ lực" title="Đặt lại nỗ lực">↶</button>
+          <div class="assistant-model-card">
             <strong class="assistant-effort-heading">Mặc định</strong>
             <label class="assistant-model-label"><span class="sr-only">Model</span><select class="assistant-mode" aria-label="Model"><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select></label>
             <div class="assistant-effort-track"><div class="assistant-effort-ticks" aria-hidden="true"></div><input class="assistant-effort-slider" type="range" min="0" max="3" step="1" value="0" aria-label="Nỗ lực suy nghĩ"></div>
@@ -31,6 +31,11 @@ export function installAssistant(ctx) {
       </section>`;
     document.body.append(root);
     const get = selector => root.querySelector('.assistant-' + selector);
+    const modelPicker = get('model-picker');
+    get('actions').insertBefore(modelPicker, get('form').querySelector('[type="submit"]'));
+    window.addEventListener('pointerdown', event => {
+      if (!modelPicker.contains(event.target)) modelPicker.open = false;
+    });
     const launcher = get('launcher'),
       panel = get('window');
     const positionKey = 'mapPredict.assistant.position.v1';
@@ -139,10 +144,6 @@ export function installAssistant(ctx) {
     get('effort-slider').addEventListener('input', () => {
       const options = [...get('effort').options].filter(option => !option.disabled);
       get('effort').value = options[Number(get('effort-slider').value)]?.value || 'auto';
-      get('effort').dispatchEvent(new Event('change'));
-    });
-    get('effort-reset').addEventListener('click', () => {
-      get('effort').value = 'auto';
       get('effort').dispatchEvent(new Event('change'));
     });
     function updateEfforts() {
@@ -255,7 +256,11 @@ export function installAssistant(ctx) {
       get('form').querySelector('textarea').focus();
     });
     panel.addEventListener('keydown', event => {
-      if (event.key === 'Escape') get('close').click();
+      if (event.key !== 'Escape') return;
+      if (modelPicker.open) {
+        modelPicker.open = false;
+        modelPicker.querySelector('summary').focus();
+      } else get('close').click();
     });
     const questionInput = get('form').querySelector('textarea');
     questionInput.title = 'Enter để gửi, Shift + Enter để xuống dòng';
