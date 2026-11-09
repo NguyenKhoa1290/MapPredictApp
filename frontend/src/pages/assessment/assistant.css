@@ -1,4 +1,4 @@
-.assistant-root {
+.assessment-root .assistant-root {
     position: fixed;
     right: 18px;
     bottom: 90px;
@@ -8,7 +8,7 @@
     text-align: left
 }
 
-.assistant-root button {
+.assessment-root .assistant-root button {
     cursor: pointer;
     text-decoration: none !important;
     font: inherit;
@@ -19,16 +19,16 @@
     color: #087445
 }
 
-.assistant-root button:hover {
+.assessment-root .assistant-root button:hover {
     background: #edf7f0
 }
 
-.assistant-root button:disabled {
+.assessment-root .assistant-root button:disabled {
     opacity: .5;
     cursor: wait
 }
 
-.assistant-launcher {
+.assessment-root .assistant-launcher {
     box-shadow: 0 4px 20px #133d2a25;
     width: 60px;
     height: 60px;
@@ -43,11 +43,11 @@
     user-select: none
 }
 
-.assistant-launcher:active { cursor: grabbing !important }
-.assistant-launcher:focus-visible { outline: 3px solid #6acb9a; outline-offset: 3px }
-.assistant-launcher img { width: 38px; height: 38px; object-fit: contain; pointer-events: none }
+.assessment-root .assistant-launcher:active { cursor: grabbing !important }
+.assessment-root .assistant-launcher:focus-visible { outline: 3px solid #6acb9a; outline-offset: 3px }
+.assessment-root .assistant-launcher img { width: 38px; height: 38px; object-fit: contain; pointer-events: none }
 
-.assistant-window {
+.assessment-root .assistant-window {
     position: fixed;
     bottom: 160px;
     right: 18px;
@@ -62,12 +62,12 @@
     flex-direction: column
 }
 
-.assistant-window[hidden],
-.assistant-root [hidden] {
+.assessment-root .assistant-window[hidden],
+.assessment-root .assistant-root [hidden] {
     display: none !important
 }
 
-.assistant-header {
+.assessment-root .assistant-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -76,18 +76,18 @@
     flex-shrink: 0
 }
 
-.assistant-header small {
+.assessment-root .assistant-header small {
     display: block;
     color: #52695e
 }
 
-.assistant-close {
+.assessment-root .assistant-close {
     border: 0 !important;
     font-size: 23px !important;
     padding: 0 8px !important
 }
 
-.assistant-messages {
+.assessment-root .assistant-messages {
     flex: 1 1 0;
     min-height: 0;
     overflow: auto;
@@ -95,7 +95,7 @@
     overscroll-behavior: contain
 }
 
-.assistant-message {
+.assessment-root .assistant-message {
     padding: 10px 12px;
     margin-bottom: 10px;
     background: #f2f5f3;
@@ -103,31 +103,31 @@
     overflow-wrap: anywhere
 }
 
-.assistant-message.user {
+.assessment-root .assistant-message.user {
     margin-left: 24px;
     background: #e6f3e9
 }
 
-.assistant-message p {
+.assessment-root .assistant-message p {
     white-space: pre-wrap;
     margin: 5px 0;
     text-align: left;
     letter-spacing: normal
 }
 
-.assistant-message small,
-.assistant-message a {
+.assessment-root .assistant-message small,
+.assessment-root .assistant-message a {
     display: block
 }
 
-.assistant-message blockquote {
+.assessment-root .assistant-message blockquote {
     margin: 6px 0;
     padding-left: 8px;
     border-left: 2px solid #a8c8b5;
     font-size: 12px
 }
 
-.assistant-context {
+.assessment-root .assistant-context {
     padding: 8px 14px;
     border-top: 1px solid #dce8df;
     max-height: 220px;
@@ -135,19 +135,19 @@
     flex-shrink: 0
 }
 
-.assistant-context summary {
+.assessment-root .assistant-context summary {
     cursor: pointer;
     font-weight: 600
 }
 
-.assistant-context label {
+.assessment-root .assistant-context label {
     display: block;
     margin-top: 7px
 }
 
-.assistant-context input:not([type=checkbox]),
-.assistant-context select,
-.assistant-form textarea {
+.assessment-root .assistant-context input:not([type=checkbox]),
+.assessment-root .assistant-context select,
+.assessment-root .assistant-form textarea {
     width: 100%;
     box-sizing: border-box;
     border: 1px solid #c9d9ce;
@@ -158,19 +158,19 @@
     color: #18372e
 }
 
-.assistant-context input[type=checkbox] {
+.assessment-root .assistant-context input[type=checkbox] {
     width: auto;
     margin-right: 6px
 }
 
-.assistant-context p {
+.assessment-root .assistant-context p {
     margin: 7px 0;
     font-size: 12px;
     color: #53695d;
     text-align: left
 }
 
-.assistant-preview {
+.assessment-root .assistant-preview {
     max-height: 210px;
     overflow: auto;
     padding: 10px 14px;
@@ -179,22 +179,22 @@
     flex-shrink: 0
 }
 
-.assistant-preview ul {
+.assessment-root .assistant-preview ul {
     padding-left: 19px;
     margin: 7px 0
 }
 
-.assistant-preview li {
+.assessment-root .assistant-preview li {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     margin-bottom: 7px
 }
 
-.assistant-preview button {
+.assessment-root .assistant-preview button {
     margin-right: 7px
 }
 
-.assistant-notice {
+.assessment-root .assistant-notice {
     font-size: 12px;
     padding: 6px 14px;
     white-space: pre-wrap;
@@ -204,12 +204,12 @@
     flex-shrink: 0
 }
 
-.assistant-notice a {
+.assessment-root .assistant-notice a {
     color: #087445;
     margin-right: 8px
 }
 
-.assistant-knowledge {
+.assessment-root .assistant-knowledge {
     padding: 5px 14px;
     font-size: 12px;
     max-height: 95px;
@@ -218,16 +218,16 @@
     overflow-wrap: anywhere
 }
 
-.assistant-knowledge summary {
+.assessment-root .assistant-knowledge summary {
     cursor: pointer
 }
 
-.assistant-knowledge p {
+.assessment-root .assistant-knowledge p {
     white-space: pre-wrap;
     margin: 4px 0
 }
 
-.assistant-exports {
+.assessment-root .assistant-exports {
     padding: 7px 14px;
     border-top: 1px solid #dce8df;
     display: flex;
@@ -236,7 +236,7 @@
     flex-shrink: 0
 }
 
-.assistant-exports a {
+.assessment-root .assistant-exports a {
     padding: 7px 10px;
     border: 1px solid #b8d4c4;
     border-radius: 8px;
@@ -245,43 +245,43 @@
     background: #edf7f0
 }
 
-.assistant-context,
-.assistant-preview,
-.assistant-knowledge {
+.assessment-root .assistant-context,
+.assessment-root .assistant-preview,
+.assessment-root .assistant-knowledge {
     flex-shrink: 1
 }
 
-.assistant-context {
+.assessment-root .assistant-context {
     min-height: 32px
 }
 
-.assistant-preview {
+.assessment-root .assistant-preview {
     min-height: 0;
     max-height: min(210px, 30%);
     overscroll-behavior: contain
 }
 
-.assistant-knowledge {
+.assessment-root .assistant-knowledge {
     min-height: 24px
 }
 
-.assistant-form {
+.assessment-root .assistant-form {
     background: #fff
 }
 
-.assistant-form {
+.assessment-root .assistant-form {
     padding: 10px 12px;
     border-top: 1px solid #dce8df;
     flex-shrink: 0
 }
 
-.assistant-form textarea {
+.assessment-root .assistant-form textarea {
     resize: none;
     height: 64px;
     overflow-y: auto
 }
 
-.assistant-actions {
+.assessment-root .assistant-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -289,17 +289,17 @@
     align-items: center
 }
 
-.assistant-clear {
+.assessment-root .assistant-clear {
     margin-left: auto;
     font-size: 12px !important
 }
 
-.assistant-root :focus-visible {
+.assessment-root .assistant-root :focus-visible {
     outline: 3px solid #79b994;
     outline-offset: 2px
 }
 
-.assistant-root .sr-only {
+.assessment-root .assistant-root .sr-only {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -312,12 +312,12 @@
 }
 
 @media(max-width:600px) {
-    .assistant-root {
+    .assessment-root .assistant-root {
         right: 10px;
         bottom: 90px
     }
 
-    .assistant-window {
+    .assessment-root .assistant-window {
         width: calc(100vw - 20px);
         height: calc(100dvh - 180px);
         bottom: 160px;
@@ -325,8 +325,8 @@
     }
 }
 
-.assistant-mode-label,
-.assistant-effort-label {
+.assessment-root .assistant-mode-label,
+.assessment-root .assistant-effort-label {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -335,8 +335,8 @@
     flex-shrink: 0;
 }
 
-.assistant-mode,
-.assistant-effort {
+.assessment-root .assistant-mode,
+.assessment-root .assistant-effort {
     flex: 1;
     min-width: 0;
     padding: 7px 10px;
@@ -347,24 +347,24 @@
     font: inherit;
 }
 
-.assistant-passcode-label {
+.assessment-root .assistant-passcode-label {
     padding: 8px 16px;
     margin: 0;
     flex-shrink: 0;
 }
 
-.assistant-passcode-label:not([hidden]) {
+.assessment-root .assistant-passcode-label:not([hidden]) {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
 }
 
-.assistant-passcode-label label {
+.assessment-root .assistant-passcode-label label {
     width: 100%;
 }
 
-.assistant-passcode {
+.assessment-root .assistant-passcode {
     flex: 1;
     min-width: 0;
     padding: 7px;
@@ -372,7 +372,7 @@
     border-radius: 6px;
 }
 
-.assistant-history-bar {
+.assessment-root .assistant-history-bar {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -380,11 +380,11 @@
     box-sizing: border-box;
 }
 
-.assistant-history-bar span {
+.assessment-root .assistant-history-bar span {
     color: #52695e;
 }
 
-.assistant-history-bar button {
+.assessment-root .assistant-history-bar button {
     width: 36px;
     height: 38px;
     padding: 7px;
@@ -399,53 +399,53 @@
     text-decoration: none !important;
 }
 
-.assistant-history-bar button:disabled {
+.assessment-root .assistant-history-bar button:disabled {
     opacity: .45;
     cursor: default;
 }
 
-.assistant-history-bar [hidden] {
+.assessment-root .assistant-history-bar [hidden] {
     display: none;
 }
 
-.assistant-history-bar button:focus-visible {
+.assessment-root .assistant-history-bar button:focus-visible {
     outline: 3px solid #79b994;
     outline-offset: 2px;
 }
 
-.assistant-history-slot {
+.assessment-root .assistant-history-slot {
     flex-shrink: 0;
 }
 
-.assistant-history-slot [data-action="confirm"],
-.assistant-history-slot [data-action="discard"] {
+.assessment-root .assistant-history-slot [data-action="confirm"],
+.assessment-root .assistant-history-slot [data-action="discard"] {
     display: none;
 }
 
 @media(max-height:600px) {
-    .assistant-header {
+    .assessment-root .assistant-header {
         padding: 7px 12px;
     }
 
-    .assistant-header small {
+    .assessment-root .assistant-header small {
         display: none;
     }
 
-    .assistant-mode-label,
-    .assistant-effort-label,
-    .assistant-passcode-label {
+    .assessment-root .assistant-mode-label,
+    .assessment-root .assistant-effort-label,
+    .assessment-root .assistant-passcode-label {
         padding: 5px 12px;
     }
 
-    .assistant-form {
+    .assessment-root .assistant-form {
         padding: 6px 10px;
     }
 
-    .assistant-form textarea {
+    .assessment-root .assistant-form textarea {
         height: 52px;
     }
 
-    .assistant-notice {
+    .assessment-root .assistant-notice {
         max-height: 40px;
         padding: 3px 10px;
         flex-shrink: 1;

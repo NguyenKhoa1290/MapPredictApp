@@ -1,12 +1,13 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { readAssessmentSource } = require('./assessment_sources.cjs');
 const { JSDOM } = require('../../frontend/node_modules/jsdom');
-const script = fs.readFileSync(require('node:path').join(__dirname, '../../assessment/static/assistant.js'), 'utf8');
+const script = readAssessmentSource('frontend/src/pages/assessment/engine/assistant.js');
 const tick = () => new Promise(resolve => setTimeout(resolve, 5));
 const vm = require('node:vm');
 const historyContext = vm.createContext({ Blob, structuredClone, setTimeout, clearTimeout });
-vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../../assessment/static/workspace_store.js'), 'utf8'), historyContext);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../../frontend/public/workspace_store.js'), 'utf8'), historyContext);
 const WorkspaceHistory = historyContext.WorkspaceHistory;
 
 test('stalled browser save aborts instead of locking draft review indefinitely', async () => {
@@ -14,7 +15,7 @@ test('stalled browser save aborts instead of locking draft review indefinitely',
     const context = vm.createContext({ Blob, structuredClone,
         setTimeout(callback, ms) { assert.equal(ms, 30000); expire = callback; return 1; },
         clearTimeout() { cleared = true; } });
-    vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../../assessment/static/workspace_store.js'), 'utf8'), context);
+    vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../../frontend/public/workspace_store.js'), 'utf8'), context);
     const store = new context.WorkspaceStore();
     const tx = { objectStore: () => ({ get: () => ({}) }),
         abort() { aborted = true; this.onabort(); } };
@@ -30,8 +31,8 @@ test('stalled browser save aborts instead of locking draft review indefinitely',
 
 test('joined parcel clicks show a safe name popup without zoom while base layer clicks still zoom', () => {
     const path = require('node:path');
-    const read = name => fs.readFileSync(path.join(__dirname, '../..', name), 'utf8');
-    const html = read('assessment/templates/index.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+    const read = readAssessmentSource;
+    const html = read('quality/fixtures/assessment.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
     const dom = new JSDOM(html, { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
     const w = dom.window;
     const fits = [], cells = [];
@@ -47,7 +48,7 @@ test('joined parcel clicks show a safe name popup without zoom while base layer 
     } };
     try {
         w.eval(`const $ = id => document.getElementById(id); let overlays = [], cadFiles = [], predictionFiles = [], pendingMapBounds = null;\n`
-            + read('assessment/static/color_adjustments.js') + '\n' + read('assessment/static/layer_manager.js'));
+            + read('frontend/public/color_adjustments.js') + '\n' + read('frontend/src/pages/assessment/engine/layers.js'));
         const feature = properties => ({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [] }, properties });
         const item = (kind, properties, join = 'grid_id') => ({ kind, name: kind, source_id: kind, crs: 'EPSG:9208',
             data: { features: [feature(properties)], join_summary: { layer_join: join } } });
@@ -84,8 +85,8 @@ test('joined parcel clicks show a safe name popup without zoom while base layer 
 
 test('chat sends the full displayed prediction result and restores it after workspace travel', async () => {
     const path = require('node:path');
-    const read = name => fs.readFileSync(path.join(__dirname, '../..', name), 'utf8');
-    const html = read('assessment/templates/index.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '').replace(/{%[^%]*%}/g, '');
+    const read = readAssessmentSource;
+    const html = read('quality/fixtures/assessment.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '').replace(/{%[^%]*%}/g, '');
     const dom = new JSDOM(html, { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
     const w = dom.window;
     try {
@@ -120,10 +121,10 @@ test('chat sends the full displayed prediction result and restores it after work
             }
             throw new Error('Unexpected request: ' + url);
         };
-        w.eval([read('assessment/static/workspace_store.js'),
+        w.eval([read('frontend/public/workspace_store.js'),
             `window.WorkspaceStore = class { async read() { return null; } async write() {} };`,
-            read('assessment/static/join_preview.js'), read('assessment/static/color_adjustments.js'), read('assessment/static/app.js'),
-            read('assessment/static/layer_manager.js'), read('assessment/static/workspace.js'),
+            read('frontend/public/join_preview.js'), read('frontend/public/color_adjustments.js'), read('frontend/src/pages/assessment/engine/core.js'),
+            read('frontend/src/pages/assessment/engine/layers.js'), read('frontend/src/pages/assessment/engine/persistence.js'),
             `window.showInputPreview = () => renderPredictionTable([{id:'OLD',x1:1}], false, 205);`].join('\n'));
         for (let i = 0; i < 40 && !w.workspacePersistence.ready; i++) await tick();
         assert.equal(w.workspacePersistence.ready, true);
@@ -173,8 +174,8 @@ test('chat sends the full displayed prediction result and restores it after work
 
 test('real workspace restores DXF, empty CSV input and table across confirm undo redo', async () => {
     const path = require('node:path');
-    const read = name => fs.readFileSync(path.join(__dirname, '../..', name), 'utf8');
-    const html = read('assessment/templates/index.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '')
+    const read = readAssessmentSource;
+    const html = read('quality/fixtures/assessment.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '')
         .replace(/{%[^%]*%}/g, '');
     const dom = new JSDOM(html, { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
     const w = dom.window;
@@ -195,10 +196,10 @@ test('real workspace restores DXF, empty CSV input and table across confirm undo
         w.HTMLElement.prototype.scrollTo = () => {};
         w.URL.createObjectURL = () => 'blob:test'; w.URL.revokeObjectURL = () => {};
         w.fetch = async () => { throw new Error('Unexpected network request'); };
-        const code = [read('assessment/static/workspace_store.js'),
+        const code = [read('frontend/public/workspace_store.js'),
             `window.WorkspaceStore = class { async read() { return null; } async write(state, assets) { window.savedWorkspace = structuredClone({state, assets}); } };`,
-            read('assessment/static/join_preview.js'), read('assessment/static/color_adjustments.js'), read('assessment/static/app.js'),
-            read('assessment/static/layer_manager.js'), read('assessment/static/workspace.js'),
+            read('frontend/public/join_preview.js'), read('frontend/public/color_adjustments.js'), read('frontend/src/pages/assessment/engine/core.js'),
+            read('frontend/src/pages/assessment/engine/layers.js'), read('frontend/src/pages/assessment/engine/persistence.js'),
             `window.seedResources = () => { cadFiles = [{id:'cad-1',key:'original',file:new File(['old DXF'],'base.dxf')}]; updateCadOptions(); };
              window.inspectResources = () => ({name:cadFiles[0].file.name, table:predictionView, csv:$('csv-file').files[0]});`].join('\n');
         w.eval(code);
@@ -278,6 +279,27 @@ function historyFixture() {
     return { history, edit, get value() { return value; }, get saved() { return saved; }, get paused() { return paused; } };
 }
 
+test('confirm remains busy until durable saving completes and retains the draft on failure', async () => {
+    const f = historyFixture();
+    await f.history.stage(f.edit);
+    let finish;
+    f.history.resume = () => new Promise(resolve => { finish = resolve; });
+    const saving = f.history.confirm();
+    assert.equal(f.history.busy, true);
+    await f.history.travel('undo');
+    assert.equal(f.history.past.length, 1);
+    finish(); await saving;
+    assert.equal(f.history.busy, false);
+
+    const failed = historyFixture();
+    await failed.history.stage(failed.edit);
+    failed.history.resume = async () => { throw new Error('quota'); };
+    await assert.rejects(failed.history.confirm(), /quota/);
+    assert.ok(failed.history.pending);
+    assert.equal(failed.history.past.length, 0);
+    assert.equal(failed.history.busy, false);
+});
+
 test('DXF and CSV draft confirm, undo and redo as one transaction without regenerating', async () => {
     const f = historyFixture();
     await f.history.stage(f.edit);
@@ -313,18 +335,18 @@ test('discard and a failed map render restore both resources and resume autosave
 
 test('history refuses to overwrite newer CSV edits and drops redo after a new confirmation', async () => {
     const f = historyFixture();
-    await f.history.stage(f.edit); f.history.confirm();
+    await f.history.stage(f.edit); await f.history.confirm();
     f.value.assets.get('rows')[0].x1 = 9;
     await assert.rejects(f.history.travel('undo'), /đã thay đổi/);
     f.value.assets.get('rows')[0].x1 = 5;
     await f.history.travel('undo');
-    await f.history.stage(f.edit); f.history.confirm();
+    await f.history.stage(f.edit); await f.history.confirm();
     assert.equal(f.history.future.length, 0);
 });
 
 test('a new page can import before and after history with DXF bytes and redo position', async () => {
     const first = historyFixture();
-    await first.history.stage(first.edit); first.history.confirm();
+    await first.history.stage(first.edit); await first.history.confirm();
     await first.history.travel('undo');
     const stored = structuredClone(first.history.export());
     const reloaded = historyFixture();
@@ -345,7 +367,7 @@ test('IndexedDB stores the complete timeline and DXF bytes across a database reo
     try {
         await first.read();
         const f = historyFixture();
-        await f.history.stage(f.edit); f.history.confirm();
+        await f.history.stage(f.edit); await f.history.confirm();
         const assets = new Map(f.value.assets);
         assets.set('history:assistant', f.history.export());
         await first.write(f.value.state, assets);

@@ -6,8 +6,8 @@ import { projectPath } from '../../paths';
 import { ProjectMapCanvas } from '../../../../frontend/src/pages/projects/components/ProjectMapCanvas';
 import type { CellProperties, ProjectMapData } from '../../../../frontend/src/shared/api/types';
 
-const leafletSource = readFileSync(projectPath('assessment/static/leaflet/leaflet.js'), 'utf8');
-const basemapsSource = readFileSync(projectPath('assessment/static/basemaps.js'), 'utf8');
+const leafletSource = readFileSync(projectPath('frontend/public/leaflet/leaflet.js'), 'utf8');
+const basemapsSource = readFileSync(projectPath('frontend/public/basemaps.js'), 'utf8');
 
 const data: ProjectMapData = {
   project_id: 'test', mode: 'geographic', source_crs: 'EPSG:9208', crs_confirmed: false, crs_options: [],

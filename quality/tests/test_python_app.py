@@ -11,7 +11,7 @@ import ezdxf
 from pyproj import Transformer
 from shapely.geometry import shape
 
-import assessment.app as python_app
+import backend.app as python_app
 from shared.geospatial.gis import base_geojson, gpkg_diagnostics
 
 
@@ -19,15 +19,9 @@ class PythonAppTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.result_path = Path(self.directory.name) / "KetQua.csv"
-        self.result_patch = patch.object(python_app, "RESULT_CSV", self.result_path)
-        self.data_patch = patch.object(python_app, "DATA_DIR", Path(self.directory.name))
-        self.result_patch.start()
-        self.data_patch.start()
         self.client = python_app.app.test_client()
 
     def tearDown(self):
-        self.data_patch.stop()
-        self.result_patch.stop()
         self.directory.cleanup()
 
     def test_default_model_predicts_without_shared_result_export(self):
@@ -74,18 +68,11 @@ class PythonAppTests(unittest.TestCase):
         self.assertEqual(self.client.get('/').location, '/portal/')
         self.assertEqual(self.client.get('/legacy/').location, '/portal/assessment')
         page = self.client.get("/legacy/?embedded=1")
-        self.assertEqual(page.status_code, 200)
-        self.assertIn(b"/static/leaflet/leaflet.js", page.data)
-        self.assertIn(b"/static/app.css", page.data)
-        self.assertIn(b"/static/favicon.png", page.data)
-        self.assertIn(b"pdf_export.js", page.data)
-        self.assertIn(b'id="map-export-pdf"', page.data)
-        self.assertNotIn(b'id="workspace-save-now"', page.data)
-        self.assertLess(page.data.index(b'id="map-button"'), page.data.index(b'id="map-export-pdf"'))
+        self.assertEqual(page.status_code, 302)
+        self.assertEqual(page.location, '/portal/assessment')
         page.close()
-        asset = self.client.get("/static/app.js")
+        asset = self.client.get("/static/workspace_store.js")
         self.assertEqual(asset.status_code, 200)
-        self.assertIn(b"server.arcgisonline.com", asset.data)
         asset.close()
         leaflet_asset = self.client.get("/static/leaflet/leaflet.js")
         self.assertEqual(leaflet_asset.status_code, 200)

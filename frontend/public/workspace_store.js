@@ -148,11 +148,20 @@
         async confirm() {
             if (this.busy || !this.pending) return;
             this.assertCurrent(this.pending.after);
-            this.past.push(this.pending);
-            if (this.past.length > this.limit) this.past.shift();
-            this.future = []; this.pending = null;
-            this.persisted = null;
-            this.changed(); await this.resume();
+            const pending = this.pending, past = [...this.past], future = this.future;
+            this.busy = true;
+            try {
+                this.past.push(pending);
+                if (this.past.length > this.limit) this.past.shift();
+                this.future = []; this.pending = null;
+                this.persisted = null;
+                this.changed();
+                await this.resume();
+            } catch (error) {
+                this.pending = pending; this.past = past; this.future = future;
+                this.persisted = null;
+                throw error;
+            } finally { this.busy = false; this.changed(); }
         }
         async travel(direction) {
             if (this.busy) return;

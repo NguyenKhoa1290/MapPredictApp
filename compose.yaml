@@ -19,8 +19,8 @@ x-worker: &worker
   secrets: [assistant_key]
   volumes:
     - type: bind
-      source: ./assessment/static/image
-      target: /app/assessment/static/image
+      source: ./frontend/public/image
+      target: /app/frontend/public/image
       read_only: true
       bind:
         create_host_path: false

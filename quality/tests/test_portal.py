@@ -8,6 +8,13 @@ from backend.map_predict import create_app
 
 
 class PortalTests(unittest.TestCase):
+    def test_coordinate_systems_are_available_to_the_react_workspace(self):
+        response = self.client.get('/api/v1/coordinate-systems')
+        self.assertEqual(response.status_code, 200)
+        codes = {item['code'] for item in response.json['data']}
+        self.assertIn('EPSG:9208', codes)
+        self.assertIn('EPSG:4326', codes)
+
     def setUp(self):
         self.app = create_app({"TESTING": True})
         self.client = self.app.test_client()

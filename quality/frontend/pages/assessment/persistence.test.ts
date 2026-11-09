@@ -6,7 +6,7 @@ import { IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { AssessmentStorage, emptyAssessment } from '../../../../frontend/src/pages/assessment/csv/persistence';
 import type { AssessmentState } from '../../../../frontend/src/pages/assessment/csv/persistence';
 
-const source = readFileSync(projectPath('assessment/static/workspace_store.js'), 'utf8');
+const source = readFileSync(projectPath('frontend/public/workspace_store.js'), 'utf8');
 let factory: IDBFactory;
 let opened: AssessmentStorage[];
 const open = () => { const store = new AssessmentStorage(factory); opened.push(store); return store; };

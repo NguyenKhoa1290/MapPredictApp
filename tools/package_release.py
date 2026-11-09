@@ -15,7 +15,7 @@ FILES = (
     "backend/models/rf_model_rating_pipeline.pkl", "quality/__init__.py",
     "frontend/src/pages/about/content.json", "frontend/src/pages/projects/catalog.json",
 )
-FOLDERS = ("backend", "ai_service", "assessment", "shared", "quality/analysis", "frontend/dist", "Tailieuthamkhao/docs")
+FOLDERS = ("backend", "ai_service", "shared", "quality/analysis", "frontend/public", "frontend/dist", "Tailieuthamkhao/docs")
 
 
 def sources():
@@ -46,10 +46,10 @@ def package(destination):
 def smoke_test(destination):
     script = '''
 import io
-from assessment.app import app
+from backend.app import app
 client = app.test_client()
 assert client.get('/').location == '/portal/'
-for route in ('/portal/', '/portal/projects', '/portal/assessment', '/legacy/?embedded=1'):
+for route in ('/portal/', '/portal/projects', '/portal/assessment'):
     response = client.get(route)
     assert response.status_code == 200, (route, response.status_code)
 assert client.get('/api/v1/predictions/model').json['data']['ready']

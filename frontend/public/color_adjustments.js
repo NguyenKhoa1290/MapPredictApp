@@ -48,3 +48,5 @@ const ColorAdjustments = (() => {
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = ColorAdjustments;
+
+globalThis.ColorAdjustments = ColorAdjustments;

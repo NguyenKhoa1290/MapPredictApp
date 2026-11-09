@@ -7,7 +7,7 @@ from unittest.mock import patch
 import ezdxf
 from shapely.geometry import shape
 
-import assessment.app as python_app
+import backend.app as python_app
 from shared.geospatial.prediction_grid import dxf_grid_metadata, predicted_dxf_grid, read_dxf_grid
 
 
@@ -32,15 +32,9 @@ class PredictionGridTests(unittest.TestCase):
         self.document = grid_document()
         self.document.saveas(self.path)
         self.result_path = self.root / "results.csv"
-        self.result_patch = patch.object(python_app, "RESULT_CSV", self.result_path)
-        self.data_patch = patch.object(python_app, "DATA_DIR", self.root)
-        self.result_patch.start()
-        self.data_patch.start()
         self.client = python_app.app.test_client()
 
     def tearDown(self):
-        self.result_patch.stop()
-        self.data_patch.stop()
         self.directory.cleanup()
 
     def test_closed_cells_and_derived_ids_not_native_tenlodat(self):

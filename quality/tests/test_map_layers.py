@@ -10,7 +10,7 @@ from unittest.mock import patch
 import ezdxf
 from shapely.geometry import shape
 
-import assessment.app as python_app
+import backend.app as python_app
 from shared.geospatial.gis import cad_geojson, gpkg_columns, predicted_geojson
 
 
@@ -45,13 +45,9 @@ class MapLayerTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.root = Path(self.directory.name)
-        self.result_patch = patch.object(python_app, "RESULT_CSV", self.root / "results.csv")
-        self.data_patch = patch.object(python_app, "DATA_DIR", self.root)
-        self.result_patch.start(); self.data_patch.start()
         self.client = python_app.app.test_client()
 
     def tearDown(self):
-        self.result_patch.stop(); self.data_patch.stop()
         self.directory.cleanup()
 
     def test_cad_curves_points_hatches_and_source_metadata(self):

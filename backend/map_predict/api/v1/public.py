@@ -16,6 +16,12 @@ def health():
     return success({"status": "ok", "api_version": "v1"})
 
 
+@public_api.get('/coordinate-systems')
+def coordinate_systems():
+    from shared.geospatial.gis import source_crs_options
+    return success(source_crs_options())
+
+
 @public_api.get("/site-content")
 def site_content():
     content = read_content(current_app.config["PUBLIC_CONTENT_FILE"])

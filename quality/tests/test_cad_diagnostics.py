@@ -6,7 +6,7 @@ from pathlib import Path
 import ezdxf
 from ezdxf.math import Matrix44
 
-from assessment.app import app
+from backend.app import app
 from shared.geospatial.cad_diagnostics import cad_diagnostics
 
 

@@ -6,6 +6,15 @@ import { App } from '../../../frontend/src/app/App';
 import contentFile from '../../../frontend/src/pages/about/content.json';
 import catalogFile from '../../../frontend/src/pages/projects/catalog.json';
 
+vi.mock('../../../frontend/src/pages/assessment/engine/index.js', () => ({
+  createAssessmentRuntime: (root: HTMLElement, navigate: (path: string) => void) => {
+    root.querySelector('#back-to-projects')?.addEventListener('click', event => {
+      event.preventDefault(); navigate('/projects');
+    });
+    return { setActive() {}, dispose() {} };
+  },
+}));
+
 vi.mock('../../../frontend/src/pages/projects/components/ProjectMapCanvas', () => ({
   ProjectMapCanvas: ({ data, visible, opacity, basemap, activeLabels, onSelect }: {
     data: import('../../../frontend/src/shared/api/types').ProjectMapData; visible: boolean; opacity: number; basemap: string;
@@ -32,6 +41,7 @@ function mockAPI({ legacy = true, fail = false } = {}) {
     const url = String(input);
     if (fail) return new Response(JSON.stringify({ error: { message: 'Không tải được nội dung thử nghiệm.' } }), { status: 503 });
     if (url === '/api/v1/site-content') return new Response(JSON.stringify({ data: { ...contentFile, legacy_available: legacy } }));
+    if (url === '/api/v1/coordinate-systems') return new Response(JSON.stringify({ data: mapFixture.crs_options }));
     if (url === '/api/v1/projects') return new Response(JSON.stringify({ data: catalogFile.projects }));
     if (url === '/api/v1/predictions/model') return new Response(JSON.stringify({ data: { ready: true, model_version: 'test-v1', features: ['x1'], message: 'Đã có bộ mô hình trên máy chủ' } }));
     if (url.includes('/map?source_crs=')) return new Response(JSON.stringify({ data: mapFixture }));
@@ -78,31 +88,18 @@ describe('React portal shell', () => {
     await user.click(screen.getByRole('button', { name: /Công cụ AI/ }));
     expect(screen.queryAllByRole('link', { name: /^Khám phá dự án:/ })).toHaveLength(0);
     await user.click(screen.getByRole('link', { name: /Đi đến công cụ đánh giá:/ }));
-    expect(await screen.findByTitle('Công cụ đánh giá quỹ đất')).toBeTruthy();
+    expect(await screen.findByRole('tab', { name: 'Bản đồ' })).toBeTruthy();
+    expect(document.querySelector('iframe')).toBeNull();
     expect(screen.queryByRole('banner')).toBeNull();
-    expect(screen.getByTitle('Công cụ đánh giá quỹ đất').getAttribute('src')).toBe('/legacy/?embedded=1');
     expect(screen.queryByRole('contentinfo')).toBeNull();
-    expect(document.documentElement.style.getPropertyValue('--site-header-height')).toBe('0px');
-    const frame = screen.getByTitle('Công cụ đánh giá quỹ đất');
-    act(() => {
-      window.dispatchEvent(new MessageEvent('message', {
-        origin: 'https://invalid.example', source: (frame as HTMLIFrameElement).contentWindow,
-        data: { type: 'map-predict:navigate-projects' }
-      }));
-    });
-    expect(screen.queryByRole('heading', { name: 'Khám phá các dự án' })).toBeNull();
-    act(() => {
-      window.dispatchEvent(new MessageEvent('message', {
-        origin: window.location.origin, source: (frame as HTMLIFrameElement).contentWindow,
-        data: { type: 'map-predict:navigate-projects' }
-      }));
-    });
-    expect(await screen.findByRole('heading', { name: 'Khám phá các dự án' })).toBeTruthy();
+    const workspace = document.querySelector('.assessment-root');
+    await user.click(document.getElementById('back-to-projects')!);
+    await screen.findByRole('heading', { name: 'Khám phá các dự án' });
     expect(screen.getByRole('banner')).toBeTruthy();
-    expect(screen.getByRole('contentinfo')).toBeTruthy();
-    expect(screen.getByTitle('Công cụ đánh giá quỹ đất')).toBe(frame);
-    await user.click(within(screen.getByRole('navigation')).getByRole('link', { name: /Đánh giá quỹ đất/ }));
-    expect(screen.getByTitle('Công cụ đánh giá quỹ đất')).toBe(frame);
+    expect(workspace?.isConnected).toBe(true);
+    const links = within(screen.getByRole('navigation')).getAllByRole('link');
+    await user.click(links[2]);
+    expect(document.querySelector('.assessment-root')).toBe(workspace);
   });
 
   it('opens a dedicated map page, loads existing labels and offers only viewer controls', async () => {

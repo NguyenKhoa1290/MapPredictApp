@@ -7,6 +7,7 @@ const require = createRequire(import.meta.url);
 
 export default defineConfig({
   base: '/portal/',
+  publicDir: false,
   plugins: [react()],
   server: {
     port: 5173,

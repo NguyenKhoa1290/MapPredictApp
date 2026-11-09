@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const colors = require('../../assessment/static/color_adjustments.js');
+const colors = require('./assessment_sources.cjs').loadUtility('frontend/public/color_adjustments.js');
 
 test('neutral settings preserve exact source colors', () => {
     for (const color of ['#000000', '#ffffff', '#AbCdEf', '#123', '#334155']) {

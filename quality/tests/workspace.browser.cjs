@@ -1,3 +1,4 @@
+const { exposeAssessmentState } = require('./assessment_browser_helpers.cjs');
 // Run against an isolated Flask server: WORKSPACE_TEST_URL and PLAYWRIGHT_MODULE.
 const assert = require("node:assert/strict");
 const path = require("node:path");
@@ -6,7 +7,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 const root = path.resolve(__dirname, "../..");
 const serverUrl = process.env.WORKSPACE_TEST_URL;
 if (!serverUrl) throw new Error("WORKSPACE_TEST_URL must point to a disposable test server, not user data.");
-const url = new URL('/legacy/?embedded=1', serverUrl).href;
+const url = new URL('/portal/assessment', serverUrl).href;
 const python = process.env.PYTHON || path.join(root, "venv", "Scripts", "python.exe");
 const dxf = execFileSync(python, ["-c", `
 import ezdxf,io
@@ -49,6 +50,7 @@ async function state(page) {
     try {
         const context = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
         const page = await context.newPage();
+        await exposeAssessmentState(page);
         const errors = [];
         const apiCalls = [];
         page.on("pageerror", error => errors.push(error.message));
@@ -78,7 +80,13 @@ async function state(page) {
         await page.click("#map-tab");
         await page.selectOption("#csv-join", "id");
         await page.click("#map-button");
-        await page.waitForFunction(() => overlays.length === 2);
+        await page.locator('#join-apply').waitFor({ state: 'visible' });
+        await page.click('#join-apply');
+        await page.waitForFunction(() => overlays.length === 2).catch(async error => {
+            console.error('MAP_DIAGNOSTIC', await page.locator('#map-message').textContent(),
+                await page.locator('#join-preview').textContent(), errors);
+            throw error;
+        });
         await page.locator(".layer-select").first().click();
         await page.selectOption("#style-scope", "a");
         await page.uncheck("#style-source");
@@ -102,12 +110,14 @@ async function state(page) {
         await page.reload();
         await initialized(page);
         assert.deepEqual(await state(page), before);
-        assert.deepEqual(apiCalls.slice(countBeforeReload), []); // No automatic model/map POST or server results overwrite.
+        const metadata = ['/api/v1/site-content', '/api/v1/projects', '/api/v1/coordinate-systems', '/api/v1/assistant/status'];
+        assert.deepEqual(apiCalls.slice(countBeforeReload).filter(path => !metadata.includes(path)), []);
         assert.deepEqual(errors, []);
-        console.log("PASS: files, data, offsets, CRS, groups/colors/hue/invert, visibility, view and active tab survive reload without API calls");
+        console.log("PASS: files, data, offsets, CRS, groups/colors/hue/invert, visibility, view and active tab survive reload without repeating map/prediction calls");
 
         // A new tab in the same browser sees the saved workspace too.
         const newTab = await context.newPage();
+        await exposeAssessmentState(newTab);
         await newTab.goto(url); await initialized(newTab);
         assert.deepEqual(await state(newTab), before);
         await newTab.close();
@@ -125,6 +135,8 @@ async function state(page) {
         await page.click("#map-button");
         const response = await responsePromise;
         assert.equal(response.status(),200);
+        await page.locator('#join-apply').waitFor({ state: 'visible' });
+        await page.click('#join-apply');
         assert.equal(await page.evaluate(()=>window.testResultFilename),"KetQua.csv");
         await page.waitForFunction(() => overlays.length === 2 && overlays[1].item.data.join_summary.matched === 4);
         console.log("PASS: restored source blobs can be uploaded again and cached prediction results remain joinable");
@@ -184,7 +196,7 @@ async function state(page) {
             return saved.state.revision;
         });
         await page.reload();
-        await page.waitForFunction(()=>$("workspace-save-status").classList.contains("text-danger"));
+        await page.waitForFunction(()=>$("workspace-save-status")?.classList.contains("text-danger"));
         assert.equal(await page.evaluate(()=>workspacePersistence.ready),false);
         assert.equal(await page.evaluate(async()=>{const s=new WorkspaceStore();return(await s.read()).state.revision;}),lastRevision);
         console.log("PASS: incomplete/corrupt snapshots are not replaced by an empty workspace");

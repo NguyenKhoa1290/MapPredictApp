@@ -1,10 +1,11 @@
+const { exposeAssessmentState } = require('./assessment_browser_helpers.cjs');
 // Isolated local server only; Playwright creates one test PDF, not user output.
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 const serverUrl = process.env.PDF_TEST_URL;
 if (!serverUrl) throw new Error("PDF_TEST_URL must point to an isolated Flask test server.");
-const url = new URL('/legacy/?embedded=1', serverUrl).href;
+const url = new URL('/portal/assessment', serverUrl).href;
 
 (async()=>{
     const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||"C:/Program Files/Google/Chrome/Application/chrome.exe",headless:true});
@@ -15,7 +16,8 @@ const url = new URL('/legacy/?embedded=1', serverUrl).href;
         await context.route(/https:\/\/.*(arcgisonline\.com|tile\.openstreetmap\.org)\/.*/,route=>route.fulfill({
             status:200,contentType:"image/svg+xml",body:'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e5ecd6"/><path d="M0 256L256 0M0 128L128 0M128 256L256 128" stroke="#d4debd" stroke-width="4"/></svg>'
         }));
-        const page=await context.newPage();const errors=[];page.on("pageerror",e=>errors.push(e.message));
+        const page=await context.newPage();
+        await exposeAssessmentState(page);const errors=[];page.on("pageerror",e=>errors.push(e.message));
         await page.goto(url);await page.waitForFunction(()=>workspacePersistence.ready);
         await page.selectOption("#project-crs","EPSG:9208");
         await page.evaluate(()=>{

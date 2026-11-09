@@ -3,26 +3,21 @@
 import csv
 import io
 import math
-import os
 import sqlite3
 import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from flask import Blueprint, current_app, jsonify, redirect, render_template, request
+from flask import Blueprint, current_app, jsonify, redirect, request
 from werkzeug.exceptions import HTTPException
 
 from shared.geospatial.cad_diagnostics import cad_diagnostics
 from shared.geospatial.gis import (cad_geojson, gpkg_columns, gpkg_diagnostics, parse_source_crs,
-                 predicted_geojson, source_crs_options)
+                 predicted_geojson)
 from backend.map_predict.services.prediction import PredictionError, run_prediction
 from shared.geospatial.prediction_grid import dxf_grid_metadata, predicted_dxf_grid
-from backend.map_predict import create_app
 
 
-ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / "MapPredictApp"
-RESULT_CSV = DATA_DIR / "KetQua.csv"
 legacy = Blueprint("legacy", __name__)
 
 
@@ -108,16 +103,7 @@ def _api_error(error):
 def home():
     if request.path == '/':
         return redirect('/portal/')
-    if request.args.get('embedded') != '1':
-        return redirect('/portal/assessment')
-    asset_version = max((ROOT / "assessment" / "static" / filename).stat().st_mtime_ns
-                        for filename in ("app.css", "app.js", "basemaps.js", "color_adjustments.js", "layer_manager.js",
-                                         "workspace_store.js", "workspace.js", "pdf_export.js", "join_preview.js",
-                                         "assistant.js", "assistant.css"))
-    response = current_app.make_response(render_template(
-        "index.html", asset_version=asset_version, crs_options=source_crs_options()))
-    response.headers["Cache-Control"] = "no-store"
-    return response
+    return redirect('/portal/assessment')
 
 
 @legacy.get("/api/results")
@@ -299,10 +285,3 @@ def map_layers():
                   for label in (0, 1, 2)}
         return jsonify(layers=layers, source_crs=shared_crs, output_crs="EPSG:4326",
                        count=len(rows), counts=counts)
-
-
-app = create_app(legacy_blueprint=legacy, legacy_error_handler=_api_error)
-
-
-if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", "8765")), debug=False)

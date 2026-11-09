@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 import unittest
 
-import assessment.app as legacy_app
+import backend.app as legacy_app
 from backend.map_predict import create_app
 
 

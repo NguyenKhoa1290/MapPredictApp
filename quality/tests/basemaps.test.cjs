@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { MAX_ZOOM, motionOptions, tileRequest, createFallbackLayer } = require("../../assessment/static/basemaps.js");
+const { MAX_ZOOM, motionOptions, tileRequest, createFallbackLayer } = require('./assessment_sources.cjs').loadUtility('frontend/public/basemaps.js');
 const url = "https://example.test/{z}/{y}/{x}?blankTile=false";
 
 function fixture(options = {}, coords = { z: 19, x: 414917, y: 229730 }) {

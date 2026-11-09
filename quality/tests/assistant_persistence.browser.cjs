@@ -1,3 +1,4 @@
+const { exposeAssessmentState } = require('./assessment_browser_helpers.cjs');
 // Uses a fresh browser context so existing user workspaces are never changed.
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -19,9 +20,10 @@ const textOf = (page, id) => page.evaluate(async id => $(id).files[0]?.text(), i
     try {
         const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
         const page = await context.newPage();
+        await exposeAssessmentState(page);
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
-        await page.goto(new URL('/legacy/?embedded=1', server).href);
+        await page.goto(new URL('/portal/assessment', server).href);
         await ready(page);
         // Repeated clean flushes used to permanently block subsequent writes.
         await page.evaluate(async () => { await workspacePersistence.flush(); await workspacePersistence.flush(); });
@@ -40,7 +42,7 @@ const textOf = (page, id) => page.evaluate(async id => $(id).files[0]?.text(), i
         assert.equal(await page.evaluate(() => overlays.length), 1);
         await page.click('.assistant-launcher');
         await page.click('[data-review="discard"]');
-        await page.waitForFunction(() => !assistantWorkspace.hasDraft() && !assistantWorkspace.historyState().busy);
+        await page.waitForFunction(() => !assistantWorkspace.hasDraft() && !assistantWorkspace.historyState().busy && !assistantWorkspace.historyState().busy);
         await reload(page);
         assert.equal(await page.evaluate(() => cadFiles[0].file.name), 'base.dxf');
         console.log('PASS DXF draft survives reload and can be discarded');
@@ -75,7 +77,7 @@ const textOf = (page, id) => page.evaluate(async id => $(id).files[0]?.text(), i
         assert.equal(await page.evaluate(() => assistantWorkspace.hasDraft()), true);
         await page.click('.assistant-launcher');
         await page.click('[data-review="confirm"]');
-        await page.waitForFunction(() => !assistantWorkspace.hasDraft());
+        await page.waitForFunction(() => !assistantWorkspace.hasDraft() && !assistantWorkspace.historyState().busy);
         await reload(page);
         assert.equal(await page.evaluate(() => predictionView.rows[0].x1), 7);
         assert.equal(await page.evaluate(() => assistantWorkspace.hasDraft()), false);
@@ -89,6 +91,7 @@ const textOf = (page, id) => page.evaluate(async id => $(id).files[0]?.text(), i
 
         await page.click('[data-remove-csv="csv-file"]');
         await page.waitForFunction(() => !$('csv-file').files.length);
+        await page.evaluate(() => workspacePersistence.flush());
         await reload(page);
         assert.equal(await page.evaluate(() => $('csv-file').files.length), 0);
         assert.equal(await page.evaluate(() => predictionView.rows.length), 0);
@@ -98,6 +101,7 @@ const textOf = (page, id) => page.evaluate(async id => $(id).files[0]?.text(), i
         await page.setInputFiles('#result-file', { name: 'result.csv', mimeType: 'text/csv', buffer: Buffer.from('id,Y\n1,2\n') });
         await page.waitForFunction(() => !resultColumnsLoading);
         await page.click('[data-remove-csv="result-file"]');
+        await page.evaluate(() => workspacePersistence.flush());
         await reload(page);
         assert.equal(await page.evaluate(() => $('result-file').files.length), 0);
         assert.deepEqual(errors, []);
@@ -115,7 +119,7 @@ const textOf = (page, id) => page.evaluate(async id => $(id).files[0]?.text(), i
         await page.press('#assistant-question', 'Enter');
         await page.waitForFunction(() => assistantWorkspace.hasDraft() && !assistantWorkspace.historyState().busy);
         await page.locator('.assistant-preview button').first().click({ timeout: 10000 });
-        await page.waitForFunction(() => !assistantWorkspace.hasDraft());
+        await page.waitForFunction(() => !assistantWorkspace.hasDraft() && !assistantWorkspace.historyState().busy);
         console.log('PASS chat-created CSV draft can be confirmed immediately without reload');
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

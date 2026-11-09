@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { usePublicData } from './PublicData';
-import { Assessment } from '../pages/assessment/Assessment';
+const Assessment = lazy(() => import('../pages/assessment/Assessment').then(page => ({ default: page.Assessment })));
 
 export function Layout() {
   const { loading, error, retry, content } = usePublicData();
@@ -60,7 +60,7 @@ export function Layout() {
       {loading ? <div className="portal-state container" role="status">Đang tải nội dung…</div>
         : error ? <div className="portal-state container" role="alert"><h1>Chưa tải được nội dung</h1><p>{error}</p><button type="button" className="button primary" onClick={retry}>Thử lại</button></div>
         : <>
-          {assessmentMounted || isAssessment ? <div hidden={!isAssessment}><Assessment active={isAssessment} /></div> : null}
+          {assessmentMounted || isAssessment ? <div hidden={!isAssessment}><Suspense fallback={<div className="portal-state container" role="status">Đang mở công cụ đánh giá…</div>}><Assessment active={isAssessment} /></Suspense></div> : null}
           {!isAssessment ? <Outlet /> : null}
         </>}
     </main>

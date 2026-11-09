@@ -1,9 +1,8 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { projectPath } from '../../paths';
+import { readAssessmentSource } from '../../../tests/assessment_sources.cjs';
 import { waitFor } from '@testing-library/dom';
 
-const source = (path: string) => readFileSync(projectPath(path), 'utf8');
+const source = readAssessmentSource;
 const payload = { source_crs: 'EPSG:9208', layers: [{ name: 'grid.dxf', data: {
   features: [{ properties: { grid_id: '1', Y: 2 } }],
   join_summary: { total: 2, matched: 1, unmatched: 1, exact: 0, numeric: 1, ambiguous: 0,
@@ -16,15 +15,15 @@ const element = <T extends HTMLElement>(id: string) => document.getElementById(i
 const submit = () => element('map-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 
 beforeEach(() => {
-  document.body.innerHTML = source('assessment/templates/index.html').split('<body')[1].replace(/^[^>]*>/, '').split('</body>')[0];
-  window.eval(source('assessment/static/join_preview.js'));
-  window.eval(source('assessment/static/workspace_store.js'));
+  document.body.innerHTML = source('quality/fixtures/assessment.html').split('<body')[1].replace(/^[^>]*>/, '').split('</body>')[0];
+  window.eval(source('frontend/public/join_preview.js'));
+  window.eval(source('frontend/public/workspace_store.js'));
   // jsdom does not expose DataTransfer, use an actual empty FileList for clearing inputs.
   vi.stubGlobal('DataTransfer', class {
     get files() { const input = document.createElement('input'); input.type = 'file'; return input.files; }
     items = { add: vi.fn() };
   });
-  window.eval(source('assessment/static/app.js').replace(/\ninitializeMap\(\);\s*$/, '') + `
+  window.eval(source('frontend/src/pages/assessment/engine/core.js').replace(/\ninitializeMap\(\);\s*$/, '') + `
     let selectedLayerId = null, inspectorScope = null, componentPage = 0, attributePage = 0;
     window.legacyHarness = {
       rendered: [],
@@ -51,7 +50,7 @@ beforeEach(() => {
             groups:styles?.[index]?.groups || new Map(), adjustments:styles?.[index]?.adjustments || {},
             style:styles?.[index]?.style || {},visible:true,opacity:.7}));
         };
-        ${source('assessment/static/workspace.js')}
+        ${source('frontend/src/pages/assessment/engine/persistence.js')}
       }
     };
   `);

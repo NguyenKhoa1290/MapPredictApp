@@ -1,0 +1,64 @@
+﻿const assert=require('node:assert/strict');const {execFileSync}=require('node:child_process');const path=require('node:path');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const root=path.resolve(__dirname,'../..');
+const server=process.env.WORKSPACE_TEST_URL;
+if(!server)throw Error('WORKSPACE_TEST_URL is required');
+const dxf=execFileSync(process.env.PYTHON||path.join(root,'venv/Scripts/python.exe'),['-c',"import ezdxf,io; d=ezdxf.new(); d.modelspace().add_lwpolyline([(515100,2402100),(515120,2402100),(515120,2402120),(515100,2402120)],close=True); s=io.StringIO(); d.write(s); print(s.getvalue())"]);
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+ try{
+  const context=await browser.newContext({viewport:{width:1440,height:1000}});const page=await context.newPage();const errors=[];
+  page.setDefaultTimeout(20000);
+  page.on('pageerror',e=>errors.push(e.message));
+  page.on('dialog',dialog=>dialog.accept());
+  await page.route('**/api/v1/assistant/status',route=>route.fulfill({json:{data:{enabled:true,modes:[{id:'fast',label:'Fast',efforts:['auto','low']}],features:['full_csv']}}}));
+  await page.goto(new URL('/portal/assessment',server).href);
+  await page.waitForFunction(()=>window.workspacePersistence?.ready);
+  assert.equal(await page.locator('iframe').count(),0);
+  assert.equal(await page.locator('#leafletMap').count(),1);
+  await page.selectOption('#project-crs','EPSG:9208');
+  await page.setInputFiles('#cad-file',{name:'base.dxf',mimeType:'application/dxf',buffer:dxf});
+  await page.click('#map-button');
+  await page.waitForFunction(()=>window.assessmentRuntime.state.overlays.length===1);
+  await page.click('#predict-tab');
+  const csv='id,'+Array.from({length:9},(_,i)=>'x'+(i+1)).join(',')+'\n'+Array.from({length:338},(_,i)=>'A'+(i+1)+',1,2,3,4,5,6,7,8,9').join('\n');
+  await page.setInputFiles('#csv-file',{name:'input.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+  await page.waitForFunction(()=>window.assessmentRuntime.state.predictionView?.total===338);
+  assert.equal(await page.locator('#prediction-table tbody tr').count(),200);
+  await page.click('#prediction-page-next');assert.equal(await page.locator('#prediction-table tbody tr').count(),138);
+  await page.click('#predict-button');
+  await page.waitForFunction(()=>window.assessmentRuntime.state.predictionRows.length===338);
+  const sent=await page.evaluate(async()=>({csv:await window.assistantWorkspace.context().csv.text(),rows:window.assessmentRuntime.state.predictionRows.length}));
+  assert.match(sent.csv,/"Y"/);assert.match(sent.csv,/A338/);assert.equal(sent.rows,338);
+  await page.evaluate(async()=>{await workspacePersistence.flush();});
+  await page.reload();await page.waitForFunction(()=>window.workspacePersistence?.ready&&window.assessmentRuntime.state.predictionRows.length===338);
+  assert.equal(await page.evaluate(()=>assessmentRuntime.state.overlays.length),1);
+  await page.evaluate(()=>{window.savedAssessmentRuntime=window.assessmentRuntime;});
+  await page.click('#back-to-projects');await page.waitForURL('**/portal/projects');
+  await page.locator('.project-grid').waitFor();
+  await page.locator('.assistant-launcher').waitFor({state:'hidden'});
+  assert.equal(await page.locator('.assistant-launcher').isVisible(),false);
+  await page.locator('nav a[href="/portal/assessment"]').click();
+  await page.waitForURL('**/portal/assessment');
+  assert.equal(await page.evaluate(()=>window.savedAssessmentRuntime===window.assessmentRuntime),true);
+  assert.equal(await page.locator('#leafletMap').count(),1);
+  assert.equal(await page.evaluate(()=>assessmentRuntime.state.predictionRows.length),338);
+  await page.locator('.assistant-launcher').click();assert.equal(await page.locator('#assistant-window').isVisible(),true);
+  const dx=await page.locator('.assistant-launcher').boundingBox();await page.mouse.move(dx.x+30,dx.y+30);await page.mouse.down();await page.mouse.move(200,dx.y+30,{steps:8});await page.mouse.up();
+  await page.locator('.assistant-close').click();
+  await page.click('#map-tab');
+  const popupPromise=page.waitForEvent('popup');await page.click('#map-export-pdf');const popup=await popupPromise;
+  try { await popup.waitForSelector('#print-map-now'); }
+  catch(error) { console.log('PDF status:',await page.locator('#map-export-status').innerText());console.log('Popup:',await popup.locator('body').innerText());throw error; }
+  await popup.close();
+  await page.evaluate(() => window.assessmentRuntime.dispose());
+  assert.equal(await page.evaluate(() => window.workspacePersistence), undefined);
+  assert.equal(await page.locator('.assistant-root').count(), 0);
+  assert.equal(await page.locator('.leaflet-map-pane').count(), 0);
+  await page.reload();
+  await page.waitForFunction(() => window.workspacePersistence?.ready);
+  assert.equal(await page.evaluate(() => assessmentRuntime.state.predictionRows.length),338);
+  assert.deepEqual(errors,[]);
+  console.log('Direct React assessment passed: DXF, CSV pagination, prediction, chat context, reload, navigation, PDF and controller disposal');
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1});

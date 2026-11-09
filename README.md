@@ -10,7 +10,8 @@
 - `shared` đọc CSV, xử lý GIS và cấu hình kết nối dùng chung
 - `frontend/src/pages` giao diện React chia theo trang about, projects, assessment và ai-admin
 - `quality/frontend` kiểm thử React, tách khỏi mã nguồn giao diện
-- `assessment` ứng dụng bản đồ và dự đoán, gồm điểm khởi động, template và tài nguyên tĩnh
+- `frontend/src/pages/assessment` giao diện React của bản đồ, DXF/CSV, chatbot và PDF
+- `frontend/public` ảnh, Leaflet và các tiện ích trình duyệt dùng chung
 - `integrations` kết nối và duy trì phiên Gemini
 - `frontend/src/pages/about/content.json` nội dung website, backend đọc để phục vụ API
 - `frontend/src/pages/projects/catalog.json` danh mục dự án
@@ -20,7 +21,8 @@
 - `quality/tests` kiểm thử, dữ liệu mẫu nằm trong `quality/tests/fixtures`
 - `Tailieuthamkhao/docs` tài liệu, nhật ký, kế hoạch công việc và bằng chứng kiểm tra
 
-`assessment/app.py` là điểm khởi động web, `ai_service/app.py` là điểm khởi động service AI
+`backend/app.py` là điểm khởi động web, `ai_service/app.py` là điểm khởi động service AI
+Trang Đánh giá quỹ đất chạy trực tiếp trong React, được tải khi truy cập và giữ phiên khi chuyển trang
 Trong Docker, backend web gọi AI qua mạng nội bộ, image AI chỉ chứa `ai_service` và `shared`
 
 ## Chạy trên máy
@@ -32,7 +34,7 @@ py -3.11 -m venv venv
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
 npm --prefix frontend ci
 npm --prefix frontend run build
-.\venv\Scripts\python.exe -m assessment.app
+.\venv\Scripts\python.exe -m backend.app
 ```
 
 Mở http://127.0.0.1:8765/portal/

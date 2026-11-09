@@ -7,17 +7,17 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png', v=asset_version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v=asset_version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='leaflet/leaflet.css', v=asset_version) }}">
-    <script defer src="{{ url_for('static', filename='leaflet/leaflet.js', v=asset_version) }}"></script>
-    <script defer src="{{ url_for('static', filename='basemaps.js', v=asset_version) }}"></script>
-    <script defer src="{{ url_for('static', filename='workspace_store.js', v=asset_version) }}"></script>
-    <script defer src="{{ url_for('static', filename='join_preview.js', v=asset_version) }}"></script>
-    <script defer src="{{ url_for('static', filename='app.js', v=asset_version) }}"></script>
-    <script defer src="{{ url_for('static', filename='color_adjustments.js', v=asset_version) }}"></script>
-    <script defer src="{{ url_for('static', filename='layer_manager.js', v=asset_version) }}"></script>
-    <script defer src="{{ url_for('static', filename='workspace.js', v=asset_version) }}"></script>
-    <script defer src="{{ url_for('static', filename='pdf_export.js', v=asset_version) }}"></script>
+
+
+
+
+
+
+
+
+
     <link rel="stylesheet" href="{{ url_for('static', filename='assistant.css', v=asset_version) }}">
-    <script defer src="{{ url_for('static', filename='assistant.js', v=asset_version) }}"></script>
+
 </head>
 <body class="workspace-mode map-mode">
 <main class="glass-page">
@@ -38,7 +38,7 @@
                     <label for="project-crs">Hệ tọa độ chung</label>
                     <select id="project-crs" form="map-form" required>
                         <option value="">Chọn hệ tọa độ nguồn</option>
-                        {% for crs in crs_options %}<option value="{{ crs.code }}">{{ crs.code }} · {{ crs.name }}</option>{% endfor %}
+                        <option value="EPSG:9208">EPSG:9208</option>
                         <option value="custom">Nhập EPSG khác…</option>
                     </select>
                     <input id="project-crs-custom" form="map-form" type="text" placeholder="EPSG:9208" aria-label="Mã EPSG khác" pattern="[Ee][Pp][Ss][Gg]:[0-9]{4,6}" hidden disabled>

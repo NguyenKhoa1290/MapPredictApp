@@ -1,22 +1,22 @@
-# Đánh giá quỹ đất dùng legacy và pipeline
+# Đánh giá quỹ đất React và pipeline
 
-Cập nhật ngày 2026-10-26 theo quyết định giữ công cụ legacy
+Cập nhật ngày 2026-11-09 theo yêu cầu chuyển công cụ sang frontend React
 
 ## Giao diện chính
 
-`/portal/assessment` hiển thị công cụ legacy bên trong header và footer chung của portal, giữ bản đồ, layer, bảng thuộc tính, nạp CSV, dự đoán, tự lưu và xuất PDF đã có
+`/portal/assessment` hiển thị công cụ React trực tiếp, gồm bản đồ, layer, bảng thuộc tính, nạp CSV, dự đoán, tự lưu, chatbot và xuất PDF
 
-Phần legacy chạy trong tài liệu iframe cùng origin tại `/legacy/?embedded=1` để CSS và Leaflet cũ không ảnh hưởng ba trình xem dự án mới. Không sandbox hạn chế popup PDF hoặc thao tác chọn file của công cụ
+Giao diện nằm trong `frontend/src/pages/assessment`, các component React dựng thanh công cụ và hai panel, các module engine quản lý Leaflet, DOM động, lịch sử và lưu phiên. CSS được giới hạn trong assessment-root để không ảnh hưởng ba trình xem dự án
 
-Sau lần mở đầu, tài liệu công cụ được giữ trong Layout khi chuyển sang trang khác và chỉ ẩn đi, quay lại không tạo iframe mới. Có gửi resize khi hiện lại để Leaflet nhận đúng kích thước khung nhìn
+Sau lần mở đầu, công cụ được giữ trong Layout khi chuyển sang trang khác và chỉ ẩn đi, quay lại giữ nguyên file và bản đồ. Khi hủy trang, bộ điều khiển lưu phiên, gỡ sự kiện, dừng yêu cầu mạng, xóa bản đồ và thu hồi URL tạm
 
-`/` dẫn tới Giới thiệu tại `/portal/`, mở `/legacy/` trực tiếp dẫn tới `/portal/assessment`. Header luôn ở phía trên, footer nằm dưới công cụ, chiều cao phần làm việc theo chiều cao header thực tế
+`/` dẫn tới Giới thiệu tại `/portal/`, cả `/legacy/` và `/legacy/?embedded=1` đều chuyển tới `/portal/assessment`. Trang đánh giá giữ thanh công cụ riêng và không hiển thị header/footer của portal
 
 Database `mapPredict.workspace` của công cụ legacy không đổi. Phiên CSV của giao diện trước vẫn nằm ở `mapPredict.assessment` và có thể mở tại `/portal/assessment/csv`, không tự gộp hoặc ghi đè hai phiên
 
 ## Mô hình đang dùng
 
-Nguồn do người dùng cung cấp là `rf_model_rating_pipeline.pkl`, bản hoạt động ở `models/rf_model_rating_pipeline.pkl`
+Nguồn do người dùng cung cấp là `rf_model_rating_pipeline.pkl`, bản hoạt động ở `backend/models/rf_model_rating_pipeline.pkl`
 
 Đã kiểm tra trực tiếp file
 

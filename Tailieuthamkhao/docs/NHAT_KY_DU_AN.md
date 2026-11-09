@@ -990,3 +990,16 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Chuyển frontend/tests sang quality/frontend, giữ cách chia nhóm theo trang
 - Mã chạy các trang quy hoạch tiếp tục ở frontend/src/pages/projects
 - Cập nhật đường dẫn import, Vitest, TypeScript và bước build Docker
+
+## 2026-11-09 Chuyển công cụ đánh giá sang React
+
+- Bỏ iframe ở trang assessment, chia giao diện thành component React cho thanh công cụ, dự đoán và bản đồ
+- Chuyển bộ điều khiển bản đồ, layer, lưu phiên, PDF và chatbot thành module theo vòng đời trang, giới hạn truy vấn DOM trong workspace
+- Giữ nguyên database IndexedDB và khóa lưu trữ để khôi phục file, kết quả, layer, lịch sử AI và trạng thái bản đồ
+- Tải gói assessment khi truy cập, giữ phiên khi chuyển trang, dọn sự kiện và yêu cầu mạng khi hủy trang
+- Chuyển ảnh và thư viện trình duyệt vào frontend/public, giữ URL /static
+- Chuyển API đánh giá về backend/map_predict/api/assessment.py và điểm chạy về backend.app:app
+- Các địa chỉ legacy cũ chuyển tiếp sang trang React, cấu hình Docker, launcher và đóng gói đã cập nhật
+- Kiểm tra Chrome với DXF, 338 dòng CSV, phân trang, dự đoán, khôi phục, điều hướng, PDF, bản nháp AI và hoàn tác/làm lại
+- X?c nh?n b?n nh?p ch? ho?n t?t sau khi l?u b?n v?ng, gi? b?n nh?p n?u l?u th?t b?i
+- K?t qu? ki?m tra: 233 Python, 44 React, 64 JavaScript, ba k?ch b?n Chrome v? g?i ph?t h?nh ??u ??t
