@@ -19,7 +19,10 @@ export function installAssistant(ctx) {
         <details class="assistant-model-picker"><summary><span class="assistant-picker-summary">Nhanh · Mặc định</span><span aria-hidden="true">⌄</span></summary>
           <div class="assistant-model-card">
             <strong class="assistant-effort-heading">Mặc định</strong>
-            <label class="assistant-model-label"><span class="sr-only">Model</span><select class="assistant-mode" aria-label="Model"><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select></label>
+            <div class="assistant-model-label"><button type="button" class="assistant-model-trigger" aria-label="Chọn chế độ trả lời" aria-haspopup="listbox" aria-expanded="false" aria-controls="assistant-model-options"><span class="assistant-model-name">Nhanh</span><span aria-hidden="true">⌄</span></button>
+              <div id="assistant-model-options" class="assistant-model-options" role="listbox" aria-label="Chế độ trả lời" hidden><button type="button" role="option" data-mode="fast" aria-selected="true">Nhanh</button><button type="button" role="option" data-mode="smart" aria-selected="false">Thông minh</button></div>
+              <select class="assistant-mode" aria-label="Model" hidden><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select>
+            </div>
             <div class="assistant-effort-track"><div class="assistant-effort-ticks" aria-hidden="true"></div><input class="assistant-effort-slider" type="range" min="0" max="3" step="1" value="0" aria-label="Nỗ lực suy nghĩ"></div>
             <select class="assistant-effort" aria-label="Nỗ lực" hidden><option value="auto">Mặc định</option><option value="low">Thấp</option><option value="medium">Trung bình</option><option value="high">Cao</option></select>
           </div>
@@ -32,10 +35,39 @@ export function installAssistant(ctx) {
     document.body.append(root);
     const get = selector => root.querySelector('.assistant-' + selector);
     const modelPicker = get('model-picker');
+    function closeModelMenu() {
+      get('model-options').hidden = true;
+      get('model-trigger').setAttribute('aria-expanded', 'false');
+    }
     get('actions').insertBefore(modelPicker, get('form').querySelector('[type="submit"]'));
     window.addEventListener('pointerdown', event => {
-      if (!modelPicker.contains(event.target)) modelPicker.open = false;
+      if (!modelPicker.contains(event.target)) { modelPicker.open = false; closeModelMenu(); }
+      else if (!get('model-label').contains(event.target)) closeModelMenu();
     });
+    get('model-trigger').addEventListener('click', () => {
+      const opening = get('model-options').hidden;
+      get('model-options').hidden = !opening;
+      get('model-trigger').setAttribute('aria-expanded', String(opening));
+      if (opening) get('model-options').querySelector('[aria-selected="true"]').focus();
+    });
+    const modelOptions = [...get('model-options').querySelectorAll('[data-mode]')];
+    for (const option of modelOptions) option.addEventListener('click', () => {
+      get('mode').value = option.dataset.mode;
+      get('mode').dispatchEvent(new Event('change'));
+      closeModelMenu();
+      get('model-trigger').focus();
+    });
+    get('model-label').addEventListener('keydown', event => {
+      if (event.key === 'Tab') { closeModelMenu(); return; }
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const current = modelOptions.indexOf(document.activeElement);
+      get('model-options').hidden = false;
+      get('model-trigger').setAttribute('aria-expanded', 'true');
+      const index = event.key === 'Home' ? 0 : event.key === 'End' ? modelOptions.length - 1 : current < 0 ? Math.max(0, modelOptions.findIndex(option => option.dataset.mode === get('mode').value)) : (current + (event.key === 'ArrowDown' ? 1 : -1) + modelOptions.length) % modelOptions.length;
+      modelOptions[index].focus();
+    });
+    modelPicker.addEventListener('toggle', () => { if (!modelPicker.open) closeModelMenu(); });
     const launcher = get('launcher'),
       panel = get('window');
     const positionKey = 'mapPredict.assistant.position.v1';
@@ -139,6 +171,8 @@ export function installAssistant(ctx) {
       slider.setAttribute('aria-valuetext', label);
       get('effort-heading').textContent = label;
       get('picker-summary').textContent = get('mode').selectedOptions[0].textContent + ' · ' + label;
+      get('model-name').textContent = get('mode').selectedOptions[0].textContent;
+      for (const option of modelOptions) option.setAttribute('aria-selected', String(option.dataset.mode === get('mode').value));
       get('effort-ticks').replaceChildren(...options.map(() => element('span', '')));
     }
     get('effort-slider').addEventListener('input', () => {
@@ -257,7 +291,10 @@ export function installAssistant(ctx) {
     });
     panel.addEventListener('keydown', event => {
       if (event.key !== 'Escape') return;
-      if (modelPicker.open) {
+      if (!get('model-options').hidden) {
+        closeModelMenu();
+        get('model-trigger').focus();
+      } else if (modelPicker.open) {
         modelPicker.open = false;
         modelPicker.querySelector('summary').focus();
       } else get('close').click();
