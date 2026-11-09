@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import time
+import threading
 
 from .accounts import AccountStore
 from .config import CONFIG
@@ -32,6 +33,63 @@ class AccountPool:
                 write_json(path, content)
         self.store = AccountStore(self.root)
         self.rows = {}
+        self.dispatch_lock = threading.Lock()
+        self.account_locks = {}
+        self.active_chats = set()
+
+    def account_lock(self, identifier):
+        with self.dispatch_lock:
+            return self.account_locks.setdefault(identifier, threading.RLock())
+
+    def run_chat(self, generate, model, conversation, timeout=120):
+        """Lease a free account for one turn, retaining the chat's account affinity."""
+        from .chat_retention import ChatRetention, group_key
+        key = group_key(conversation)
+        with self.dispatch_lock:
+            if key in self.active_chats:
+                raise QuotaRejected('Hội thoại này đang chờ trả lời', code='conversation_busy')
+            self.active_chats.add(key)
+        try:
+            entries = self.store.registry()['accounts']
+            pinned = [entry for entry in entries
+                      if ChatRetention(self.store.path(entry['id'])).session(conversation)]
+            busy = False
+            last_error = None
+            for entry in pinned or entries:
+                lock = self.account_lock(entry['id'])
+                if not lock.acquire(blocking=False):
+                    busy = True
+                    continue
+                try:
+                    owner = self.store
+                    class SelectedAccount:
+                        def registry(self):
+                            return {'accounts': [entry]}
+                        def __getattr__(self, name):
+                            return getattr(owner, name)
+                    worker = AccountPool.__new__(AccountPool)
+                    worker.root, worker.lock, worker.store, worker.rows = self.root, lock, SelectedAccount(), self.rows
+                    with CONFIG.isolated():
+                        journal = ChatRetention(self.store.path(entry['id']))
+                        CONFIG['chat_session'] = journal.prepare(conversation)
+                        CONFIG['chat_group'] = conversation
+                        if model == ARGON:
+                            return worker.run(generate, timeout=timeout)
+                        return worker.run_flash(generate, timeout=timeout, model=model)
+                except QuotaRejected as error:
+                    last_error = error
+                    if pinned or ChatRetention(self.store.path(entry['id'])).session(conversation):
+                        raise
+                finally:
+                    lock.release()
+            if busy:
+                raise QuotaRejected('Các tài khoản phù hợp đang bận, hãy thử lại sau', code='accounts_busy')
+            if last_error:
+                raise last_error
+            raise QuotaRejected('Chưa có tài khoản Gemini hợp lệ', status=503, code='cookie_required')
+        finally:
+            with self.dispatch_lock:
+                self.active_chats.discard(key)
 
     def snapshot(self):
         entries = self.store.registry()['accounts']
@@ -69,8 +127,16 @@ class AccountPool:
     def scan(self, discover=True):
         with self.lock:
             entries = self.store.registry()['accounts']
+            def inspect(entry):
+                lock = self.account_lock(entry['id'])
+                if not lock.acquire(blocking=False):
+                    return self.rows.get(entry['id'], {'status': 'busy'})
+                try:
+                    return self.store.scan_one(entry, discover=discover)
+                finally:
+                    lock.release()
             with ThreadPoolExecutor(max_workers=min(4, max(1, len(entries)))) as workers:
-                rows = list(workers.map(lambda entry: self.store.scan_one(entry, discover=discover), entries))
+                rows = list(workers.map(inspect, entries))
             for entry, row in zip(entries, rows):
                 # Only admin-facing identity and timings are added by metadata().
                 self.rows[entry['id']] = {key: row.get(key) for key in ('status', 'usage', 'model_available')}
@@ -81,6 +147,9 @@ class AccountPool:
         with self.lock:
             entries = self.store.registry()['accounts']
             def renew(entry):
+                lock = self.account_lock(entry['id'])
+                if not lock.acquire(blocking=False):
+                    return self.rows.get(entry['id'], {'status': 'busy'})
                 try:
                     GoogleSession(self.store.path(entry['id'])).refresh(rotate=True)
                     row = self.store.scan_one(entry, discover=True)
@@ -89,6 +158,8 @@ class AccountPool:
                     return {'status': 'needs_login', 'usage': None}
                 except Exception:
                     return {'status': 'needs_attention', 'usage': None}
+                finally:
+                    lock.release()
             with ThreadPoolExecutor(max_workers=min(4, max(1, len(entries)))) as workers:
                 rows = list(workers.map(renew, entries))
             self.rows.update({entry['id']: row for entry, row in zip(entries, rows)})
@@ -105,25 +176,24 @@ class AccountPool:
             entries = self.store.registry()['accounts']
             if not account_id and len(entries) >= 8:
                 raise ValueError('At most eight accounts')
-            identifier = self.store.add_cookie(text, label.strip(), account, update_id=account_id)
-            entry = next(item for item in self.store.registry()['accounts'] if item['id'] == identifier)
-            row = self.store.scan_one(entry, discover=True)
-            self.rows[identifier] = {key: row.get(key) for key in ('status', 'usage', 'model_available')}
-            return self.snapshot()
+            lock = self.account_lock(account_id or 'new-account')
+            if not lock.acquire(blocking=False):
+                raise QuotaRejected('Tài khoản đang trả lời, hãy cập nhật cookie sau', code='accounts_busy')
+            try:
+                identifier = self.store.add_cookie(text, label.strip(), account, update_id=account_id)
+                entry = next(item for item in self.store.registry()['accounts'] if item['id'] == identifier)
+                row = self.store.scan_one(entry, discover=True)
+                self.rows[identifier] = {key: row.get(key) for key in ('status', 'usage', 'model_available')}
+                return self.snapshot()
+            finally:
+                lock.release()
 
     @contextmanager
     def profile(self, settings, config_path=None):
-        previous = {key: CONFIG[key] for key in SESSION_FIELDS if key in CONFIG}
-        try:
+        with CONFIG.isolated():
             CONFIG.update({key: settings.get(key) for key in SESSION_FIELDS})
             CONFIG['audit_config_path'] = config_path
             yield
-        finally:
-            for key in SESSION_FIELDS:
-                if key in previous:
-                    CONFIG[key] = previous[key]
-                else:
-                    CONFIG.pop(key, None)
 
     def run(self, generate, timeout=120):
         if not self.lock.acquire(blocking=False):

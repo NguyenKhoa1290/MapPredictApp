@@ -22,6 +22,7 @@ from .session_audit import AUTH_COOKIES, emit, error_type
 
 _ssl_ctx = None
 _cookie_cache = {"str": "", "sapisid": None, "identity": None}
+_thread_state = threading.local()
 _httpx_client = None
 
 
@@ -53,11 +54,14 @@ def load_cookie() -> tuple:
     cookie_file = CONFIG.get("cookie_file")
     if not cookie_file or not os.path.exists(cookie_file):
         return "", None
+    cache = getattr(_thread_state, 'cookies', None)
+    if cache is None:
+        cache = _thread_state.cookies = dict(_cookie_cache)
     try:
         stat = os.stat(cookie_file)
         identity = (os.path.abspath(cookie_file), stat.st_mtime_ns, stat.st_size)
-        if identity == _cookie_cache["identity"] and _cookie_cache["str"]:
-            return _cookie_cache["str"], _cookie_cache["sapisid"]
+        if identity == cache["identity"] and cache["str"]:
+            return cache["str"], cache["sapisid"]
         with open(cookie_file, "r") as f:
             content = f.read().strip()
         if content.startswith("{"):
@@ -68,7 +72,7 @@ def load_cookie() -> tuple:
             cookie_str = content
             pairs = dict(p.split("=", 1) for p in cookie_str.split("; ") if "=" in p)
             sapisid = pairs.get("SAPISID", "")
-        _cookie_cache.update({"str": cookie_str, "sapisid": sapisid or None, "identity": identity})
+        cache.update({"str": cookie_str, "sapisid": sapisid or None, "identity": identity})
         return cookie_str, sapisid if sapisid else None
     except Exception as e:
         log(f"Cookie load error: {e}")
@@ -160,6 +164,11 @@ def _build_payload(prompt: str, model_id: int, think_mode: int, file_refs: list 
         # Verified thinking route: level belongs in field 80, not legacy field 17.
         inner[17] = [[0]]
         inner[80] = think_mode
+    session = CONFIG.get('chat_session') or {}
+    if session.get('cid'):
+        inner[71] = [session['cid'], None, None, None, None, None, None, session.get('token', '')]
+        inner[17] = [[session.get('turns', 0)]]
+        inner[96] = int(session.get('model_mode', model_id) != model_id)
     if extra_fields:
         for k, v in extra_fields.items():
             inner[k] = v

@@ -668,6 +668,8 @@ export function installAssistant(ctx) {
       try {
         const result = await request('preview', form, controller.signal);
         history = [];
+        conversation = crypto.randomUUID();
+        try { localStorage.setItem(conversationKey, conversation); } catch {/* Storage can be disabled. */}
         messages.replaceChildren();
         lastContext = null;
         message('assistant', result.answer);

@@ -1060,6 +1060,18 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 
 ## 2026-11-09 Hội thoại Google và thời hạn tự xóa
 
+### Điều phối nhiều người dùng
+
+- Mỗi mã hội thoại web lưu một phiên Gemini gồm CID, RID, candidate, token tiếp nối và số lượt trên volume riêng theo tài khoản
+- Khóa từng tài khoản trong thời gian xử lý một lượt, trả lại tài khoản ngay cả khi timeout hoặc lỗi, cuộc chat mới dùng tài khoản rảnh
+- Cuộc chat đã có CID tiếp tục trên tài khoản sở hữu, không chuyển CID sang tài khoản khác khi bận hoặc hết quota
+- Tách cấu hình và bộ đệm cookie theo ngữ cảnh xử lý để các yêu cầu đồng thời không dùng nhầm cookie, XSRF hoặc model header
+- Gia hạn, quét tài khoản và dọn hội thoại bỏ qua tài khoản đang trả lời, cập nhật cookie đang bận trả lỗi có thể thử lại
+- Cho phép hai tác vụ trợ lý đồng thời, giữ thêm luồng HTTP cho quản trị và trạng thái trên VPS nhỏ
+- Khi tiếp nối, chỉ gửi hướng dẫn và dữ liệu hiện tại cùng câu hỏi mới, không gửi lặp lại lịch sử đã có ở Gemini
+- Thu gọn ngữ cảnh bắt đầu mã hội thoại mới sau khi nhận bản tóm tắt, giữ nội dung tóm tắt và dữ liệu dự án
+- Kiểm thử hai tài khoản chạy đồng thời, tách cookie, tiếp nối đúng CID và giải phóng tài khoản sau lỗi
+
 - Chuyển adapter có tài khoản sang hội thoại thường theo yêu cầu, giữ mô hình ghép ngữ cảnh ở ứng dụng
 - GEMINI_CHAT_IDLE_SECONDS mặc định 3600, kiểm tra mỗi 60 giây, chỉ xóa mã hội thoại do ứng dụng ghi nhận
 - Theo dõi mã hội thoại từ luồng trả lời trước khi timeout, lưu mã và mốc hoạt động trên volume, không lưu nội dung trong danh sách dọn dẹp

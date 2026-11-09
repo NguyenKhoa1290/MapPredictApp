@@ -24,6 +24,42 @@ class ChatRetention:
     def load(self):
         return json.loads(self.path.read_text(encoding='utf-8')) if self.path.exists() else {}
 
+    def session(self, group):
+        row = self.load().get(group_key(group), {})
+        if time.time() - row.get('last_used', 0) >= IDLE_SECONDS:
+            return None
+        return row.get('session') or None
+
+    def prepare(self, group):
+        session = self.session(group)
+        rows = self.load()
+        if not session and group_key(group) in rows:
+            rows[group_key(group)].pop('session', None)
+            write_json(self.path, rows)
+        self.touch(group)
+        return session
+
+    def update_session(self, group, cid, rid='', rcid='', token=''):
+        self.touch(group, cid)
+        rows = self.load()
+        row = rows[group_key(group)]
+        session = row.setdefault('session', {'cid': cid, 'turns': 0})
+        if session['cid'] != cid:
+            raise RuntimeError('Google returned a different conversation')
+        for key, value in (('rid', rid), ('rcid', rcid), ('token', token)):
+            if isinstance(value, str) and value:
+                session[key] = value
+        write_json(self.path, rows)
+
+    def complete(self, group, model_mode=None):
+        rows = self.load()
+        row = rows.get(group_key(group), {})
+        if row.get('session'):
+            row['session']['turns'] = row['session'].get('turns', 0) + 1
+            if model_mode is not None:
+                row['session']['model_mode'] = model_mode
+            write_json(self.path, rows)
+
     def touch(self, group, cid=None, now=None):
         rows = self.load()
         row = rows.setdefault(group_key(group), {'chats': [], 'last_used': 0})
@@ -45,10 +81,16 @@ class ChatRetention:
                     for frame in json.loads(line):
                         if frame[0] != 'wrb.fr' or not isinstance(frame[2], str):
                             continue
-                        cid = json.loads(frame[2])[1][0]
-                        if isinstance(cid, str) and re.fullmatch(r'c_[A-Za-z0-9_-]{1,200}', cid) and cid not in seen:
-                            self.touch(group, cid)
-                            seen.add(cid)
+                        payload = json.loads(frame[2])
+                        cid = payload[1][0]
+                        if isinstance(cid, str) and re.fullmatch(r'c_[A-Za-z0-9_-]{1,200}', cid):
+                            rid = payload[1][1] if len(payload[1]) > 1 else ''
+                            rcid = payload[4][0][0] if len(payload) > 4 and payload[4] else ''
+                            token = payload[25] if len(payload) > 25 else ''
+                            snapshot = (cid, rid, rcid, token if isinstance(token, str) else '')
+                            if snapshot not in seen:
+                                self.update_session(group, *snapshot)
+                                seen.add(snapshot)
                 except (ValueError, TypeError, IndexError, KeyError):
                     continue
         return feed

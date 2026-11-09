@@ -60,6 +60,8 @@ class ManagedGeminiHandler(GeminiHandler):
             self.send_json(result)
         except (ValueError, KeyError, TypeError):
             self.send_json({'error': 'Cookie không hợp lệ'}, 400)
+        except QuotaRejected as error:
+            self.send_json(error.response(), error.status)
         finally:
             manager.lock.release()
 
@@ -98,27 +100,32 @@ class ManagedGeminiHandler(GeminiHandler):
         try:
             reasoning = {}
             level = thinking_depth(request.get('reasoning_effort'), 1)
+            group = getattr(self, 'headers', {}).get('X-Map-Predict-Conversation', '')[:128] or uuid.uuid4().hex
             def generate_argon(mode, think):
                 from gemini_web2api.chat_retention import ChatRetention
-                group = getattr(self, 'headers', {}).get('X-Map-Predict-Conversation', '')[:128] or uuid.uuid4().hex
                 CONFIG['chat_group'] = group
                 if CONFIG.get('audit_config_path'):
                     ChatRetention(CONFIG['audit_config_path']).touch(group)
                 try:
-                    text = generate(prompt, mode, level, metadata=reasoning)
+                    turn_prompt = prompt
+                    if CONFIG.get('chat_session'):
+                        messages = request.get('messages', [])
+                        current = [item for item in messages if item.get('role') == 'system']
+                        current += [item for item in messages if item.get('role') == 'user'][-1:]
+                        turn_prompt, _ = messages_to_prompt(current)
+                    text = generate(turn_prompt, mode, level, metadata=reasoning)
                 finally:
                     CONFIG.pop('chat_group', None)
                 if reasoning.get('applied_level', None if model != ARGON else level) != level:
                     raise QuotaRejected('Gemini chưa xác nhận mức effort đã chọn', status=503, code='effort_not_applied')
+                if CONFIG.get('audit_config_path'):
+                    ChatRetention(CONFIG['audit_config_path']).complete(group, mode)
                 return text
             try:
                 budget = max(1, min(75, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', 75))))
             except (ValueError, TypeError):
                 budget = 75
-            if model == ARGON:
-                text = pool.run(generate_argon, timeout=budget)
-            else:
-                text = pool.run_flash(generate_argon, timeout=budget, **({'model': model} if model != FLASH else {}))
+            text = pool.run_chat(generate_argon, model, group, timeout=budget)
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
                             'created': int(time.time()), 'model': model,
                             'reasoning': reasoning,
@@ -156,14 +163,16 @@ if __name__ == '__main__':
     def cleanup_chats():
         from gemini_web2api.chat_retention import ChatRetention
         while True:
-            if manager.lock.acquire(blocking=False):
+            for entry in pool.store.registry()['accounts']:
+                lock = pool.account_lock(entry['id'])
+                if not lock.acquire(blocking=False):
+                    continue
                 try:
-                    for entry in pool.store.registry()['accounts']:
-                        ChatRetention(pool.store.path(entry['id'])).cleanup()
+                    ChatRetention(pool.store.path(entry['id'])).cleanup(limit=1)
                 except Exception as error:
                     emit('chat_cleanup_error', error_type=error_type(error))
                 finally:
-                    manager.lock.release()
+                    lock.release()
             time.sleep(60)
     threading.Thread(target=cleanup_chats, name='gemini-chat-cleanup', daemon=True).start()
     ThreadedServer(('0.0.0.0', 8081), ManagedGeminiHandler).serve_forever()

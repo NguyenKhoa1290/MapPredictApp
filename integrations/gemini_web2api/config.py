@@ -1,6 +1,9 @@
 """Configuration management."""
 import json
 import os
+from collections.abc import MutableMapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 DEFAULT_CONFIG = {
     "port": 8081,
@@ -19,7 +22,41 @@ DEFAULT_CONFIG = {
     "temporary_chats": False,
 }
 
-CONFIG = dict(DEFAULT_CONFIG)
+class RequestConfig(MutableMapping):
+    """Process defaults with an isolated copy for each concurrent generation."""
+    def __init__(self, defaults):
+        self.defaults = dict(defaults)
+        self.local = ContextVar('gemini_request_config', default=None)
+
+    def values_for_request(self):
+        current = self.local.get()
+        return self.defaults if current is None else current
+
+    def __getitem__(self, key):
+        return self.values_for_request()[key]
+
+    def __setitem__(self, key, value):
+        self.values_for_request()[key] = value
+
+    def __delitem__(self, key):
+        del self.values_for_request()[key]
+
+    def __iter__(self):
+        return iter(self.values_for_request())
+
+    def __len__(self):
+        return len(self.values_for_request())
+
+    @contextmanager
+    def isolated(self):
+        token = self.local.set(dict(self))
+        try:
+            yield self
+        finally:
+            self.local.reset(token)
+
+
+CONFIG = RequestConfig(DEFAULT_CONFIG)
 
 
 def load_config(path: str = None):

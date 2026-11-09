@@ -18,7 +18,7 @@ from ..services import assistant_files
 from shared.tabular import PredictionError
 
 assistant_api = Blueprint('assistant_v1', __name__, url_prefix='/api/v1/assistant')
-BUSY = threading.BoundedSemaphore(1)
+BUSY = threading.BoundedSemaphore(2)
 RATE_LOCK = threading.Lock()
 RATES = defaultdict(deque)
 
