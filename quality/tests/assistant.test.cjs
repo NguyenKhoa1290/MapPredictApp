@@ -466,6 +466,33 @@ test('context button compacts chat without attachments or workspace mutations', 
     } finally { f.close(); }
 });
 
+test('effort card slider follows supported levels, model changes and reset', async () => {
+    const f = fixture({ enabled: true, modes: [
+        { id: 'fast', efforts: ['auto', 'low'] },
+        { id: 'smart', efforts: ['auto', 'low', 'medium', 'high'] }
+    ] });
+    try {
+        await tick();
+        assert.equal(f.get('effort-slider').max, '1');
+        f.get('effort-slider').value = '1';
+        f.get('effort-slider').dispatchEvent(new f.window.Event('input'));
+        assert.equal(f.get('effort').value, 'low');
+        assert.equal(f.get('effort-heading').textContent, 'Thấp');
+        f.get('mode').value = 'smart';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        assert.equal(f.get('effort-slider').max, '3');
+        f.get('effort-slider').value = '3';
+        f.get('effort-slider').dispatchEvent(new f.window.Event('input'));
+        assert.equal(f.get('effort').value, 'high');
+        assert.equal(f.get('effort-slider').getAttribute('aria-valuetext'), 'Cao');
+        assert.match(f.get('picker-summary').textContent, /Thông minh · Cao/);
+        f.get('effort-reset').click();
+        assert.equal(f.get('effort').value, 'auto');
+        assert.equal(f.get('effort-slider').value, '0');
+        assert.equal(f.window.localStorage.getItem('mapPredict.assistant.effort.v1'), 'auto');
+    } finally { f.close(); }
+});
+
 test('assistant launcher moves horizontally, remembers its position and distinguishes dragging from clicking', () => {
     const f = fixture();
     try {

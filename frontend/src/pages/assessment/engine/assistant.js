@@ -16,8 +16,14 @@ export function installAssistant(ctx) {
       <section id="assistant-window" class="assistant-window" role="dialog" aria-label="Trợ lý GIS" hidden>
         <header class="assistant-header"><div><strong>Trợ lý GIS</strong><small>DXF và tiêu chí đánh giá</small></div><button type="button" class="assistant-close" aria-label="Thu nhỏ trợ lý">×</button></header>
         <div class="assistant-messages" role="log" aria-live="polite"></div>
-        <label class="assistant-mode-label">Chế độ trả lời<select class="assistant-mode"><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select></label>
-        <label class="assistant-effort-label">Effort<select class="assistant-effort" title="Mức độ suy nghĩ của model"><option value="auto">Mặc định</option><option value="low">Thấp</option><option value="medium">Trung bình</option><option value="high">Cao</option></select></label>
+        <details class="assistant-model-picker"><summary><span class="assistant-picker-summary">Nhanh · Mặc định</span><span aria-hidden="true">⌄</span></summary>
+          <div class="assistant-model-card"><span class="assistant-model-bolt" aria-hidden="true">ϟ</span><button type="button" class="assistant-effort-reset" aria-label="Đặt lại nỗ lực" title="Đặt lại nỗ lực">↶</button>
+            <strong class="assistant-effort-heading">Mặc định</strong>
+            <label class="assistant-model-label"><span class="sr-only">Model</span><select class="assistant-mode" aria-label="Model"><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select></label>
+            <div class="assistant-effort-track"><div class="assistant-effort-ticks" aria-hidden="true"></div><input class="assistant-effort-slider" type="range" min="0" max="3" step="1" value="0" aria-label="Nỗ lực suy nghĩ"></div>
+            <select class="assistant-effort" aria-label="Nỗ lực" hidden><option value="auto">Mặc định</option><option value="low">Thấp</option><option value="medium">Trung bình</option><option value="high">Cao</option></select>
+          </div>
+        </details>
         <form class="assistant-passcode-label" hidden><label for="assistant-passcode">Passcode Thông minh</label><input id="assistant-passcode" class="assistant-passcode" type="password" maxlength="128" autocomplete="off" placeholder="Passcode do quản trị cấp" required><button type="submit" class="assistant-passcode-submit">Xác nhận</button></form>
         <div class="assistant-preview" hidden></div>
         <div class="assistant-notice" role="status"></div>
@@ -85,6 +91,7 @@ export function installAssistant(ctx) {
     } catch {/* Chat still works without persistence. */}
     get('effort').addEventListener('change', () => {
       preferredEffort = get('effort').value;
+      renderEffortPicker();
       try {
         localStorage.setItem(effortKey, get('effort').value);
       } catch {/* Optional preference. */}
@@ -116,11 +123,34 @@ export function installAssistant(ctx) {
     let unavailableModes = new Map();
     let preferredEffort = get('effort').value;
     let effortModes = new Map([['fast', ['auto', 'low']], ['smart', ['auto', 'low', 'medium', 'high']]]);
+    function renderEffortPicker() {
+      const options = [...get('effort').options].filter(option => !option.disabled);
+      const index = Math.max(0, options.findIndex(option => option.value === get('effort').value));
+      const slider = get('effort-slider');
+      slider.max = String(Math.max(0, options.length - 1));
+      slider.value = String(index);
+      slider.disabled = options.length < 2;
+      const label = options[index]?.textContent || 'Mặc định';
+      slider.setAttribute('aria-valuetext', label);
+      get('effort-heading').textContent = label;
+      get('picker-summary').textContent = get('mode').selectedOptions[0].textContent + ' · ' + label;
+      get('effort-ticks').replaceChildren(...options.map(() => element('span', '')));
+    }
+    get('effort-slider').addEventListener('input', () => {
+      const options = [...get('effort').options].filter(option => !option.disabled);
+      get('effort').value = options[Number(get('effort-slider').value)]?.value || 'auto';
+      get('effort').dispatchEvent(new Event('change'));
+    });
+    get('effort-reset').addEventListener('click', () => {
+      get('effort').value = 'auto';
+      get('effort').dispatchEvent(new Event('change'));
+    });
     function updateEfforts() {
       const allowed = effortModes.get(get('mode').value) || ['auto', 'low'];
       for (const option of get('effort').options) option.disabled = !allowed.includes(option.value);
       get('effort').value = allowed.includes(preferredEffort) ? preferredEffort : 'auto';
       get('effort').title = allowed.includes('high') ? 'Mức độ suy nghĩ của model' : 'API Web Nhanh hiện chỉ áp dụng mức Thấp, dùng Thông minh để chọn Trung bình hoặc Cao';
+      renderEffortPicker();
     }
     updateEfforts();
     let verifiedPasscode = '',

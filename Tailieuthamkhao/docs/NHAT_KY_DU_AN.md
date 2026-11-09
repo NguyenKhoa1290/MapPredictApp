@@ -1021,3 +1021,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Dịch vị trí hiển thị từ tọa độ gốc, dùng tỷ lệ Web Mercator tại tâm layer, không dịch cộng dồn khi vẽ lại, không sửa GeoJSON nguồn hoặc file DXF
 - Agent có thể đề xuất màu và độ dịch trong cùng một bản nháp, giữ xác nhận, bỏ, hoàn tác, làm lại và khôi phục sau reload
 - Đã kiểm tra Chrome trên danhso_1.dxf, dịch riêng net 20m Đông và 10m Nam, KYHIEU không đổi, kiểm thử React 44, JavaScript 36 và Python liên quan 41 đều đạt
+
+## 2026-11-09 Khung chọn model và nỗ lực
+
+- Gộp hai hàng lựa chọn vào khung có thể mở và thu gọn, tên mức nỗ lực ở giữa, lựa chọn Nhanh hoặc Thông minh bên dưới
+- Thanh kéo theo nấc chỉ dùng các mức được service xác nhận hỗ trợ, có nút đặt lại về Mặc định
+- Giữ lưu lựa chọn nỗ lực, xác thực passcode và cách gửi mode/effort hiện tại
+- Đã kiểm tra 37 kiểm thử JavaScript, Chrome với bàn phím, đặt lại, passcode, thu gọn và màn hình rộng 390px
