@@ -33,7 +33,7 @@ MODELS = {
         "desc": "Deep thinking mode, longest output (~20k chars)",
     },
     "gemini-3.1-pro": {
-        "mode": 3, "think": 4,
+        "mode": None, "think": 1,
         "desc": "Pro model (requires cookie for real routing)",
     },
     "gemini-3.1-pro-enhanced": {

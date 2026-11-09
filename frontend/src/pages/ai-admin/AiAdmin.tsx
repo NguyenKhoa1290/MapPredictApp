@@ -11,7 +11,7 @@ async function readAdminResponse(response: Response) {
 
 type Model = { label: string; provider: 'gemini' | 'compatible'; model: string; url: string; api_key?: string; has_api_key?: boolean; clear_api_key?: boolean };
 type Settings = { models: Record<'fast' | 'smart', Model>; embedding: { url: string; model: string } };
-type Pool = { accounts: { id: string; label: string; email?: string | null; checked_at?: number; rotated_at?: number; rotation_checked_at?: number; renewal_state?: 'renewed' | 'not_renewed' | null; refresh_attempt_at?: number; status: string; usage?: { current_5h?: { used_percent: number | null; reset_at?: string }; weekly?: { used_percent: number | null; reset_at?: string } } }[]; unavailable?: boolean;
+type Pool = { accounts: { id: string; label: string; email?: string | null; models?: string[]; checked_at?: number; rotated_at?: number; rotation_checked_at?: number; renewal_state?: 'renewed' | 'not_renewed' | null; refresh_attempt_at?: number; status: string; usage?: { current_5h?: { used_percent: number | null; reset_at?: string }; weekly?: { used_percent: number | null; reset_at?: string } } }[]; unavailable?: boolean;
   maintenance?: { poll_interval_seconds: number; rotate_interval_seconds: number; repair_cooldown_seconds: number } };
 type State = { csrf: string; settings: Settings; gemini: { state: string; checked_at?: number; rotated_at?: number }; account_pool?: Pool; pro_access?: { configured: boolean }; services: string[]; embedding_enabled?: boolean };
 const accountLabels: Record<string, string> = { ready: 'Còn quota', exhausted: 'Hết quota', not_checked: 'Chưa kiểm tra', needs_login: 'Cần đăng nhập lại', needs_attention: 'Cần kiểm tra cookie và quyền Argon', unavailable: 'Chưa xác minh được quota', model_unavailable: 'Chưa xác minh quyền dùng Argon' };
@@ -153,9 +153,9 @@ export function AiAdmin() {
           const model = settings.models[mode];
           if (!model) return null;
           return <section className="admin-card" key={mode}><h2>{model.label}</h2>
-            <label>Nguồn chạy<select value={model.provider} onChange={event => editModel(mode, { provider: event.target.value as Model['provider'], ...(event.target.value === 'gemini' && !['gemini-3.5-flash-lite', 'gemini-4-argon'].includes(model.model) ? { model: mode === 'fast' ? 'gemini-3.5-flash-lite' : 'gemini-4-argon' } : {}) })} disabled={busy}>
+            <label>Nguồn chạy<select value={model.provider} onChange={event => editModel(mode, { provider: event.target.value as Model['provider'], ...(event.target.value === 'gemini' && !['gemini-3.5-flash-lite', 'gemini-4-argon', 'gemini-3.1-pro', 'gemini-3.8-flash'].includes(model.model) ? { model: mode === 'fast' ? 'gemini-3.5-flash-lite' : 'gemini-4-argon' } : {}) })} disabled={busy}>
               <option value="gemini">Gemini Web trong Docker</option><option value="compatible">API tương thích OpenAI</option></select></label>
-            <label>Tên model{model.provider === 'gemini' ? <select value={model.model} onChange={event => editModel(mode, { model: event.target.value })} disabled={busy}><option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option><option value="gemini-4-argon">Gemini 4 Argon</option></select> : <input required maxLength={150} value={model.model} onChange={event => editModel(mode, { model: event.target.value })} disabled={busy} />}</label>
+            <label>Tên model{model.provider === 'gemini' ? <select value={model.model} onChange={event => editModel(mode, { model: event.target.value })} disabled={busy}><option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option><option value="gemini-3.1-pro">Gemini 3.1 Pro</option><option value="gemini-3.8-flash">Gemini 3.8 Flash</option><option value="gemini-4-argon">Gemini 4 Argon</option></select> : <input required maxLength={150} value={model.model} onChange={event => editModel(mode, { model: event.target.value })} disabled={busy} />}</label>
             {mode === 'smart' ? <p className="admin-help">Chọn model cho chế độ Thông minh, vẫn yêu cầu passcode và không tự chuyển sang model khác khi lỗi</p> : null}
             {model.provider === 'compatible' ? <><label>Địa chỉ API, gồm /v1<input type="url" required value={model.url} onChange={event => editModel(mode, { url: event.target.value })} disabled={busy} /></label>
               <label>Khóa API mới<input type="password" autoComplete="new-password" value={model.api_key || ''} onChange={event => editModel(mode, { api_key: event.target.value })} placeholder={model.has_api_key ? 'Đã lưu khóa, để trống để giữ lại' : 'Nhập nếu API yêu cầu'} disabled={busy} /></label>
@@ -188,6 +188,7 @@ export function AiAdmin() {
         {state.account_pool?.unavailable ? <p>Chưa kết nối được pool tài khoản</p> : null}
         {(state.account_pool?.accounts || []).map(row => <div className="admin-account" key={row.id}><strong>{row.label}</strong><p>Trạng thái {accountLabels[row.status] || row.status}</p>
           <p>Gmail {row.email || 'Chưa xác định'}</p>
+          <p>Model đã phát hiện {row.models?.join(', ') || 'Chưa quét'}</p>
           <p>Quota 5 giờ đã dùng {row.usage?.current_5h?.used_percent ?? 'Chưa xác minh'}{row.usage?.current_5h?.used_percent != null ? '%' : ''}<br />Quota tuần đã dùng {row.usage?.weekly?.used_percent ?? 'Chưa xác minh'}{row.usage?.weekly?.used_percent != null ? '%' : ''}</p>
           {row.usage?.current_5h?.reset_at ? <p>Đặt lại quota 5 giờ {row.usage.current_5h.reset_at}</p> : null}
           {row.usage?.weekly?.reset_at ? <p>Đặt lại quota tuần {row.usage.weekly.reset_at}</p> : null}

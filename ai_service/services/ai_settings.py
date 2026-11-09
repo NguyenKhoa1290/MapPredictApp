@@ -15,6 +15,7 @@ from shared.tabular import PredictionError
 LOCK = threading.RLock()
 ARGON = 'gemini-4-argon'
 FLASH = 'gemini-3.5-flash-lite'
+GEMINI_MODELS = (FLASH, ARGON, 'gemini-3.1-pro', 'gemini-3.8-flash')
 
 
 def is_argon(model):
@@ -105,10 +106,10 @@ def load(config):
             saved = json.loads(Path(path).read_text(encoding='utf-8'))
             if 'fast' in saved.get('models', {}):
                 result['models']['fast'].update(saved['models']['fast'])
-                if result['models']['fast']['provider'] == 'gemini' and result['models']['fast']['model'] in ('gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash'):
+                if result['models']['fast']['provider'] == 'gemini' and result['models']['fast']['model'] in ('gemini-3.6-flash', 'gemini-3.7-flash'):
                     result['models']['fast']['model'] = FLASH
             smart = saved.get('models', {}).get('smart', {})
-            if smart.get('provider') == 'compatible' or smart.get('model') in (FLASH, ARGON):
+            if smart.get('provider') == 'compatible' or smart.get('model') in GEMINI_MODELS:
                 result['models']['smart'].update(smart)
             result['embedding'].update(saved.get('embedding', {}))
     return result
@@ -142,8 +143,8 @@ def save(config, incoming):
             if not isinstance(row, dict) or row.get('provider') not in ('gemini', 'compatible'):
                 raise ValueError('Nguồn model không hợp lệ')
             model = row.get('model', '')
-            if row['provider'] == 'gemini' and model not in (FLASH, ARGON):
-                raise ValueError('Adapter Gemini nội bộ chỉ hỗ trợ 3.5 Flash-Lite và 4 Argon, dùng API tương thích cho model khác')
+            if row['provider'] == 'gemini' and model not in GEMINI_MODELS:
+                raise ValueError('Chọn Flash-Lite, 3.1 Pro, 3.8 Flash hoặc Argon, dùng API tương thích cho model khác')
             if not isinstance(model, str) or not re.fullmatch(r'[a-zA-Z0-9_./:@+=-]{1,150}', model):
                 raise ValueError('Tên model không hợp lệ')
             api_key = row.get('api_key')
@@ -179,7 +180,7 @@ def save(config, incoming):
 def supported_efforts(row):
     # Gemini Web's legacy Flash route reports Low for every supplied level.
     # Only Argon has been verified with upstream applied_level=1/4/2.
-    return ['auto', 'low'] if row['provider'] == 'gemini' and not is_argon(row['model']) else ['auto', 'low', 'medium', 'high']
+    return ['auto', 'low'] if row['provider'] == 'gemini' and row['model'] == FLASH else ['auto', 'low', 'medium', 'high']
 
 
 def model_config(config, mode='fast'):

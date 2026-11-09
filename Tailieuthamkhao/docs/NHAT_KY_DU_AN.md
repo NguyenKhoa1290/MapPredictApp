@@ -1057,3 +1057,13 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Admin có thể gán độc lập model cho Nhanh và Thông minh, chọn Flash-Lite hoặc Argon trong adapter hiện tại, hoặc nhập model và endpoint API tương thích OpenAI
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
+
+## 2026-11-09 Thêm 3.1 Pro và 3.8 Flash
+
+- Thêm hai model vào lựa chọn Nhanh và Thông minh trong admin, lưu nguyên lựa chọn sau reload
+- Khám phá chính xác tên phiên bản, ID và model number từ tài khoản, không dùng tên mới để gọi route cũ
+- Gọi qua tài khoản đã đăng nhập, chỉ thử tài khoản khác cho cùng model khi cần, thiếu route thì báo model_unavailable
+- 3.8 Flash dùng category 1 nhưng có header xác thực nên gửi effort ở payload[80], tách khỏi route Flash ẩn danh cũ
+- Chỉ nhận mức effort khi phản hồi upstream xác nhận, giữ lỗi rõ ràng nếu mức suy nghĩ không được áp dụng
+- Bổ sung danh sách model đã phát hiện trên từng tài khoản trong quản trị
+- Kiểm thử đạt 242 Python và 46 React, bao gồm khám phá, route riêng, không fallback và lưu cấu hình

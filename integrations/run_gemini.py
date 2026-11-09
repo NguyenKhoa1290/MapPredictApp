@@ -8,7 +8,7 @@ import uuid
 from gemini_web2api.config import CONFIG
 from gemini_web2api.server import GeminiHandler, ThreadedServer
 from gemini_web2api.session_manager import SessionManager
-from gemini_web2api.account_pool import AccountPool, ARGON, FLASH
+from gemini_web2api.account_pool import AccountPool, ARGON, FLASH, SIGNED_MODELS
 from gemini_web2api.quota_guard import QuotaRejected
 from gemini_web2api.gemini import generate
 from gemini_web2api.tools import messages_to_prompt
@@ -79,7 +79,7 @@ class ManagedGeminiHandler(GeminiHandler):
 
     def _handle_chat(self, body):
         request = self._parse_body(body)
-        if not isinstance(request, dict) or request.get('model') not in (ARGON, FLASH):
+        if not isinstance(request, dict) or request.get('model') not in SIGNED_MODELS:
             with manager.lock:
                 return super()._handle_chat(body)
         model = request['model']
@@ -100,17 +100,17 @@ class ManagedGeminiHandler(GeminiHandler):
             level = thinking_depth(request.get('reasoning_effort'), 1)
             def generate_argon(mode, think):
                 text = generate(prompt, mode, level, metadata=reasoning)
-                if reasoning.get('applied_level', None if model == FLASH else level) != level:
-                    raise ValueError('Argon thinking level was not honored')
+                if reasoning.get('applied_level', None if model != ARGON else level) != level:
+                    raise QuotaRejected('Gemini chưa xác nhận mức effort đã chọn', status=503, code='effort_not_applied')
                 return text
             try:
                 budget = max(1, min(75, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', 75))))
             except (ValueError, TypeError):
                 budget = 75
-            if model == FLASH:
-                text = pool.run_flash(generate_argon, timeout=budget)
-            else:
+            if model == ARGON:
                 text = pool.run(generate_argon, timeout=budget)
+            else:
+                text = pool.run_flash(generate_argon, timeout=budget, **({'model': model} if model != FLASH else {}))
             self.send_json({'id': 'chatcmpl-' + uuid.uuid4().hex, 'object': 'chat.completion',
                             'created': int(time.time()), 'model': model,
                             'reasoning': reasoning,

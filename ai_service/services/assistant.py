@@ -235,8 +235,8 @@ def call_model(messages, config, *, response_kind='assistant'):
             raise PredictionError('ASSISTANT_TIMEOUT', 'Model chưa hoàn tất trong thời gian cho phép, dữ liệu chưa thay đổi. Hãy thử lại sau hoặc giảm nỗ lực', 504) from None
         if code == 'effort_not_applied':
             raise PredictionError('EFFORT_NOT_APPLIED', 'Gemini chưa áp dụng được mức effort đã chọn, dữ liệu chưa thay đổi', 503) from None
-        if config['ASSISTANT_MODEL'] == 'gemini-3.5-flash-lite' and code in ('cookie_required', 'model_unavailable', 'accounts_busy'):
-            message = 'Gemini đang xử lý yêu cầu trước, hãy thử lại sau' if code == 'accounts_busy' else 'Phiên Nhanh ẩn danh chưa trả kết quả hợp lệ trong thời gian cho phép, hãy thử lại'
+        if config['ASSISTANT_MODEL'] in ('gemini-3.5-flash-lite', 'gemini-3.1-pro', 'gemini-3.8-flash') and code in ('cookie_required', 'model_unavailable', 'accounts_busy'):
+            message = 'Gemini đang xử lý yêu cầu trước, hãy thử lại sau' if code == 'accounts_busy' else f'Chưa có tài khoản đăng nhập dùng được {config["ASSISTANT_MODEL"]}, hãy kiểm tra cookie và danh sách model trong quản trị'
             raise PredictionError(code.upper(), message, 429 if code == 'accounts_busy' else 503) from None
         if config['ASSISTANT_MODEL'] == 'gemini-4-argon':
             if code == 'cookie_required':

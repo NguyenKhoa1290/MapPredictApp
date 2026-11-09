@@ -14,6 +14,9 @@ from .quota_guard import QuotaGuard, QuotaRejected
 
 ARGON = 'gemini-4-argon'
 FLASH = 'gemini-3.5-flash-lite'
+PRO = 'gemini-3.1-pro'
+FLASH38 = 'gemini-3.8-flash'
+SIGNED_MODELS = (ARGON, FLASH, PRO, FLASH38)
 SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models', 'audit_config_path', 'generation_deadline')
 
 
@@ -44,7 +47,8 @@ class AccountPool:
         except (OSError, ValueError):
             settings = {}
         email = settings.get('email')
-        return {'email': email if isinstance(email, str) and len(email) <= 254 and re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email) else None,
+        return {'models': [name for name in SIGNED_MODELS if name in settings.get('extra_models', {})],
+                'email': email if isinstance(email, str) and len(email) <= 254 and re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email) else None,
                 'checked_at': settings.get('session_checked_at'), 'rotated_at': settings.get('session_cookie_renewed_at'),
                 'rotation_checked_at': settings.get('session_rotation_checked_at'),
                 'renewal_state': settings.get('session_renewal_state') if settings.get('session_renewal_state') in ('renewed', 'not_renewed') else None,
@@ -183,8 +187,10 @@ class AccountPool:
         finally:
             self.lock.release()
 
-    def run_flash(self, generate, timeout=120):
-        """Use only account-discovered Flash-Lite routes, never anonymous Flash."""
+    def run_flash(self, generate, timeout=120, model=FLASH):
+        """Use the exact account-discovered model, never an anonymous/alias route."""
+        if model not in (FLASH, PRO, FLASH38):
+            raise QuotaRejected('Model chưa được hỗ trợ', status=400, code='model_unavailable')
         with self.generation_slot():
             entries = self.store.registry()['accounts']
             login_failures = 0
@@ -195,14 +201,14 @@ class AccountPool:
                 try:
                     path = self.store.path(entry['id'])
                     settings = json.loads(path.read_text(encoding='utf-8'))
-                    if (FLASH not in settings.get('extra_models', {}) or
+                    if (model not in settings.get('extra_models', {}) or
                             time.time() - settings.get('model_checked_at', 0) > 3600):
                         self.store.discover(entry['id'])
                     session = GoogleSession(path)
                     session.maintain()
                     session.refresh()
                     settings = json.loads(path.read_text(encoding='utf-8'))
-                    route = settings.get('extra_models', {}).get(FLASH)
+                    route = settings.get('extra_models', {}).get(model)
                     if not route or str(route['mode']) not in settings.get('model_headers', {}) or not settings.get('xsrf_token'):
                         continue
                     with self.profile(settings, path):
@@ -218,6 +224,10 @@ class AccountPool:
                     if not isinstance(result, str) or not result.strip():
                         continue
                     return result
+                except TimeoutError:
+                    raise QuotaRejected('Model chưa hoàn tất trong thời gian cho phép', status=504, code='generation_timeout') from None
+                except QuotaRejected:
+                    raise
                 except UsageAuthError:
                     login_failures += 1
                     self.rows[entry['id']] = {'status': 'needs_login', 'usage': None}
@@ -225,7 +235,9 @@ class AccountPool:
                     continue
             if not entries or login_failures == len(entries):
                 raise QuotaRejected('Nhanh cần cookie tài khoản hợp lệ, hãy cập nhật trong quản trị', status=503, code='cookie_required')
-            raise QuotaRejected('Không có tài khoản 3.5 Flash-Lite khả dụng, không dùng phiên ẩn danh hoặc model khác', status=503, code='model_unavailable')
+            if time.monotonic() >= deadline:
+                raise QuotaRejected('Model chưa hoàn tất trong thời gian cho phép', status=504, code='generation_timeout')
+            raise QuotaRejected(f'Không có tài khoản dùng được {model}, không chuyển model khác', status=503, code='model_unavailable')
 
     def run_anonymous(self, generate, timeout=120):
         """Isolate Fast from all account credentials, then restore Smart's state."""

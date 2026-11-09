@@ -133,7 +133,12 @@ class AccountStore:
                 category = value(1) or value(10) or ''
                 display = value(11) or value(19) or category
                 identity = (str(category) + ' ' + str(display)).casefold()
-                name = 'gemini-4-argon' if 'argon' in identity else 'gemini-3.5-flash-lite' if re.search(r'\b3\.5\s+flash[-\s]*lite\b', str(display), re.I) else None
+                name = next((name for pattern, name in (
+                    (r'\bargon\b', 'gemini-4-argon'),
+                    (r'\b3\.5\s+flash[-\s]*lite\b', 'gemini-3.5-flash-lite'),
+                    (r'\b3\.1\s+pro\b', 'gemini-3.1-pro'),
+                    (r'\b3\.8\s+flash\b(?![-\s]*lite)', 'gemini-3.8-flash'),
+                ) if re.search(pattern, identity, re.I)), None)
                 if not name:
                     continue
                 number = value(17) if type(value(17)) is int else value(9)

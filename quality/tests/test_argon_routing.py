@@ -171,7 +171,7 @@ class ArgonRoutingTests(unittest.TestCase):
 
     def test_discovery_keeps_flash_and_argon_routes_separate(self):
         models = []
-        for display, category, number, identifier in [('3.5 Flash-Lite', 'Flash-Lite', 6, 'flash-id'), ('4 Argon', 'Argon', 8, 'argon-id')]:
+        for display, category, number, identifier in [('3.5 Flash-Lite', 'Flash-Lite', 6, 'flash-id'), ('4 Argon', 'Argon', 8, 'argon-id'), ('3.1 Pro', 'Pro', 3, 'pro-id'), ('3.8 Flash', 'Flash', 1, 'flash38-id')]:
             model = [None] * 20
             model[0], model[1], model[11], model[17] = identifier, category, display, number
             models.append(model)
@@ -182,9 +182,35 @@ class ArgonRoutingTests(unittest.TestCase):
             session.return_value.request_rpc.return_value = rpc
             self.assertTrue(self.pool.store.discover('a' * 32))
         settings = json.loads(self.pool.store.path('a' * 32).read_text())
-        self.assertEqual(set(settings['extra_models']), {'gemini-3.5-flash-lite', 'gemini-4-argon'})
+        self.assertEqual(set(settings['extra_models']), {'gemini-3.5-flash-lite', 'gemini-4-argon', 'gemini-3.1-pro', 'gemini-3.8-flash'})
         header = json.loads(settings['model_headers']['6']['x-goog-ext-525001261-jspb'])
         self.assertEqual(header[4], 'flash-id')
+
+    def test_new_models_use_exact_discovered_route_and_never_fallback(self):
+        from gemini_web2api.quota_guard import QuotaRejected
+        from gemini_web2api.config import CONFIG
+        for name, mode in (('gemini-3.1-pro', 3), ('gemini-3.8-flash', 1)):
+            with self.subTest(model=name):
+                for entry in self.pool.store.registry()['accounts']:
+                    path = self.pool.store.path(entry['id'])
+                    settings = json.loads(path.read_text())
+                    settings['extra_models'][name] = {'mode': mode, 'think': 1}
+                    settings['model_headers'][str(mode)] = {'x-goog-ext-525001261-jspb': '[1]'}
+                    path.write_text(json.dumps(settings))
+                with patch('gemini_web2api.account_pool.GoogleSession'):
+                    result = self.pool.run_flash(lambda actual, think: f'{actual}:{bool(CONFIG["cookie_file"])}', model=name)
+                self.assertEqual(result, f'{mode}:True')
+                for entry in self.pool.store.registry()['accounts']:
+                    path = self.pool.store.path(entry['id'])
+                    settings = json.loads(path.read_text())
+                    settings['extra_models'].pop(name)
+                    path.write_text(json.dumps(settings))
+                generate = Mock()
+                with patch('gemini_web2api.account_pool.GoogleSession'), patch.object(self.pool.store, 'discover', return_value=False):
+                    with self.assertRaises(QuotaRejected) as error:
+                        self.pool.run_flash(generate, model=name)
+                self.assertEqual(error.exception.code, 'model_unavailable')
+                generate.assert_not_called()
 
     def test_flash_uses_second_signed_in_account_without_argon_quota(self):
         from gemini_web2api.google_session import UsageAuthError
@@ -279,10 +305,10 @@ class ArgonRoutingTests(unittest.TestCase):
                 patch('gemini_web2api.account_pool.AccountPool'):
             spec.loader.exec_module(runner)
         runner.pool.run.side_effect = lambda callback, **kwargs: callback(71, 4)
-        runner.pool.run_flash.side_effect = lambda callback, **kwargs: callback(6, 1)
+        runner.pool.run_flash.side_effect = lambda callback, **kwargs: callback({'gemini-3.1-pro': 3, 'gemini-3.8-flash': 1}.get(kwargs.get('model'), 6), 1)
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
-        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-3.5-flash-lite', 6)):
+        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-3.5-flash-lite', 6), ('gemini-3.1-pro', 3), ('gemini-3.8-flash', 1)):
             for effort, depth in ((None, 1), ('low', 1), ('medium', 4), ('high', 2)):
                 with self.subTest(model=model, effort=effort):
                     handler.send_json.reset_mock()
@@ -374,9 +400,12 @@ class ArgonRoutingTests(unittest.TestCase):
         self.assertEqual(value[14:16], [1, 4])
         self.assertNotIn('Authorization', header)
         from urllib.parse import parse_qs
-        CONFIG['model_headers'] = {'1': {'x-goog-ext-525001261-jspb': '[1]'}}
         body = json.loads(json.loads(parse_qs(gemini._build_payload('test', 1, 4))['f.req'][0])[1])
         self.assertIsNone(body[80])
+        CONFIG['model_headers'] = {'1': {'x-goog-ext-525001261-jspb': '[1]'}}
+        body = json.loads(json.loads(parse_qs(gemini._build_payload('test', 1, 4))['f.req'][0])[1])
+        self.assertEqual(body[80], 4)
+        self.assertEqual(body[17], [[0]])
 
     def test_generation_reads_applied_level_from_upstream_not_from_the_request(self):
         from gemini_web2api import gemini

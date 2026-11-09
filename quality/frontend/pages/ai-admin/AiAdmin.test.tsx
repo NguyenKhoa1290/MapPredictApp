@@ -14,6 +14,8 @@ it('lets admin independently assign the two internal models', async () => {
   await screen.findByRole('tab', { name: 'Model' });
   const selectors = screen.getAllByLabelText('Tên model') as HTMLSelectElement[];
   expect(selectors.every(node => !node.disabled)).toBe(true);
+  expect(within(selectors[0]).getByRole('option', { name: 'Gemini 3.1 Pro' })).toBeTruthy();
+  expect(within(selectors[1]).getByRole('option', { name: 'Gemini 3.8 Flash' })).toBeTruthy();
   fireEvent.change(selectors[0], { target: { value: 'gemini-4-argon' } });
   fireEvent.change(selectors[1], { target: { value: 'gemini-3.5-flash-lite' } });
   fireEvent.submit(screen.getByRole('button', { name: 'Lưu cấu hình' }).closest('form')!);

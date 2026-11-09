@@ -154,9 +154,9 @@ def _build_payload(prompt: str, model_id: int, think_mode: int, file_refs: list 
     inner[61] = []
     inner[68] = 1
     inner[79] = model_id
-    # Flash (category 1) previously had no route headers and did not send this
-    # legacy Argon route flag. Adding its verified header must not enable it.
-    if model_id != 1 and str(model_id) in (CONFIG.get('model_headers') or {}):
+    # Verified signed-in routes, including Flash 3.8 category 1, use field 80.
+    # Legacy anonymous category 1 remains separate because it has no stored header.
+    if str(model_id) in (CONFIG.get('model_headers') or {}):
         # Verified thinking route: level belongs in field 80, not legacy field 17.
         inner[17] = [[0]]
         inner[80] = think_mode
