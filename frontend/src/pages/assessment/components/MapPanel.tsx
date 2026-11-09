@@ -84,6 +84,8 @@ export const MapPanel = memo(function MapPanel() {
                                     <label>Độ đậm vùng tô <output id="style-fill-opacity-value"></output><input id="style-fill-opacity" type="range" min="0" max="100" /></label>
                                     <label>Cỡ điểm <output id="style-radius-value"></output><input id="style-radius" type="range" min="1" max="16" /></label>
                                     <label>Kiểu nét<select id="style-dash"><option value="">Liền</option><option value="8 5">Đứt</option><option value="2 5">Chấm</option></select></label>
+                                    <div className="style-colors"><label>Dịch Đông (m)<input id="style-east" type="number" min="-100000" max="100000" step="any" defaultValue="0" /></label><label>Dịch Bắc (m)<input id="style-north" type="number" min="-100000" max="100000" step="any" defaultValue="0" /></label></div>
+                                    <p className="field-note">Số âm để dịch Tây hoặc Nam, độ dịch hiển thị tính từ vị trí gốc và không sửa file DXF</p>
                                     <button id="style-reset" className="cad-action" type="button">Khôi phục kiểu nguồn</button>
                                     <p className="field-note">Thiết lập thành phần ưu tiên hơn cả layer. Hiệu chỉnh hue/contrast bên dưới được áp dụng sau màu nguồn hoặc màu tự chọn, không sửa file gốc.</p>
                                 </fieldset>

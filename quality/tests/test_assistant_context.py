@@ -26,6 +26,9 @@ class ContextTests(unittest.TestCase):
                 validate_patch(patch_value)
         self.assertEqual(validate_patch({'style': {'color': '#00ff00', 'dashArray': '8 5'},
                                          'adjustments': {'hue': 60}, 'opacity': 0.5})['opacity'], 0.5)
+        self.assertEqual(validate_patch({'style': {'east': 20, 'north': -10}}), {'style': {'east': 20, 'north': -10}})
+        with self.assertRaises(ValueError):
+            validate_patch({'style': {'east': 100001}})
 
     def test_inspector_returns_only_validated_patch_without_opening_dxf(self):
         options = {'message': 'Change the selected layer', 'layer_context': json.dumps({

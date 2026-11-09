@@ -36,7 +36,7 @@ test('joined parcel clicks show a safe name popup without zoom while base layer 
     const dom = new JSDOM(html, { url: 'http://localhost/legacy/', runScripts: 'outside-only' });
     const w = dom.window;
     const fits = [], cells = [];
-    const bounds = () => ({ isValid: () => true, extend() { return this; } });
+    const bounds = () => ({ isValid: () => true, getCenter: () => ({ lat: 21 }), extend() { return this; } });
     w.map = { removeLayer() {}, getSize: () => ({ x: 1200 }), fitBounds: (...args) => fits.push(args) };
     w.L = { latLngBounds: bounds, geoJSON(data, options) {
         const children = data.features.map(feature => {

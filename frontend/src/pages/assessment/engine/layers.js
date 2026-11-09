@@ -48,11 +48,40 @@ export function installLayers(ctx) {
     for (const record of overlay.records) {
       const group = overlay.groups.get(record.group);
       const style = ctx.managedStyle(overlay, record.feature);
+      const settings = { ...overlay.style, ...group?.style };
+      ctx.translateManagedRecord(overlay, record, settings.east ?? 0, settings.north ?? 0);
       record.layer.setStyle(style);
       if (record.layer.setRadius) record.layer.setRadius(style.radius);
       if (group.visible && !overlay.layer.hasLayer(record.layer)) overlay.layer.addLayer(record.layer);
       if (!group.visible && overlay.layer.hasLayer(record.layer)) overlay.layer.removeLayer(record.layer);
     }
+    overlay.bounds = overlay.layer.getBounds();
+  };
+  // Display offsets in ground metres, derived from original Leaflet coordinates.
+  // Never rewrite source GeoJSON or repeatedly shift already translated positions.
+  ctx.translateManagedRecord = function translateManagedRecord(overlay, record, east, north) {
+    const key = `${east}:${north}`;
+    if (record.translationKey === key || (!record.translationBases && !east && !north)) return;
+    if (!record.translationBases) {
+      record.translationBases = [];
+      const collect = layer => {
+        if (layer.getLatLngs) record.translationBases.push({ layer, coordinates: layer.getLatLngs(), point: false });
+        else if (layer.getLatLng) record.translationBases.push({ layer, coordinates: layer.getLatLng(), point: true });
+        else if (layer.eachLayer) layer.eachLayer(collect);
+      };
+      collect(record.layer);
+    }
+    const scale = Math.max(0.01, Math.cos(overlay.translationLatitude * Math.PI / 180));
+    const shift = value => {
+      if (Array.isArray(value)) return value.map(shift);
+      const point = L.CRS.EPSG3857.project(value);
+      return L.CRS.EPSG3857.unproject(L.point(point.x + east / scale, point.y + north / scale));
+    };
+    for (const base of record.translationBases) {
+      if (base.point) base.layer.setLatLng(shift(base.coordinates));
+      else base.layer.setLatLngs(shift(base.coordinates));
+    }
+    record.translationKey = key;
   };
   ctx.fitManagedBounds = function fitManagedBounds(bounds) {
     if (!bounds.isValid()) return;
@@ -140,6 +169,7 @@ export function installLayers(ctx) {
         }
       });
       overlay.bounds = overlay.layer.getBounds();
+      overlay.translationLatitude = overlay.bounds.isValid() ? overlay.bounds.getCenter().lat : 0;
       ctx.refreshManagedLayer(overlay);
       if (overlay.visible) overlay.layer.addTo(ctx.map);
       ctx.overlays.push(overlay);
@@ -272,6 +302,7 @@ export function installLayers(ctx) {
       ctx.$(`${id}-value`).textContent = `${value}${suffix}`;
     }
     ctx.$("style-dash").value = style.dashArray ?? overlay.style.dashArray ?? "";
+    for (const key of ['east', 'north']) if (ctx.$(`style-${key}`)) ctx.$(`style-${key}`).value = style[key] ?? overlay.style[key] ?? 0;
   };
   ctx.changeStyle = function changeStyle(values) {
     const overlay = ctx.currentOverlay();
@@ -318,12 +349,10 @@ export function installLayers(ctx) {
       const name = document.createElement("button");
       name.type = "button";
       name.textContent = `${ctx.componentLabel(group)} (${group.count})`;
+      name.title = 'Mở chatbot cho thành phần này';
       name.addEventListener("click", () => {
-        ctx.inspectorScope = group.name;
-        ctx.$("style-scope").value = group.name;
-        ctx.attributePage = 0;
-        ctx.renderStyleEditor(overlay);
-        ctx.renderAttributes(overlay);
+        ctx.selectManagedLayer(overlay.id, group.name, false);
+        ctx.window.dispatchEvent(new Event('assistant-open'));
       });
       const color = document.createElement("input");
       color.type = "color";
@@ -458,6 +487,12 @@ export function installLayers(ctx) {
   ctx.$("style-dash").addEventListener("change", () => ctx.changeStyle({
     dashArray: ctx.$("style-dash").value
   }));
+  for (const key of ['east', 'north']) ctx.$(`style-${key}`)?.addEventListener('change', () => {
+    const input = ctx.$(`style-${key}`);
+    const value = Number(input.value);
+    if (input.value.trim() && Number.isFinite(value) && Math.abs(value) <= 100000) ctx.changeStyle({ [key]: value });
+    else ctx.renderStyleEditor(ctx.currentOverlay());
+  });
   ctx.$("style-reset").addEventListener("click", () => {
     const overlay = ctx.currentOverlay();
     if (!overlay) return;

@@ -26,14 +26,14 @@ def bound(messages):
 def validate_patch(patch):
     if not isinstance(patch, dict) or set(patch) - {'style', 'adjustments', 'opacity'}:
         raise ValueError('Chỉ được đổi thông số trong bảng layer')
-    ranges = {'weight': (0, 8), 'radius': (1, 16), 'fillOpacity': (0, 1),
+    ranges = {'east': (-100000, 100000), 'north': (-100000, 100000), 'weight': (0, 8), 'radius': (1, 16), 'fillOpacity': (0, 1),
               'hue': (-180, 180), 'contrast': (0, 200), 'brightness': (0, 200),
               'saturation': (0, 200), 'invert': (0, 100), 'opacity': (0, 1)}
     result = {}
     for section, values in patch.items():
         if section == 'opacity':
             values = {'opacity': values}
-        allowed = {'color', 'fillColor', 'weight', 'radius', 'fillOpacity', 'dashArray'} if section == 'style' else {'hue', 'contrast', 'brightness', 'saturation', 'invert'} if section == 'adjustments' else {'opacity'}
+        allowed = {'east', 'north', 'color', 'fillColor', 'weight', 'radius', 'fillOpacity', 'dashArray'} if section == 'style' else {'hue', 'contrast', 'brightness', 'saturation', 'invert'} if section == 'adjustments' else {'opacity'}
         if not isinstance(values, dict) or set(values) - allowed:
             raise ValueError('Thông số layer không hợp lệ')
         clean = {}
@@ -66,6 +66,7 @@ def preview(options, config):
     history = options.get('history', [])
     messages = [{'role': 'system', 'content': instruction}]
     messages[0]['content'] += ' samples chỉ là mẫu thuộc tính giới hạn, không phải toàn bộ layer. Không suy diễn dữ liệu không có trong ngữ cảnh.'
+    messages[0]['content'] += ' Cho phép dịch vị trí HIỂN THỊ bằng style.east và style.north trong -100000..100000 mét, không sửa hình học DXF gốc. Đông/Bắc dương, Tây/Nam âm. Đây là tổng độ dịch so với vị trí gốc, yêu cầu dịch thêm phải cộng vào độ dịch hiện tại trong style. Chỉ dịch component đang chọn, nếu không chọn component thì dịch cả layer. Không đổi vị trí nếu người dùng chỉ yêu cầu màu.'
     messages += [{'role': row['role'], 'content': row['content']} for row in history
                  if isinstance(row, dict) and row.get('role') in ('user', 'assistant') and isinstance(row.get('content'), str)]
     messages.append({'role': 'user', 'content': json.dumps(layer, ensure_ascii=False) + '\n' + options['message']})

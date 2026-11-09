@@ -1013,3 +1013,11 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Giới hạn ngữ cảnh khoảng 30k token, ước lượng UTF-8/3, dành khoảng 4k cho trả lời, bỏ lượt hội thoại cũ nếu cần, từ chối đầu vào quá lớn thay vì cắt dữ liệu bảng
 - Nút tròn hiển thị mức sử dụng ước tính, bấm để LLM tóm tắt hội thoại, không thay đổi dữ liệu hoặc lịch sử thao tác
 - Kiểm tra Chrome với danhso_1.dxf và thành phần net, xác nhận yêu cầu không chứa DXF, chỉ net thay đổi, KYHIEU và file gốc giữ nguyên
+
+## 2026-11-09 Mở chatbot từ tên thành phần và dịch vị trí
+
+- Bấm tên thành phần trong bảng bên phải sẽ chọn đúng thành phần, mở chatbot và đưa con trỏ vào ô chat, không tự gửi câu hỏi
+- Thêm thông số dịch Đông và Bắc theo mét, số âm tương ứng Tây và Nam, lưu theo thành phần hoặc cả layer đang chọn
+- Dịch vị trí hiển thị từ tọa độ gốc, dùng tỷ lệ Web Mercator tại tâm layer, không dịch cộng dồn khi vẽ lại, không sửa GeoJSON nguồn hoặc file DXF
+- Agent có thể đề xuất màu và độ dịch trong cùng một bản nháp, giữ xác nhận, bỏ, hoàn tác, làm lại và khôi phục sau reload
+- Đã kiểm tra Chrome trên danhso_1.dxf, dịch riêng net 20m Đông và 10m Nam, KYHIEU không đổi, kiểm thử React 44, JavaScript 36 và Python liên quan 41 đều đạt

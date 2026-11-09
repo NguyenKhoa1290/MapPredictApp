@@ -217,6 +217,13 @@ export function installAssistant(ctx) {
       launcher.setAttribute('aria-expanded', 'false');
       launcher.focus();
     });
+    window.addEventListener('assistant-open', () => {
+      panel.hidden = false;
+      launcher.setAttribute('aria-expanded', 'true');
+      lastContext = null;
+      updateContext();
+      get('form').querySelector('textarea').focus();
+    });
     panel.addEventListener('keydown', event => {
       if (event.key === 'Escape') get('close').click();
     });
