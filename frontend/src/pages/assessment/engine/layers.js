@@ -214,6 +214,7 @@ export function installLayers(ctx) {
     ctx.inspectorScope = "";
     ctx.$("layer-inspector").hidden = true;
     for (const card of document.querySelectorAll(".layer-card")) card.classList.remove("selected");
+    ctx.window.dispatchEvent(new Event('assistant-layer-change'));
   };
   ctx.selectManagedLayer = function selectManagedLayer(id, scope = "", zoom = true) {
     const overlay = ctx.overlays.find(entry => entry.id === id);
@@ -245,6 +246,7 @@ export function installLayers(ctx) {
     ctx.renderAttributes(overlay);
     ctx.renderColorAdjustments(overlay);
     if (opening && zoom) ctx.fitManagedBounds(overlay.bounds);
+    ctx.window.dispatchEvent(new Event('assistant-layer-change'));
   };
   ctx.currentOverlay = function currentOverlay() {
     return ctx.overlays.find(overlay => overlay.id === ctx.selectedLayerId);

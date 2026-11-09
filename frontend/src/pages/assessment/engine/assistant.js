@@ -93,6 +93,25 @@ export function installAssistant(ctx) {
       pending = null,
       controller = null,
       busy = false;
+    let lastContext = null;
+    const contextButton = element('button', '0%', 'assistant-context');
+    contextButton.type = 'button';
+    contextButton.setAttribute('aria-label', 'Ngữ cảnh 30k, bấm để thu gọn hội thoại');
+    get('actions').insertBefore(contextButton, get('history-slot'));
+    function updateContext() {
+      const files = snapshot();
+      get('header').querySelector('small').textContent = files.scope === 'map'
+        ? files.layerContext ? `Layer: ${files.layerContext.name}${files.layerContext.component ? ' / ' + files.layerContext.component : ''}` : 'Chưa chọn layer, chỉ trò chuyện'
+        : 'Bảng dữ liệu đang hiển thị';
+      const text = JSON.stringify(history) + JSON.stringify(files.layerContext || {}) + get('form').querySelector('textarea').value;
+      const local = Math.ceil((new TextEncoder().encode(text).length + (files.csv?.size || 0)) / 3) + 1200;
+      const used = lastContext?.used ?? local;
+      const percent = Math.min(100, Math.round(used / 30000 * 100));
+      contextButton.textContent = percent + '%';
+      contextButton.style.setProperty('--context-percent', percent + '%');
+      contextButton.title = `Ngữ cảnh ước tính ${used.toLocaleString('vi-VN')}/30.000 token, dự phòng 4.000 token trả lời. Bấm để thu gọn hội thoại`;
+      contextButton.disabled = busy || !history.length || window.assistantWorkspace.hasDraft();
+    }
     let protectedModes = new Set(['smart']);
     let unavailableModes = new Map();
     let preferredEffort = get('effort').value;
@@ -175,6 +194,7 @@ export function installAssistant(ctx) {
           localStorage.setItem(historyKey, JSON.stringify(history));
         } catch {/* Chat still works without persistence. */}
       }
+      updateContext();
       return item;
     }
     history.forEach(item => showSources(message(item.role, item.content, false), Array.isArray(item.sources) ? item.sources : []));
@@ -258,6 +278,10 @@ export function installAssistant(ctx) {
       }
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       form.append('scope', files.scope);
+      if (files.inspector) {
+        form.append('inspector', 'true');
+        if (files.layerContext) form.append('layer_context', JSON.stringify(files.layerContext));
+      }
       if (files.scope === 'map') {
         form.append('resource_ids', JSON.stringify(files.resources.map(item => item.id)));
         form.append('resource_tokens', JSON.stringify(references));
@@ -346,6 +370,7 @@ export function installAssistant(ctx) {
       get('form').querySelector('[type="submit"]').disabled = value || window.assistantWorkspace.hasDraft();
       get('stop').hidden = !value || !controller;
       panel.setAttribute('aria-busy', String(value));
+      updateContext();
     }
     function showSources(item, sources) {
       for (const cited of sources) {
@@ -362,16 +387,20 @@ export function installAssistant(ctx) {
     }
     function showPreview(result, files) {
       clearPreview();
-      if (!result.token) return;
+      if (!result.token && !result.layer_patch) return;
       pending = {
         token: result.token,
+        layerPatch: result.layer_patch,
         files
       };
       preview.hidden = false;
-      const count = result.edits.length + result.scores.length + (result.table_edits || []).length;
+      const count = result.edits.length + result.scores.length + (result.table_edits || []).length + (result.layer_patch ? 1 : 0);
       preview.append(element('strong', 'Xem trước thay đổi'));
       if (result.create_table) preview.append(element('p', 'Tạo bảng cho ' + result.row_count + ' ô có mã xác định'));
       const list = document.createElement('ul');
+      if (result.layer_patch) {
+        for (const [section, value] of Object.entries(result.layer_patch)) list.append(element('li', section + ': ' + JSON.stringify(value)));
+      }
       for (const action of result.edits) list.append(element('li', `${action.handle} · ${action.operation}: ${JSON.stringify(action.before)} → ${JSON.stringify(action.value)}${action.reason ? '\n' + action.reason : ''}`));
       for (const score of result.scores) list.append(element('li', `Dòng ${score.row_index + 1} · ${score.column}: ${score.before || 'Trống'} → ${score.value}\nÔ nguồn ${score.rule} · ${score.evidence}${score.qdrant_id ? '\nQdrant ' + score.qdrant_id : ''}\n${score.quote}\n${score.reason}`));
       for (const edit of result.table_edits || []) {
@@ -429,7 +458,7 @@ export function installAssistant(ctx) {
           return;
         }
       }
-      const priorHistory = JSON.stringify(history.slice(-6));
+      const priorHistory = JSON.stringify(history);
       clearPreview();
       message('user', question);
       textarea.value = '';
@@ -449,6 +478,7 @@ export function installAssistant(ctx) {
         form.append('crs', window.assistantWorkspace.crs() || '');
         notice.textContent = 'Hệ thống đang phân tích dữ liệu và đối chiếu nguồn';
         const result = await request('preview', form, controller.signal);
+        if (result.context) lastContext = result.context;
         const item = message('assistant', result.answer, true, result.sources);
         showSources(item, result.sources);
         if (!sameFiles(files)) {
@@ -485,6 +515,15 @@ export function installAssistant(ctx) {
       button.disabled = true;
       get('stop').hidden = true;
       try {
+        if (plan.layerPatch) {
+          if (!plan.files.layerContext) throw new Error('Chưa chọn layer');
+          await window.assistantWorkspace.stage({ layerChange: {
+            id: plan.files.layerContext.id, component: plan.files.layerContext.component, patch: plan.layerPatch
+          } });
+          plan.staged = true;
+          restoreDraftReview();
+          return;
+        }
         const form = await formData(plan.files);
         if (!sameFiles(plan.files)) throw new Error('Dữ liệu đã thay đổi, hãy tạo lại đề xuất');
         form.append('token', plan.token);
@@ -521,15 +560,41 @@ export function installAssistant(ctx) {
       }
     }
     get('stop').addEventListener('click', () => controller?.abort());
+    questionInput.addEventListener('input', () => { lastContext = null; updateContext(); });
+    window.addEventListener('assistant-layer-change', () => { lastContext = null; updateContext(); });
+    contextButton.addEventListener('click', async () => {
+      if (busy || !history.length || window.assistantWorkspace.hasDraft()) return;
+      controller = new AbortController();
+      setBusy(true);
+      const form = new FormData();
+      form.append('scope', 'map');
+      form.append('compact', 'true');
+      form.append('message', 'Thu gọn hội thoại, giữ các quyết định và việc cần làm');
+      form.append('history', JSON.stringify(history));
+      form.append('mode', get('mode').value);
+      form.append('effort', get('effort').value);
+      if (verifiedPasscode) form.append('passcode', verifiedPasscode);
+      try {
+        const result = await request('preview', form, controller.signal);
+        history = [];
+        messages.replaceChildren();
+        lastContext = null;
+        message('assistant', result.answer);
+        notice.textContent = 'Đã thu gọn hội thoại, dữ liệu layer và lịch sử thao tác được giữ nguyên';
+      } catch (error) { notice.textContent = error.message; }
+      finally { controller = null; setBusy(false); }
+    });
     get('clear').addEventListener('click', () => {
       if (busy || window.assistantWorkspace.hasDraft()) return;
       history = [];
+      lastContext = null;
       messages.replaceChildren();
       clearPreview();
       notice.textContent = '';
       try {
         localStorage.removeItem(historyKey);
       } catch {/* Storage can be disabled. */}
+      updateContext();
     });
     window.addEventListener('assistant-workspace-change', () => {
       if (pending?.staged && !window.assistantWorkspace.hasDraft()) {
@@ -537,6 +602,7 @@ export function installAssistant(ctx) {
       }
       restoreDraftReview();
       get('form').querySelector('[type="submit"]').disabled = busy || window.assistantWorkspace.hasDraft();
+      updateContext();
     });
     restoreDraftReview();
     fetch('/api/v1/assistant/status').then(response => response.json()).then(payload => {

@@ -1001,5 +1001,15 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Chuyển API đánh giá về backend/map_predict/api/assessment.py và điểm chạy về backend.app:app
 - Các địa chỉ legacy cũ chuyển tiếp sang trang React, cấu hình Docker, launcher và đóng gói đã cập nhật
 - Kiểm tra Chrome với DXF, 338 dòng CSV, phân trang, dự đoán, khôi phục, điều hướng, PDF, bản nháp AI và hoàn tác/làm lại
-- X?c nh?n b?n nh?p ch? ho?n t?t sau khi l?u b?n v?ng, gi? b?n nh?p n?u l?u th?t b?i
-- K?t qu? ki?m tra: 233 Python, 44 React, 64 JavaScript, ba k?ch b?n Chrome v? g?i ph?t h?nh ??u ??t
+- Xác nhận bản nháp chỉ hoàn tất sau khi lưu bền vững, giữ bản nháp nếu lưu thất bại
+- Kết quả kiểm tra: 233 Python, 44 React, 64 JavaScript, ba kịch bản Chrome và gói phát hành đều đạt
+
+## 2026-11-09 Giới hạn Agent theo bảng layer
+
+- Tab bản đồ gửi thông tin layer hoặc thành phần đang mở trong bảng bên phải, không gửi file DXF, tọa độ hình học hay toàn bộ đối tượng
+- Ngữ cảnh gồm thông số hiển thị, số đối tượng và tối đa 12 mẫu thuộc tính, không sao chép toàn bộ danh sách đối tượng để tạo mẫu
+- Agent chỉ đề xuất màu, nét, vùng tô, opacity và hiệu chỉnh màu trong bảng layer, không sửa DXF hoặc CSV từ tab này
+- Giữ bước xem trước, xác nhận, bỏ bản nháp, hoàn tác, làm lại và tự lưu
+- Giới hạn ngữ cảnh khoảng 30k token, ước lượng UTF-8/3, dành khoảng 4k cho trả lời, bỏ lượt hội thoại cũ nếu cần, từ chối đầu vào quá lớn thay vì cắt dữ liệu bảng
+- Nút tròn hiển thị mức sử dụng ước tính, bấm để LLM tóm tắt hội thoại, không thay đổi dữ liệu hoặc lịch sử thao tác
+- Kiểm tra Chrome với danhso_1.dxf và thành phần net, xác nhận yêu cầu không chứa DXF, chỉ net thay đổi, KYHIEU và file gốc giữ nguyên

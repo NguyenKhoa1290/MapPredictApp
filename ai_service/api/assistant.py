@@ -111,6 +111,8 @@ def execute(action):
         raise PredictionError('INVALID_ATTACHMENT', 'Chỉ gửi DXF và CSV đã chọn', 400)
     options = request.form.to_dict()
     scope = options.get('scope', 'legacy')
+    if (options.get('inspector') == 'true' or options.get('compact') == 'true') and (scope != 'map' or request.files or options.get('resource_ids', '[]') != '[]'):
+        raise PredictionError('INVALID_CONTEXT', 'Chỉ gửi thông số layer hoặc hội thoại, không gửi file', 400)
     if scope not in ('legacy', 'map', 'prediction'):
         raise PredictionError('INVALID_CONTEXT', 'Tab dữ liệu không hợp lệ', 400)
     resources = []

@@ -764,6 +764,7 @@ export function installCore(ctx) {
       ctx.$(otherTabId).setAttribute("aria-selected", "false");
       if (panelId === "map-panel") setTimeout(ctx.initializeMap, 0);
       document.body.classList.toggle("map-mode", panelId === "map-panel");
+      window.dispatchEvent(new Event('assistant-layer-change'));
     });
   }
   ctx.$("csv-file").addEventListener("change", async event => {
@@ -959,13 +960,30 @@ export function installCore(ctx) {
           version: this.version()
         };
       }
-      const resources = this.sources().filter(entry => ctx.overlays.some(overlay => overlay.visible && overlay.item.source_id === entry.id && overlay.sourceKey === entry.key && overlay.item.crs === ctx.sharedSourceCrs()));
+      const overlay = ctx.currentOverlay();
+      const selected = overlay?.visible && !ctx.$('layer-inspector').hidden ? overlay : null;
+      const samples = [];
+      if (selected) for (const record of selected.records) {
+        if (ctx.inspectorScope && record.group !== ctx.inspectorScope) continue;
+        samples.push(record);
+        if (samples.length === 12) break;
+      }
+      const layerContext = selected ? {
+        id: selected.id, name: selected.item.name, component: ctx.inspectorScope,
+        crs: selected.item.crs, count: ctx.inspectorScope ? selected.groups.get(ctx.inspectorScope).count : selected.records.length,
+        style: { ...ctx.activeStyle(selected) }, adjustments: { ...selected.adjustments }, opacity: selected.opacity,
+        components: [...selected.groups.values()].slice(0, 60).map(group => ({ name: group.name, count: group.count })),
+        samples: samples.map(record => ({ type: record.feature.geometry.type,
+          properties: Object.fromEntries(Object.entries(record.feature.properties || {}).slice(0, 16).map(([key, value]) => [key.slice(0, 64), String(value).slice(0, 160)])) }))
+      } : null;
       return {
         scope,
         csv: null,
         csvId: '',
-        resources,
-        version: this.version()
+        resources: [],
+        inspector: true,
+        layerContext,
+        version: this.version() + ':' + JSON.stringify(layerContext)
       };
     },
     async commit({
@@ -975,9 +993,26 @@ export function installCore(ctx) {
       dxfs = [],
       rows,
       columns,
-      csvId = 'csv-file'
+      csvId = 'csv-file',
+      layerChange
     }) {
       if (!window.workspacePersistence?.ready) throw new Error('Workspace chưa khôi phục xong, hãy chờ hoặc kiểm tra trạng thái bản lưu');
+      if (layerChange) {
+        const overlay = ctx.overlays.find(item => item.id === layerChange.id);
+        if (!overlay || !overlay.visible || (layerChange.component && !overlay.groups.has(layerChange.component))) throw new Error('Layer đã thay đổi');
+        const patch = layerChange.patch;
+        const style = layerChange.component ? overlay.groups.get(layerChange.component).style : overlay.style;
+        Object.assign(style, patch.style || {});
+        if (patch.adjustments) ctx.updateColorAdjustments(overlay, { ...overlay.adjustments, ...patch.adjustments });
+        if (patch.opacity != null) overlay.opacity = patch.opacity;
+        ctx.refreshManagedLayer(overlay);
+        ctx.selectManagedLayer(overlay.id, layerChange.component, false);
+        const card = [...document.querySelectorAll('.layer-card')].find(card => card.dataset.layerId === overlay.id);
+        const slider = card?.querySelector('input[type="range"]');
+        if (slider) { slider.value = String(Math.round(overlay.opacity * 100)); card.querySelector('output').textContent = slider.value + '%'; }
+        window.workspacePersistence.schedule();
+        return;
+      }
       const entry = [...ctx.cadFiles, ...ctx.predictionFiles].find(item => item.id === sourceId);
       if (sourceId && (!entry || entry.file !== original)) throw new Error('File DXF đã thay đổi, hãy tạo lại bản xem trước');
       const changes = [...dxfs, ...(dxf ? [{

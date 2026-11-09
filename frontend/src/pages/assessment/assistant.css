@@ -127,7 +127,7 @@
     font-size: 12px
 }
 
-.assessment-root .assistant-context {
+.assessment-root .assistant-root .assistant-context {
     padding: 8px 14px;
     border-top: 1px solid #dce8df;
     max-height: 220px;
@@ -251,7 +251,7 @@
     flex-shrink: 1
 }
 
-.assessment-root .assistant-context {
+.assessment-root .assistant-root .assistant-context {
     min-height: 32px
 }
 
@@ -451,4 +451,15 @@
         flex-shrink: 1;
         min-height: 0;
     }
+}
+.assessment-root .assistant-root .assistant-context {
+  width: 40px;
+  height: 40px;
+  padding: 3px;
+  flex: 0 0 40px;
+  border-radius: 50%;
+  border: 1px solid #b7d4c5;
+  background: radial-gradient(circle, white 60%, transparent 62%), conic-gradient(#0b8753 var(--context-percent, 0%), #e4eee8 0);
+  font-size: 11px;
+  cursor: pointer;
 }

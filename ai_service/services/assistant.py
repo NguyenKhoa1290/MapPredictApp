@@ -365,6 +365,9 @@ def preview(path, dxf, csv, options, config, resources=None):
     from .ai_settings import authorize_pro, require_argon_cookie
     require_argon_cookie(config)
     authorize_pro(config, options.get('passcode', ''))
+    if options.get('inspector') == 'true' or options.get('compact') == 'true':
+        from .assistant_context import preview as inspector_preview
+        return inspector_preview(options, config)
     resources = resources or []
     documents, targets = {}, {}
     summary_hits = 0
@@ -429,6 +432,8 @@ def preview(path, dxf, csv, options, config, resources=None):
     remaining = deadline - time.monotonic()
     if remaining <= 5:
         raise PredictionError('ASSISTANT_TIMEOUT', 'Tra cứu dữ liệu quá thời gian, hãy thử lại', 503)
+    from .assistant_context import bound
+    messages, context_usage = bound(messages)
     result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': min(150, remaining)})
     model_ready = time.monotonic()
     sources = [verify_source(source) for source in (result.get('sources') or [])[:3]
@@ -518,7 +523,7 @@ def preview(path, dxf, csv, options, config, resources=None):
     if generated_rows is not None:
         plan['new_rows'] = generated_rows
     token = signature(config).dumps(plan) if actions or scores or create_table or table_edits else None
-    return {'answer': result['answer'][:16000], 'sources': sources, 'edits': actions, 'scores': scores, 'table_edits': table_edits,
+    return {'answer': result['answer'][:16000], 'context': context_usage, 'sources': sources, 'edits': actions, 'scores': scores, 'table_edits': table_edits,
             'timings': {'dxf_ms': round((dxf_ready - started) * 1000, 1),
                         'retrieval_ms': round((retrieved - dxf_ready) * 1000, 1),
                         'model_ms': round((model_ready - retrieved) * 1000, 1),

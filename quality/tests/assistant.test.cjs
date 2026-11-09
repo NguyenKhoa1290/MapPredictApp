@@ -429,6 +429,43 @@ function fixture(status = { enabled: true }) {
         changeFile: () => { sourceFile = new window.File(['CHANGED'], 'test.dxf'); } };
 }
 
+test('selected inspector sends bounded metadata without files and stages only layer settings', async () => {
+    const f = fixture();
+    try {
+        f.window.assistantWorkspace.context = () => ({ scope: 'map', resources: [], csv: null,
+            inspector: true, layerContext: { id: 'layer-1', component: 'net', count: 1 }, version: 'selected' });
+        f.setTableProposal({ token: null, edits: [], layer_patch: { style: { color: '#ff0000' } } });
+        await f.submit();
+        const form = f.calls.find(call => call.url.endsWith('/preview')).options.body;
+        assert.equal(form.get('dxf'), null);
+        assert.equal(form.get('inspector'), 'true');
+        assert.equal(JSON.parse(form.get('layer_context')).component, 'net');
+        assert.equal(f.calls.filter(call => call.url.endsWith('/apply')).length, 0);
+        assert.equal(f.commits[0].layerChange.id, 'layer-1');
+        assert.equal(f.commits[0].layerChange.component, 'net');
+        assert.equal(f.commits[0].layerChange.patch.style.color, '#ff0000');
+        assert.ok(f.get('header').textContent.includes('net'));
+    } finally { f.close(); }
+});
+
+test('context button compacts chat without attachments or workspace mutations', async () => {
+    const f = fixture();
+    try {
+        f.setActive(false);
+        await f.submit();
+        f.get('context').click();
+        await tick();
+        const forms = f.calls.filter(call => call.url.endsWith('/preview')).map(call => call.options.body);
+        assert.equal(forms.length, 2);
+        assert.equal(forms[1].get('compact'), 'true');
+        assert.equal(forms[1].get('dxf'), null);
+        assert.equal(forms[1].get('csv'), null);
+        assert.equal(f.commits.length, 0);
+        assert.equal(JSON.parse(f.window.localStorage.getItem('mapPredict.assistant.history.v1')).length, 1);
+        assert.match(f.get('context').title, /30.000/);
+    } finally { f.close(); }
+});
+
 test('assistant launcher moves horizontally, remembers its position and distinguishes dragging from clicking', () => {
     const f = fixture();
     try {
@@ -619,7 +656,7 @@ test('chat uses project resources only when submitted and stages a signed draft'
         assert.equal(form.get('csv'), null);
         assert.equal(form.get('scope'), 'map');
         assert.equal(form.get('resource_ids'), '["dxf-1"]');
-        assert.equal(f.get('context'), null);
+        assert.ok(f.get('context'));
         assert.equal(f.get('source'), null);
         assert.equal(f.window.document.querySelector('input[type="file"]'), null);
         assert.equal(f.get('messages').querySelector('img'), null);
