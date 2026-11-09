@@ -50,12 +50,16 @@ class AccountPool:
                 raise QuotaRejected('Hội thoại này đang chờ trả lời', code='conversation_busy')
             self.active_chats.add(key)
         try:
+            deadline = time.monotonic() + timeout
             entries = self.store.registry()['accounts']
             pinned = [entry for entry in entries
                       if ChatRetention(self.store.path(entry['id'])).session(conversation)]
             busy = False
             last_error = None
             for entry in pinned or entries:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise QuotaRejected('Đã hết thời gian chờ model', status=504, code='generation_timeout')
                 lock = self.account_lock(entry['id'])
                 if not lock.acquire(blocking=False):
                     busy = True
@@ -74,8 +78,8 @@ class AccountPool:
                         CONFIG['chat_session'] = journal.prepare(conversation)
                         CONFIG['chat_group'] = conversation
                         if model == ARGON:
-                            return worker.run(generate, timeout=timeout)
-                        return worker.run_flash(generate, timeout=timeout, model=model)
+                            return worker.run(generate, timeout=remaining)
+                        return worker.run_flash(generate, timeout=remaining, model=model)
                 except QuotaRejected as error:
                     last_error = error
                     if pinned or ChatRetention(self.store.path(entry['id'])).session(conversation):
