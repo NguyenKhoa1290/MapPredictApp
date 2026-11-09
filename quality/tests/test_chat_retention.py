@@ -6,12 +6,24 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'integrations'))
-from gemini_web2api.chat_retention import ChatRetention, group_key
-from gemini_web2api.gemini import read_response
-
-
 class ChatRetentionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        try:
+            import httpx
+        except ImportError:
+            raise unittest.SkipTest('Gemini dependencies are installed in the Gemini service image')
+        global ChatRetention, group_key, read_response
+        cls.previous_path = list(sys.path)
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'integrations'))
+        from gemini_web2api.chat_retention import ChatRetention, group_key
+        from gemini_web2api.gemini import read_response
+
+    @classmethod
+    def tearDownClass(cls):
+        if hasattr(cls, 'previous_path'):
+            sys.path[:] = cls.previous_path
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
