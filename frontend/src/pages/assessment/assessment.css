@@ -566,7 +566,7 @@
     display: flex; flex: 1; min-height: 0; flex-direction: column; justify-content: center; align-items: center;
     padding: 24px; border: 1px dashed #ccdcd1; border-radius: 10px; text-align: center; background: #fff;
 }
-.assessment-root .prediction-empty svg { color: #6ba983; flex-shrink: 0; }
+.assessment-root .prediction-empty svg { width: 48px; height: 48px; color: #6ba983; flex-shrink: 0; }
 .assessment-root .prediction-empty h3 { margin: 18px 0 8px; color: #244634; font-size: 17px; }
 .assessment-root .prediction-empty p { margin: 0; color: #65746c; line-height: 1.65; font-size: 13px; }
 .assessment-root .prediction-table-scroll {

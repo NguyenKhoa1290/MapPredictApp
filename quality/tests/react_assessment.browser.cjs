@@ -16,6 +16,15 @@ const dxf=execFileSync(process.env.PYTHON||path.join(root,'venv/Scripts/python.e
   await page.waitForFunction(()=>window.workspacePersistence?.ready);
   assert.equal(await page.locator('iframe').count(),0);
   assert.equal(await page.locator('#leafletMap').count(),1);
+  await page.click('#predict-tab');
+  for (const width of [1920, 1024, 600]) {
+   await page.setViewportSize({width,height:1000});
+   const icon=await page.locator('#prediction-empty svg').boundingBox();
+   assert.equal(icon.width,48);assert.equal(icon.height,48);
+   assert.equal(await page.locator('#prediction-empty h3').isVisible(),true);
+  }
+  await page.setViewportSize({width:1440,height:1000});
+  await page.click('#map-tab');
   await page.selectOption('#project-crs','EPSG:9208');
   await page.setInputFiles('#cad-file',{name:'base.dxf',mimeType:'application/dxf',buffer:dxf});
   await page.click('#map-button');
