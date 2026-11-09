@@ -31,6 +31,9 @@ def create_ai_app(config=None):
     def health():
         from ai_service.services.assistant_files import prune
         from ai_service.services.assistant_dxf import prune as prune_summaries
+        from ai_service.services import assistant_jobs
+        with assistant_jobs.LOCK:
+            assistant_jobs.prune()
         try:
             prune(application.config)
             prune_summaries()
