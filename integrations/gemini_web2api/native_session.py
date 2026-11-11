@@ -116,6 +116,9 @@ def generate_native(prompt, effort, metadata=None):
     current_cid = session.get('cid')
     last_snapshot = None
     query = {'VER': '8', 'RID': str(random.randint(10000, 50000)), 'CVER': '22', 'X-HTTP-Session-Id': 'gsessionid', 't': '1'}
+    # WebChannel binds RPC metadata at handshake through this parameter.
+    # Keep credentials in real HTTP headers, never in the query string.
+    query['$httpHeaders'] = '\r\n'.join(f'{key}:{value}' for key, value in auth.items() if key.lower().startswith('x-')) + '\r\n'
     def check(reply):
         if reply.status_code != 200:
             raise rejected('quota_exhausted' if reply.status_code == 429 else 'native_http_rejected', 429 if reply.status_code == 429 else 503)

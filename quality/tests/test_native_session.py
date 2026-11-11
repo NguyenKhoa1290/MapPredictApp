@@ -93,6 +93,9 @@ class NativeSessionTests(unittest.TestCase):
         def handle(request):
             nonlocal polls
             if request.method == 'POST' and request.content == b'count=0':
+                self.assertIn('x-goog-ext-525001261-bin:', request.url.params['$httpHeaders'])
+                self.assertNotIn('Authorization', request.url.params['$httpHeaders'])
+                self.assertNotIn('SAPISID', str(request.url))
                 return httpx.Response(200, headers={'x-http-session-id': 'gs'}, content=frame([[0, ['c', 'sid']]]))
             if request.method == 'POST':
                 from urllib.parse import parse_qs

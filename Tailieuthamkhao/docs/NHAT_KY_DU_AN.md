@@ -1070,6 +1070,8 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Mức trung bình và cao hiện được gửi đúng field nhưng phép thử trả mức thấp, adapter chặn bằng effort_not_applied, chưa ghi nhận hai mức này hoạt động
 - Bổ sung 9 kiểm thử cho phân mảnh UTF-8, giới hạn bộ đệm, Protobuf lỗi, thứ tự khởi tạo và hoàn tất, sai model, effort không khớp và mất xác nhận khởi tạo
 - Giới hạn chờ xác nhận khởi tạo 3 giây kể cả khi có heartbeat, gửi câu hỏi một lần, nối lại downstream mà không gửi lặp lượt chat
+- Bổ sung metadata model trong tham số $httpHeaders của handshake WebChannel, xác thực và cookie vẫn chỉ nằm trong HTTP header, kiểm thử chặn đưa SAPISID vào URL
+- Sau bổ sung metadata handshake, hai phép thử mức thấp nhận đúng 4 Argon sau 17,2 và 23,4 giây, mức trung bình tiếp tục được kiểm tra với ngân sách 300 giây
 - CI của 86fab874 đã đạt và được triển khai trên VPS, cả sáu service hoạt động, đã quét lại danh mục hai tài khoản để bỏ cache Carbon từ bản cũ
 - Phép thử sau triển khai qua API còn gặp generation_timeout sau 300 giây, dù quota đọc được và route Argon đã xác minh, chưa kết luận luồng chat production ổn định hoàn toàn
 - Đối chiếu thứ tự gửi tại https://github.com/zexadev/gemini-web2api-go/blob/main/internal/app/webchannel.go, các field native được kiểm tra thêm bằng gói tin của tài khoản thực
