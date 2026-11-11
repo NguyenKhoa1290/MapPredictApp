@@ -1068,7 +1068,10 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu token tiếp nối kể cả ở frame không có CID, lượt tiếp theo dùng lại CID và token của đúng tài khoản
 - Kiểm tra trực tiếp trên VPS nhận phản hồi 4 Argon ở mức thấp, hai lượt liên tiếp nhớ đúng mã MAP731, không chuyển sang model khác
 - Mức trung bình và cao hiện được gửi đúng field nhưng phép thử trả mức thấp, adapter chặn bằng effort_not_applied, chưa ghi nhận hai mức này hoạt động
-- Bổ sung 8 kiểm thử cho phân mảnh UTF-8, giới hạn bộ đệm, Protobuf lỗi, thứ tự khởi tạo và hoàn tất, sai model và effort không khớp
+- Bổ sung 9 kiểm thử cho phân mảnh UTF-8, giới hạn bộ đệm, Protobuf lỗi, thứ tự khởi tạo và hoàn tất, sai model, effort không khớp và mất xác nhận khởi tạo
+- Giới hạn chờ xác nhận khởi tạo 3 giây kể cả khi có heartbeat, gửi câu hỏi một lần, nối lại downstream mà không gửi lặp lượt chat
+- CI của 86fab874 đã đạt và được triển khai trên VPS, cả sáu service hoạt động, đã quét lại danh mục hai tài khoản để bỏ cache Carbon từ bản cũ
+- Phép thử sau triển khai qua API còn gặp generation_timeout sau 300 giây, dù quota đọc được và route Argon đã xác minh, chưa kết luận luồng chat production ổn định hoàn toàn
 - Đối chiếu thứ tự gửi tại https://github.com/zexadev/gemini-web2api-go/blob/main/internal/app/webchannel.go, các field native được kiểm tra thêm bằng gói tin của tài khoản thực
 
 ## 2026-11-11 Đính chính Argon và kiểm tra gói tin native

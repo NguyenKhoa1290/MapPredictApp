@@ -69,7 +69,7 @@ class NativeSessionTests(unittest.TestCase):
             list(events({'__sm__': {'status': [[[16, 'missing credentials']]]}}))
         self.assertEqual(error.exception.code, 'cookie_required')
 
-    def native_call(self, response_effort=1, variant='argon', category=8):
+    def native_call(self, response_effort=1, variant='argon', category=8, missing_ack=False):
         import httpx
         from gemini_web2api.config import CONFIG
         from gemini_web2api.native_session import generate_native
@@ -85,7 +85,13 @@ class NativeSessionTests(unittest.TestCase):
                    (43, '4 Argon'), (47, 2), (59, category), (60, response_effort), (61, variant))
         phases = [event(m((47, 2))), event(output)]
         posts = []
+        polls = 0
+        class IdleStream(httpx.SyncByteStream):
+            def __iter__(self):
+                yield frame([[0, ['noop']]])
+                raise httpx.ReadTimeout('idle channel')
         def handle(request):
+            nonlocal polls
             if request.method == 'POST' and request.content == b'count=0':
                 return httpx.Response(200, headers={'x-http-session-id': 'gs'}, content=frame([[0, ['c', 'sid']]]))
             if request.method == 'POST':
@@ -94,6 +100,9 @@ class NativeSessionTests(unittest.TestCase):
                 return httpx.Response(200, content=b'ack')
             if request.url.params.get('TYPE') == 'terminate':
                 return httpx.Response(200)
+            polls += 1
+            if missing_ack and polls == 1:
+                return httpx.Response(200, stream=IdleStream())
             payload = frame([[1, [base64.b64encode(m((1, b''))).decode()]]])
             payload += b''.join(frame([[i+2, [value]]]) for i, value in enumerate(phases))
             payload += frame([[4, [base64.b64encode(m((4, b''))).decode()]]])
@@ -124,3 +133,8 @@ class NativeSessionTests(unittest.TestCase):
         with self.assertRaises(QuotaRejected) as error:
             self.native_call(response_effort=4)
         self.assertEqual(error.exception.code, 'effort_not_applied')
+
+    def test_missing_initialization_ack_does_not_stall_or_duplicate_prompt(self):
+        result, metadata, posts = self.native_call(missing_ack=True)
+        self.assertEqual(result, 'answer')
+        self.assertEqual(posts, ['0', '1', '2'])

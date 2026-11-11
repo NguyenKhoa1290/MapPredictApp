@@ -5,6 +5,7 @@ import json
 import random
 import time
 import uuid
+from contextlib import contextmanager
 
 import httpx
 
@@ -139,33 +140,54 @@ def generate_native(prompt, effort, metadata=None):
                     parameters = {k: v for k, v in query.items() if k not in ('CI', 'TYPE')}
                     parameters['RID'] = str(next_rid)
                     next_rid += 1
-                    result = client.post(ENDPOINT, params=parameters,
-                                         data={'count': '1', 'ofs': str(offset), 'req0___data__': data}, timeout=remaining())
+                    try:
+                        result = client.post(ENDPOINT, params=parameters,
+                                             data={'count': '1', 'ofs': str(offset), 'req0___data__': data}, timeout=remaining())
+                    except httpx.TimeoutException:
+                        raise TimeoutError() from None
                     check(result)
                 initialized = False
+                initialized_at = None
                 prompt_sent = False
+                @contextmanager
+                def downstream():
+                    timeout = remaining()
+                    if not prompt_sent:
+                        timeout.read = min(3, timeout.read)
+                    with client.stream('GET', ENDPOINT, params=query, timeout=timeout) as response:
+                        try:
+                            yield response
+                        except httpx.ReadTimeout:
+                            remaining()  # Reattach the channel, never resend a turn.
                 while True:
                     query.update(RID='rpc', CI='0', TYPE='xmlhttp')
                     decoder = Frames()
-                    with client.stream('GET', ENDPOINT, params=query, timeout=remaining()) as reply:
+                    with downstream() as reply:
                         check(reply)
                         if not initialized:
                             post(0, uploads['req0___data__'])
                             initialized = True
+                            initialized_at = time.monotonic()
                         for chunk in reply.iter_bytes():
                             remaining()
+                            if not prompt_sent and time.monotonic() - initialized_at >= 3:
+                                prompt_sent = True
+                                time.sleep(max(0, min(0.5, deadline - time.monotonic())))
+                                post(1, uploads['req1___data__'])
                             for frame in decoder.feed(chunk):
                                 for sequence, value in frame:
                                     query['AID'] = str(sequence)
-                                    if completed_text is not None and value == [base64.b64encode(m((4, b''))).decode()]:
+                                    if value == [base64.b64encode(m((4, b''))).decode()]:
+                                        if completed_text is None:
+                                            raise rejected('native_incomplete_response')
                                         return completed_text
                                     # The server must acknowledge initialization before
                                     # user input. Combining both messages races startup.
                                     if not prompt_sent and isinstance(value, list) and value == [base64.b64encode(m((1, b''))).decode()]:
                                         remaining()
                                         time.sleep(max(0, min(0.5, deadline - time.monotonic())))
-                                        post(1, uploads['req1___data__'])
                                         prompt_sent = True
+                                        post(1, uploads['req1___data__'])
                                     for response in events(value):
                                         for field in (43, 59, 60, 61):
                                             found = get(response, field)
@@ -199,6 +221,13 @@ def generate_native(prompt, effort, metadata=None):
                                             completed_text = text
                                     if value in (['close'], ['stop']):
                                         raise rejected('native_incomplete_response')
+                    if initialized and not prompt_sent:
+                        # Some channels omit the initialization acknowledgement.
+                        # Bound that wait and submit the question exactly once.
+                        remaining()
+                        time.sleep(max(0, min(0.5, deadline - time.monotonic())))
+                        prompt_sent = True
+                        post(1, uploads['req1___data__'])
             finally:
                 try:
                     client.get(ENDPOINT, params={**query, 'TYPE': 'terminate', 'RID': str(next_rid)}, timeout=2)
