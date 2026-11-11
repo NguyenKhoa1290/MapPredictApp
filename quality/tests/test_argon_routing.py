@@ -51,7 +51,7 @@ class ArgonRoutingTests(unittest.TestCase):
         for index, entry in enumerate(entries):
             path = self.pool.store.path(entry['id'])
             path.parent.mkdir(parents=True)
-            path.write_text(json.dumps({'model_checked_at': 10**12, 'model_available': True,
+            path.write_text(json.dumps({'model_catalog_schema': 2, 'model_checked_at': 10**12, 'model_available': True,
                 'xsrf_token': 'verified-test-xsrf', 'cookie_file': 'private-cookie-' + str(index),
                 'extra_models': {'gemini-4-argon': {'mode': 71 + index, 'think': 4}},
                 'model_headers': {str(71 + index): {'x-goog-ext-525001261-jspb': '[1]'}}}))
@@ -207,6 +207,30 @@ class ArgonRoutingTests(unittest.TestCase):
         with patch('gemini_web2api.account_pool.QuotaGuard.check', return_value={}):
             result = self.pool.run(lambda mode, think: str(mode) + ':' + str(bool(CONFIG['cookie_file'])), model='gemini-4-carbon')
         self.assertEqual(result, '8:True')
+
+    def test_chat_catalog_restores_argon_variant_and_blocks_locked_carbon(self):
+        base = [None] * 20
+        base[0], base[1], base[2], base[12], base[17] = '95a4c0abcba24364', 'Carbon', '4 Carbon', '4 Carbon', 8
+        def descriptor(variant, name, gate=None):
+            row = [None] * 16
+            row[1], row[3], row[4], row[5], row[14] = 8, variant, name, '4 ' + name, gate
+            return row
+        body = [None] * 25
+        body[15], body[16], body[17] = [base], [8], []
+        body[24] = ['carbon_multi_ultra_pro_policy', [
+            [descriptor('argon', 'Argon'), [[1], [4], [2]], None, [1]],
+            [descriptor(None, 'Carbon', [1, 'gemini-4-carbon']), [[1]], None, [1]],
+            [descriptor('argon', 'Argon'), [[1]], 1, [2]],
+        ]]
+        rpc = json.dumps([['wrb.fr', 'otAQ7b', json.dumps(body)]])
+        with patch('gemini_web2api.accounts.GoogleSession') as session:
+            session.return_value.request_rpc.return_value = rpc
+            self.assertTrue(self.pool.store.discover('a' * 32))
+        config = json.loads(self.pool.store.path('a' * 32).read_text())
+        self.assertEqual(set(config['extra_models']), {'gemini-4-argon'})
+        self.assertEqual(config['extra_models']['gemini-4-argon']['variant'], 'argon')
+        self.assertEqual(config['locked_models'], ['4 Carbon'])
+        self.assertEqual(config['model_catalog_schema'], 2)
 
     def test_new_models_use_exact_discovered_route_and_never_fallback(self):
         from gemini_web2api.quota_guard import QuotaRejected

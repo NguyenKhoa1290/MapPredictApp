@@ -109,7 +109,7 @@ class AccountStore:
         path = self.path(account_id)
         session = GoogleSession(path)
         bodies = rpc_bodies(session.request_rpc('otAQ7b', source='/app'), 'otAQ7b')
-        routes, headers = {}, {}
+        routes, headers, locked = {}, {}, []
         for body in bodies:
             if not isinstance(body, list) or len(body) <= 17 or not isinstance(body[15], list):
                 continue
@@ -125,7 +125,32 @@ class AccountStore:
                 capacity, field = 3, 12
             else:
                 capacity, field = (2, 12) if 8 in tier or 19 in caps else (1, 12)
-            for model in body[15]:
+            chat_options = None
+            if len(body) > 24 and isinstance(body[24], list) and len(body[24]) > 1 and isinstance(body[24][1], list):
+                chat_options = [option for option in body[24][1] if isinstance(option, list) and len(option) > 3
+                                and isinstance(option[0], list) and option[3] == [1]]
+            candidates = []
+            if chat_options is not None:
+                for option in chat_options:
+                    descriptor = option[0]
+                    if len(descriptor) < 6:
+                        continue
+                    number, variant, display = descriptor[1], descriptor[3], descriptor[5]
+                    gated = len(descriptor) > 14 and bool(descriptor[14])
+                    if gated:
+                        if isinstance(display, str):
+                            locked.append(display)
+                        continue
+                    base = next((row for row in body[15] if isinstance(row, list) and len(row) > 17 and row[17] == number), None)
+                    if not base:
+                        continue
+                    candidate = list(base)
+                    candidate += [None] * max(0, 20 - len(candidate))
+                    candidate[1], candidate[2], candidate[10], candidate[12] = descriptor[4], display, descriptor[4], display
+                    candidates.append((candidate, variant if isinstance(variant, str) else None))
+            else:
+                candidates = [(model, None) for model in body[15]]
+            for model, variant in candidates:
                 if not isinstance(model, list):
                     continue
                 def value(index):
@@ -154,11 +179,15 @@ class AccountStore:
                 headers[str(number)] = {'x-goog-ext-525001261-jspb': json.dumps(header),
                                         'x-goog-ext-73010989-jspb': '[0]', 'x-goog-ext-73010990-jspb': '[0,0,0]'}
                 routes[name] = {'mode': number, 'think': 1, 'desc': str(display)}
+                if variant:
+                    routes[name]['variant'] = variant
         with private_lock(path.with_suffix('.lock')):
             config = json.loads(path.read_text(encoding='utf-8'))
             config['model_available'] = any(name in routes for name in ('gemini-4-argon', 'gemini-4-carbon'))
             config['model_checked_at'] = time.time()
             config['extra_models'], config['model_headers'] = routes, headers
+            config['locked_models'] = locked
+            config['model_catalog_schema'] = 2
             write_json(path, config)
         return config['model_available']
 

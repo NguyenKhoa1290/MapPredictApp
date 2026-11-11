@@ -1058,6 +1058,19 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-11 Đính chính Argon và kiểm tra gói tin native
+
+- Kiểm tra headless bằng cookie hai tài khoản, mạng đi qua VPS, menu Google có 4 Argon chọn được và 4 Carbon có khóa
+- Kết luận Carbon thay Argon ở mục nhật ký trước là sai, category 8 và phản hồi effort không đủ phân biệt hai biến thể
+- Danh mục cơ bản otAQ7b[15] có Carbon, nhưng danh mục tùy chọn chat otAQ7b[24][1] có Argon, descriptor[1] là category 8, descriptor[3] là chuỗi argon, descriptor[14] chứa cờ khóa/nâng cấp cho Carbon, surface [1] là chat còn [2] là task
+- Sửa bộ đọc dùng danh mục tùy chọn chat khi có, loại các lựa chọn bị khóa, giữ variant argon trong route và buộc đọc lại cache schema cũ, không alias Carbon thành Argon
+- Giao diện gửi chat qua geminiweb-pa.clients6.google.com/v1/processSession theo WebChannel, form req0___data__ là Base64 chứa Protobuf, không phải f.req JSON của StreamGenerate
+- Trong Protobuf req0, đường field 1 -> 1 -> 2 chứa argon, cấu hình generation ở đường 1 -> 8 -> 5 có field 80 bằng 8 và field 81 là effort, đây là số field Protobuf bắt đầu từ 1
+- RPC lưu tùy chọn L5adhe có JSON [0][99] bằng argon, không được nhầm vị trí tùy chọn này với index generation
+- Đường StreamGenerate cũ thử 75 giây chưa có phản hồi, chưa xác minh được tương đương giao thức native mới, không tự suy đoán thêm index vào payload
+- 255 kiểm thử Python đạt sau sửa danh mục, chưa tuyên bố hoàn thành chuyển transport hoặc xác thực Carbon
+- Chromium thử trên VPS báo tiến trình mạng lỗi, đã xóa container thử, kiểm tra tiếp bằng headless local và proxy SSH, không ghi cookie/nội dung hội thoại vào nhật ký
+
 ## 2026-11-11 Cập nhật định danh model Google
 
 - Xác minh RPC otAQ7b trên hai tài khoản VPS trả danh mục 3.5 Flash-Lite, 3.8 Flash, 3.1 Pro và 4 Carbon, không còn mục Argon trong danh mục đang nhận

@@ -217,7 +217,7 @@ class AccountPool:
                 try:
                     path = self.store.path(identifier)
                     settings = json.loads(path.read_text(encoding='utf-8'))
-                    if time.time() - settings.get('model_checked_at', 0) > 3600:
+                    if settings.get('model_catalog_schema', 0) < 2 or time.time() - settings.get('model_checked_at', 0) > 3600:
                         self.store.discover(identifier)
                     guard = QuotaGuard(UsageReader(self.root, config_path=path))
                     guard.check()  # Reject absent/invalid quota windows, not just exhausted ones.
