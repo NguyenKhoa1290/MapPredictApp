@@ -1067,7 +1067,8 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Giao diện gửi chat qua geminiweb-pa.clients6.google.com/v1/processSession theo WebChannel, form req0___data__ là Base64 chứa Protobuf, không phải f.req JSON của StreamGenerate
 - Trong Protobuf req0, đường field 1 -> 1 -> 2 chứa argon, cấu hình generation ở đường 1 -> 8 -> 5 có field 80 bằng 8 và field 81 là effort, đây là số field Protobuf bắt đầu từ 1
 - RPC lưu tùy chọn L5adhe có JSON [0][99] bằng argon, không được nhầm vị trí tùy chọn này với index generation
-- Đường StreamGenerate cũ thử 75 giây chưa có phản hồi, chưa xác minh được tương đương giao thức native mới, không tự suy đoán thêm index vào payload
+- Đường StreamGenerate cũ thử 75 giây và 300 giây đều timeout, chưa xác minh được tương đương giao thức native mới, không tự suy đoán thêm index vào payload
+- Đã commit bản sửa danh mục 8b67540c ở local, chưa push hoặc triển khai transport chưa được xác minh lên VPS
 - 255 kiểm thử Python đạt sau sửa danh mục, chưa tuyên bố hoàn thành chuyển transport hoặc xác thực Carbon
 - Chromium thử trên VPS báo tiến trình mạng lỗi, đã xóa container thử, kiểm tra tiếp bằng headless local và proxy SSH, không ghi cookie/nội dung hội thoại vào nhật ký
 
