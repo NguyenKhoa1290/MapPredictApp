@@ -199,7 +199,7 @@ class GoogleSession:
                 raise UsageAuthError('Google session requires login')
         reply.raise_for_status()
         fields = {}
-        for name in ('SNlM0e', 'cfb2h', 'FdrFJe', 'oPEP7c'):
+        for name in ('SNlM0e', 'cfb2h', 'FdrFJe', 'oPEP7c', 'd2zJAe'):
             match = re.search(r'"' + name + r'"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', reply.text)
             if match:
                 fields[name] = json.loads('"' + match.group(1) + '"')
@@ -246,6 +246,8 @@ class GoogleSession:
                     write_json(self.config_path, latest)
                 return updated
             latest['xsrf_token'] = fields['SNlM0e']
+            if fields.get('d2zJAe'):
+                latest['native_api_key'] = fields['d2zJAe']
             if fields.get('cfb2h'):
                 latest['gemini_bl'] = fields['cfb2h']
             if fields.get('oPEP7c'):

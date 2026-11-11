@@ -20,7 +20,7 @@ FLASH = 'gemini-3.5-flash-lite'
 PRO = 'gemini-3.1-pro'
 FLASH38 = 'gemini-3.8-flash'
 SIGNED_MODELS = (ARGON, CARBON, FLASH, PRO, FLASH38)
-SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models', 'audit_config_path', 'generation_deadline')
+SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'native_api_key', 'model_headers', 'extra_models', 'audit_config_path', 'generation_deadline')
 
 
 class AccountPool:
@@ -228,6 +228,7 @@ class AccountPool:
                         raise ValueError('Argon access not verified')
                     with self.profile(settings, path):
                         CONFIG['generation_deadline'] = deadline
+                        CONFIG['model_variant'] = route.get('variant')
                         result = generate(route['mode'], route.get('think', 4))
                         if not isinstance(result, str) or not result.strip():
                             raise ValueError('Empty upstream response')
@@ -238,6 +239,8 @@ class AccountPool:
                 except TimeoutError:
                     raise QuotaRejected('Model chưa hoàn tất trong thời gian cho phép, hãy thử lại sau', status=504, code='generation_timeout') from None
                 except QuotaRejected as error:
+                    if error.code.startswith('native_') or error.code == 'effort_not_applied':
+                        raise
                     if error.code == 'quota_exhausted':
                         exhausted += 1
                     self.rows[identifier] = {'status': 'exhausted' if error.code == 'quota_exhausted' else 'needs_login' if error.code == 'cookie_required' else 'unavailable', 'usage': None}

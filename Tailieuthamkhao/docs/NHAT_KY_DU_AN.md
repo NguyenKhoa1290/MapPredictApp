@@ -1058,6 +1058,19 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-11 Hoàn thiện transport native cho 4 Argon
+
+- Thêm codec Protobuf và WebChannel giới hạn kích thước, không thêm thư viện hay trình duyệt chạy thường trực trên VPS
+- Lấy API key từ bootstrap d2zJAe, tạo xác thực mới từ cookie của tài khoản, không sử dụng lại header đã bắt từ trình duyệt
+- Header native chỉ rõ biến thể argon, xác nhận tên 4 Argon, category và effort từ phản hồi trước khi trả kết quả
+- Field 20 của model header là bản tin thời gian và múi giờ, không phải UUID, đã đính chính cấu trúc theo gói tin thực tế
+- Mở downstream trước khi gửi khởi tạo, đợi xác nhận rồi gửi câu hỏi, kết thúc lượt bằng ofs=2 và đợi server xác nhận trước khi đóng kênh
+- Lưu token tiếp nối kể cả ở frame không có CID, lượt tiếp theo dùng lại CID và token của đúng tài khoản
+- Kiểm tra trực tiếp trên VPS nhận phản hồi 4 Argon ở mức thấp, hai lượt liên tiếp nhớ đúng mã MAP731, không chuyển sang model khác
+- Mức trung bình và cao hiện được gửi đúng field nhưng phép thử trả mức thấp, adapter chặn bằng effort_not_applied, chưa ghi nhận hai mức này hoạt động
+- Bổ sung 8 kiểm thử cho phân mảnh UTF-8, giới hạn bộ đệm, Protobuf lỗi, thứ tự khởi tạo và hoàn tất, sai model và effort không khớp
+- Đối chiếu thứ tự gửi tại https://github.com/zexadev/gemini-web2api-go/blob/main/internal/app/webchannel.go, các field native được kiểm tra thêm bằng gói tin của tài khoản thực
+
 ## 2026-11-11 Đính chính Argon và kiểm tra gói tin native
 
 - Kiểm tra headless bằng cookie hai tài khoản, mạng đi qua VPS, menu Google có 4 Argon chọn được và 4 Carbon có khóa

@@ -113,7 +113,11 @@ class ManagedGeminiHandler(GeminiHandler):
                         current = [item for item in messages if item.get('role') == 'system']
                         current += [item for item in messages if item.get('role') == 'user'][-1:]
                         turn_prompt, _ = messages_to_prompt(current)
-                    text = generate(turn_prompt, mode, level, metadata=reasoning)
+                    if model == ARGON and CONFIG.get('model_variant') == 'argon':
+                        from gemini_web2api.native_session import generate_native
+                        text = generate_native(turn_prompt, level, metadata=reasoning)
+                    else:
+                        text = generate(turn_prompt, mode, level, metadata=reasoning)
                 finally:
                     CONFIG.pop('chat_group', None)
                 if reasoning.get('applied_level', None if model not in PREMIUM_MODELS else level) != level:
