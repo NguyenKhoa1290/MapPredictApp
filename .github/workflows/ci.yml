@@ -134,7 +134,7 @@ jobs:
           docker exec map-predict-gemini-ci python -B -m unittest discover -s quality/tests -p 'test_gemini_session.py'
           docker exec map-predict-gemini-ci python -B -m unittest discover -s quality/tests -p 'test_session_audit.py'
           docker exec map-predict-gemini-ci python -B -m unittest discover -s quality/tests -p 'test_argon_routing.py'
-          docker exec map-predict-gemini-ci python -B -m unittest discover -s quality/tests -p 'test_gemini_session.py'
+          docker exec map-predict-gemini-ci python -B -m unittest discover -s quality/tests -p 'test_native_session.py'
       - name: Container diagnostics
         if: failure()
         run: docker logs map-predict-ci

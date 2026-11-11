@@ -1078,7 +1078,7 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Danh mục cơ bản otAQ7b[15] có Carbon, nhưng danh mục tùy chọn chat otAQ7b[24][1] có Argon, descriptor[1] là category 8, descriptor[3] là chuỗi argon, descriptor[14] chứa cờ khóa/nâng cấp cho Carbon, surface [1] là chat còn [2] là task
 - Sửa bộ đọc dùng danh mục tùy chọn chat khi có, loại các lựa chọn bị khóa, giữ variant argon trong route và buộc đọc lại cache schema cũ, không alias Carbon thành Argon
 - Giao diện gửi chat qua geminiweb-pa.clients6.google.com/v1/processSession theo WebChannel, form req0___data__ là Base64 chứa Protobuf, không phải f.req JSON của StreamGenerate
-- Trong Protobuf req0, đường field 1 -> 1 -> 2 chứa argon, cấu hình generation ở đường 1 -> 8 -> 5 có field 80 bằng 8 và field 81 là effort, đây là số field Protobuf bắt đầu từ 1
+- Trong Protobuf req0, đường field 1 -> 1 -> 2 chứa argon, cấu hình generation ở đường 1 -> 8 -> 5 -> 1 có field 80 bằng 8 và field 81 là effort, đây là số field Protobuf bắt đầu từ 1
 - RPC lưu tùy chọn L5adhe có JSON [0][99] bằng argon, không được nhầm vị trí tùy chọn này với index generation
 - Đường StreamGenerate cũ thử 75 giây và 300 giây đều timeout, chưa xác minh được tương đương giao thức native mới, không tự suy đoán thêm index vào payload
 - Đã commit bản sửa danh mục 8b67540c ở local, chưa push hoặc triển khai transport chưa được xác minh lên VPS
