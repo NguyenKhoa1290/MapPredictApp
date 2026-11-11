@@ -169,6 +169,18 @@ class ArgonRoutingTests(unittest.TestCase):
         self.assertIsNotNone(resolve_model('gemini-4-argon')[3])
         self.assertIsNotNone(resolve_model('gemini-3.5-flash-lite')[3])
 
+    def test_retired_flash_is_rejected_even_with_a_cached_route(self):
+        from gemini_web2api.config import CONFIG
+        from gemini_web2api.models import resolve_model
+        from gemini_web2api.quota_guard import QuotaRejected
+        with CONFIG.isolated():
+            CONFIG['extra_models'] = {'gemini-3.8-flash': {'mode': 1, 'think': 1}}
+            self.assertIsNotNone(resolve_model('gemini-3.8-flash')[3])
+        generate = Mock()
+        with self.assertRaises(QuotaRejected):
+            self.pool.run_flash(generate, model='gemini-3.8-flash')
+        generate.assert_not_called()
+
     def test_discovery_keeps_flash_and_argon_routes_separate(self):
         models = []
         for display, category, number, identifier in [('3.5 Flash-Lite', 'Flash-Lite', 6, 'flash-id'), ('4 Argon', 'Argon', 8, 'argon-id'), ('3.1 Pro', 'Pro', 3, 'pro-id'), ('3.8 Flash', 'Flash', 1, 'flash38-id')]:
@@ -182,7 +194,7 @@ class ArgonRoutingTests(unittest.TestCase):
             session.return_value.request_rpc.return_value = rpc
             self.assertTrue(self.pool.store.discover('a' * 32))
         settings = json.loads(self.pool.store.path('a' * 32).read_text())
-        self.assertEqual(set(settings['extra_models']), {'gemini-3.5-flash-lite', 'gemini-4-argon', 'gemini-3.1-pro', 'gemini-3.8-flash'})
+        self.assertEqual(set(settings['extra_models']), {'gemini-3.5-flash-lite', 'gemini-4-argon', 'gemini-3.1-pro'})
         header = json.loads(settings['model_headers']['6']['x-goog-ext-525001261-jspb'])
         self.assertEqual(header[4], 'flash-id')
 
@@ -199,7 +211,7 @@ class ArgonRoutingTests(unittest.TestCase):
             session.return_value.request_rpc.return_value = rpc
             self.assertTrue(self.pool.store.discover('a' * 32))
         settings = json.loads(self.pool.store.path('a' * 32).read_text())
-        self.assertEqual(set(settings['extra_models']), {'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.1-pro', 'gemini-4-carbon'})
+        self.assertEqual(set(settings['extra_models']), {'gemini-3.5-flash-lite', 'gemini-3.1-pro', 'gemini-4-carbon'})
         self.assertNotIn('gemini-4-argon', settings['extra_models'])
         self.assertEqual(settings['extra_models']['gemini-4-carbon']['desc'], '4 Carbon')
         self.assertEqual(json.loads(settings['model_headers']['8']['x-goog-ext-525001261-jspb'])[4], '95a4c0abcba24364')
@@ -235,7 +247,7 @@ class ArgonRoutingTests(unittest.TestCase):
     def test_new_models_use_exact_discovered_route_and_never_fallback(self):
         from gemini_web2api.quota_guard import QuotaRejected
         from gemini_web2api.config import CONFIG
-        for name, mode in (('gemini-3.1-pro', 3), ('gemini-3.8-flash', 1)):
+        for name, mode in (('gemini-3.1-pro', 3),):
             with self.subTest(model=name):
                 for entry in self.pool.store.registry()['accounts']:
                     path = self.pool.store.path(entry['id'])
@@ -354,7 +366,7 @@ class ArgonRoutingTests(unittest.TestCase):
             {'gemini-4-argon': 71, 'gemini-4-carbon': 8, 'gemini-3.1-pro': 3, 'gemini-3.8-flash': 1}.get(model, 6), 1)
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
-        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-4-carbon', 8), ('gemini-3.5-flash-lite', 6), ('gemini-3.1-pro', 3), ('gemini-3.8-flash', 1)):
+        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-4-carbon', 8), ('gemini-3.5-flash-lite', 6), ('gemini-3.1-pro', 3)):
             for effort, depth in ((None, 1), ('low', 1), ('medium', 4), ('high', 2)):
                 with self.subTest(model=model, effort=effort):
                     handler.send_json.reset_mock()

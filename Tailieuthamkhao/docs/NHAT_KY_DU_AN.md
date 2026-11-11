@@ -1058,6 +1058,15 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-11 Hai mức cho 3.1 Pro, bỏ 3.8 và sửa trạng thái bận
+
+- Theo lựa chọn mới của người dùng, 3.1 Pro chỉ hiển thị Thấp và Cao, Thấp gửi reasoning_effort=low, Cao gửi medium tới Gemini, không gửi mức high thực tế
+- Lựa chọn Mặc định của trình duyệt cũ được chuẩn hóa về Thấp, mức Trung bình cũ không còn trong thanh chọn, sửa fallback của thanh chọn để không gửi Auto khi model không hỗ trợ
+- Giữ 3.5 Flash-Lite, bỏ 3.8 khỏi quản trị, danh mục hỗ trợ, bộ phát hiện model và router, cấu hình cũ dùng 3.8 được đọc thành Flash-Lite
+- Phát hiện hàng đợi đếm cả kết quả đã đọc trong giới hạn 4 job, có thể gây ASSISTANT_BUSY dù không còn tác vụ đang chạy
+- Cho phép thu hồi kết quả đã đọc khi hàng đợi cần chỗ, giữ giới hạn hai tác vụ đang chạy và bốn bản ghi, không loại tác vụ đang chạy hoặc kết quả chưa đọc
+- Kiểm thử xác nhận nhãn Cao của Pro gửi mức medium đúng model, tự chọn Low khi Auto không hợp lệ, bỏ route 3.8 kể cả còn cache, nhận được yêu cầu mới sau khi đã đọc kết quả cũ
+
 ## 2026-11-11 Giới hạn effort Argon và xác minh 3.1 Pro
 
 - 4 Argon chỉ cho chọn Mặc định và Thấp ở cả chế độ Nhanh và Thông minh, lựa chọn cũ không còn hợp lệ được đưa về Mặc định

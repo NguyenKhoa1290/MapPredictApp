@@ -79,7 +79,7 @@ class AssistantTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200, response.json)
                 self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
 
-    def test_pro_accepts_all_levels_and_status_reports_real_route_capabilities(self):
+    def test_pro_has_two_levels_and_defaults_to_low(self):
         from ai_service.services import ai_settings
         self.app.config['AI_SETTINGS_FILE'] = str(Path(self.folder.name) / 'settings.json')
         settings = ai_settings.defaults(self.app.config)
@@ -88,15 +88,30 @@ class AssistantTests(unittest.TestCase):
         with patch.object(ai_settings, 'argon_availability', return_value='ready'):
             modes = {row['id']: row for row in self.client.get('/api/v1/assistant/status').json['data']['modes']}
         self.assertEqual(modes['fast']['efforts'], ['auto', 'low'])
-        self.assertEqual(modes['smart']['efforts'], ['auto', 'low', 'medium', 'high'])
-        for effort in ('auto', 'low', 'medium', 'high'):
+        self.assertEqual(modes['smart']['efforts'], ['low', 'high'])
+        for effort in ('auto', 'low', 'high'):
             RATES.clear()
             with patch.object(ai_settings, 'require_argon_cookie'), patch.object(ai_settings, 'authorize_pro'), \
                     patch.object(assistant, 'call_model', return_value={'answer': 'ok'}) as model:
                 response = self.client.post('/api/v1/assistant/preview', data={'scope': 'map', 'message': 'hello',
                                             'web': 'false', 'mode': 'smart', 'effort': effort})
             self.assertEqual(response.status_code, 200, response.json)
-            self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
+            self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], 'low' if effort == 'auto' else effort)
+
+    def test_pro_high_sends_medium_without_changing_model(self):
+        remote = Mock()
+        remote.__enter__ = Mock(return_value=remote)
+        remote.__exit__ = Mock(return_value=False)
+        remote.read.return_value = b'{"choices":[{"message":{"content":"{\\"answer\\":\\"ok\\"}"}}]}'
+        opener = Mock()
+        opener.open.return_value = remote
+        for selected, actual in (('auto', 'low'), ('low', 'low'), ('high', 'medium')):
+            with patch.object(assistant, 'build_opener', return_value=opener):
+                assistant.call_model([], {**self.app.config, 'ASSISTANT_PROVIDER': 'gemini',
+                    'ASSISTANT_MODEL': 'gemini-3.1-pro', 'ASSISTANT_EFFORT': selected})
+            payload = json.loads(opener.open.call_args.args[0].data)
+            self.assertEqual(payload['model'], 'gemini-3.1-pro')
+            self.assertEqual(payload['reasoning_effort'], actual)
 
     def test_argon_blocks_medium_and_high_before_calling_model(self):
         modes = {row['id']: row for row in self.client.get('/api/v1/assistant/status').json['data']['modes']}

@@ -205,8 +205,11 @@ def call_model(messages, config, *, response_kind='assistant'):
     base = config['ASSISTANT_URL'].rstrip('/')
     payload = {'model': config['ASSISTANT_MODEL'], 'messages': messages,
                'temperature': 0.1, 'stream': False}
-    if config.get('ASSISTANT_EFFORT', 'auto') != 'auto':
-        payload['reasoning_effort'] = config['ASSISTANT_EFFORT']
+    effort = config.get('ASSISTANT_EFFORT', 'auto')
+    if config.get('ASSISTANT_PROVIDER') == 'gemini' and config['ASSISTANT_MODEL'] == 'gemini-3.1-pro':
+        effort = {'auto': 'low', 'high': 'medium'}.get(effort, effort)
+    if effort != 'auto':
+        payload['reasoning_effort'] = effort
     body = json.dumps(payload, ensure_ascii=False).encode()
     headers = {'Content-Type': 'application/json'}
     path = config.get('ASSISTANT_SECRET_FILE')
@@ -239,7 +242,7 @@ def call_model(messages, config, *, response_kind='assistant'):
             raise PredictionError('ASSISTANT_TIMEOUT', 'Model chưa hoàn tất trong thời gian cho phép, dữ liệu chưa thay đổi. Hãy thử lại sau hoặc giảm nỗ lực', 504) from None
         if code == 'effort_not_applied':
             raise PredictionError('EFFORT_NOT_APPLIED', 'Gemini chưa áp dụng được mức effort đã chọn, dữ liệu chưa thay đổi', 503) from None
-        if config['ASSISTANT_MODEL'] in ('gemini-3.5-flash-lite', 'gemini-3.1-pro', 'gemini-3.8-flash') and code in ('cookie_required', 'model_unavailable', 'accounts_busy'):
+        if config['ASSISTANT_MODEL'] in ('gemini-3.5-flash-lite', 'gemini-3.1-pro') and code in ('cookie_required', 'model_unavailable', 'accounts_busy'):
             message = 'Gemini đang xử lý yêu cầu trước, hãy thử lại sau' if code == 'accounts_busy' else f'Chưa có tài khoản đăng nhập dùng được {config["ASSISTANT_MODEL"]}, hãy kiểm tra cookie và danh sách model trong quản trị'
             raise PredictionError(code.upper(), message, 429 if code == 'accounts_busy' else 503) from None
         if config['ASSISTANT_MODEL'] in ('gemini-4-argon', 'gemini-4-carbon'):
@@ -368,10 +371,12 @@ def preview(path, dxf, csv, options, config, resources=None):
     if re.fullmatch(r'[A-Za-z0-9_-]{16,128}', conversation):
         config['ASSISTANT_CONVERSATION'] = conversation
     effort = options.get('effort', 'auto')
+    if config.get('ASSISTANT_PROVIDER') == 'gemini' and config['ASSISTANT_MODEL'] == 'gemini-3.1-pro' and effort == 'auto':
+        effort = 'low'
     if effort not in ('auto', 'low', 'medium', 'high'):
         raise PredictionError('INVALID_EFFORT', 'Chọn effort mặc định, thấp, trung bình hoặc cao', 400)
     if effort not in config['ASSISTANT_SUPPORTED_EFFORTS']:
-        raise PredictionError('EFFORT_UNSUPPORTED', 'Model đã chọn hiện chỉ hỗ trợ Mặc định và Thấp', 400)
+        raise PredictionError('EFFORT_UNSUPPORTED', 'Chọn mức nỗ lực được hỗ trợ bởi model đã chọn', 400)
     config['ASSISTANT_EFFORT'] = effort
     from .ai_settings import authorize_pro, require_argon_cookie
     require_argon_cookie(config)

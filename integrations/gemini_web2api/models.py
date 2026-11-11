@@ -12,10 +12,6 @@ MODELS = {
         'mode': None, 'think': 1,
         'desc': '3.5 Flash-Lite, requires a verified signed-in account route',
     },
-    'gemini-3.8-flash': {
-        'mode': None, 'think': 1,
-        'desc': '3.8 Flash, requires a verified signed-in account route',
-    },
     'gemini-4-argon': {
         'mode': None, 'think': 1,
         'desc': 'Pro Argon, requires a verified account route and quota',
@@ -83,6 +79,8 @@ def resolve_model(model_name: str, default: str = "gemini-3.6-flash", effort=Non
         except ValueError:
             return None, None, None, f"Invalid think level: {think_str}", None
     from .config import CONFIG
+    if model_name == 'gemini-3.8-flash':
+        return None, None, None, 'Model đã ngừng hỗ trợ', None
     cfg = (CONFIG.get('extra_models') or {}).get(model_name) or MODELS.get(model_name)
     if not cfg:
         return None, None, None, 'Model chưa được xác minh hoặc không được hỗ trợ', None

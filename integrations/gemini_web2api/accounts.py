@@ -167,7 +167,6 @@ class AccountStore:
                     (r'\b4\s+carbon\b', 'gemini-4-carbon'),
                     (r'\b3\.5\s+flash[-\s]*lite\b', 'gemini-3.5-flash-lite'),
                     (r'\b3\.1\s+pro\b', 'gemini-3.1-pro'),
-                    (r'\b3\.8\s+flash\b(?![-\s]*lite)', 'gemini-3.8-flash'),
                 ) if re.search(pattern, identity, re.I)), None)
                 if not name:
                     continue

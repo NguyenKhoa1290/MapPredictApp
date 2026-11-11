@@ -158,7 +158,7 @@ def _build_payload(prompt: str, model_id: int, think_mode: int, file_refs: list 
     inner[61] = []
     inner[68] = 1
     inner[79] = model_id
-    # Verified signed-in routes, including Flash 3.8 category 1, use field 80.
+    # Verified signed-in routes use field 80.
     # Legacy anonymous category 1 remains separate because it has no stored header.
     if str(model_id) in (CONFIG.get('model_headers') or {}):
         # Verified thinking route: level belongs in field 80, not legacy field 17.

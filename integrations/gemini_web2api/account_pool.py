@@ -18,8 +18,7 @@ CARBON = 'gemini-4-carbon'
 PREMIUM_MODELS = (ARGON, CARBON)
 FLASH = 'gemini-3.5-flash-lite'
 PRO = 'gemini-3.1-pro'
-FLASH38 = 'gemini-3.8-flash'
-SIGNED_MODELS = (ARGON, CARBON, FLASH, PRO, FLASH38)
+SIGNED_MODELS = (ARGON, CARBON, FLASH, PRO)
 SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'native_api_key', 'model_headers', 'extra_models', 'audit_config_path', 'generation_deadline')
 
 
@@ -268,7 +267,7 @@ class AccountPool:
 
     def run_flash(self, generate, timeout=120, model=FLASH):
         """Use the exact account-discovered model, never an anonymous/alias route."""
-        if model not in (FLASH, PRO, FLASH38):
+        if model not in (FLASH, PRO):
             raise QuotaRejected('Model chưa được hỗ trợ', status=400, code='model_unavailable')
         with self.generation_slot():
             entries = self.store.registry()['accounts']

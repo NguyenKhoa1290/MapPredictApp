@@ -14,6 +14,16 @@ from ai_service.services import ai_settings, assistant, knowledge
 
 
 class AiAdminTests(unittest.TestCase):
+    def test_retired_flash_is_migrated_and_cannot_be_saved_again(self):
+        settings = ai_settings.defaults(self.app.config)
+        for mode in ('fast', 'smart'):
+            settings['models'][mode]['model'] = 'gemini-3.8-flash'
+        Path(self.app.config['AI_SETTINGS_FILE']).write_text(json.dumps(settings), encoding='utf-8')
+        loaded = ai_settings.load(self.app.config)
+        self.assertTrue(all(loaded['models'][mode]['model'] == ai_settings.FLASH for mode in ('fast', 'smart')))
+        with self.assertRaises(ValueError):
+            ai_settings.save(self.app.config, settings)
+
     def test_argon_efforts_are_limited_independently_of_fast_or_smart_label(self):
         for name in (ai_settings.ARGON, ai_settings.FLASH):
             self.assertEqual(ai_settings.supported_efforts({'provider': 'gemini', 'model': name}), ['auto', 'low'])
@@ -155,7 +165,7 @@ class AiAdminTests(unittest.TestCase):
         with patch.object(ai_settings, 'argon_availability') as local_cookie:
             ai_settings.require_argon_cookie(model)
         local_cookie.assert_not_called()
-        for name in ('gemini-3.1-pro', 'gemini-3.8-flash', 'gemini-4-carbon'):
+        for name in ('gemini-3.1-pro', 'gemini-4-carbon'):
             settings['models']['smart'].update(provider='gemini', model=name)
             self.assertEqual(self.post('settings', settings).status_code, 200)
             loaded = ai_settings.model_config(self.app.config, 'smart')

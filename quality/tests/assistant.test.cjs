@@ -554,6 +554,22 @@ test('context button compacts chat without attachments or workspace mutations', 
     } finally { f.close(); }
 });
 
+test('two-level Pro defaults to Low when Auto is unsupported and can select High', async () => {
+    const f = fixture({ enabled: true, modes: [
+        { id: 'fast', efforts: ['low', 'high'] },
+        { id: 'smart', efforts: ['auto', 'low'] }
+    ] });
+    try {
+        await tick();
+        assert.equal(f.get('effort').value, 'low');
+        assert.equal(f.get('effort-slider').max, '1');
+        assert.equal([...f.get('effort').options].find(option => option.value === 'auto').disabled, true);
+        f.get('effort-slider').value = '1';
+        f.get('effort-slider').dispatchEvent(new f.window.Event('input'));
+        assert.equal(f.get('effort').value, 'high');
+    } finally { f.close(); }
+});
+
 test('effort popup follows supported levels and sits beside Send without decorative buttons', async () => {
     const f = fixture({ enabled: true, modes: [
         { id: 'fast', efforts: ['auto', 'low'] },

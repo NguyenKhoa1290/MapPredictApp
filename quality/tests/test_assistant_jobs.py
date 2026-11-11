@@ -66,7 +66,7 @@ class AssistantJobTests(unittest.TestCase):
         self.assertEqual(self.client.get('/api/v1/assistant/jobs/unknown', headers=self.headers).status_code, 404)
 
     def test_argon_has_transport_margin_while_other_models_stay_at_80(self):
-        for model, expected in [('gemini-4-argon', 320), ('gemini-4-carbon', 320), ('gemini-3.8-flash', 80)]:
+        for model, expected in [('gemini-4-argon', 320), ('gemini-4-carbon', 320), ('gemini-3.1-pro', 80)]:
             config = {'ASSISTANT_MODEL': model, 'ASSISTANT_SUPPORTED_EFFORTS': ['auto']}
             with patch('ai_service.services.ai_settings.model_config', return_value=config), \
                     patch('ai_service.services.ai_settings.require_argon_cookie'), \
@@ -81,3 +81,18 @@ class AssistantJobTests(unittest.TestCase):
             assistant_jobs.prune()
             self.assertNotIn('old', assistant_jobs.JOBS)
             self.assertIn('active', assistant_jobs.JOBS)
+
+    def test_delivered_results_do_not_block_new_jobs_and_unread_results_survive(self):
+        now = time.monotonic()
+        assistant_jobs.JOBS.update({str(i): {'finished_at': now, 'result': ({'data': i}, 200)} for i in range(4)})
+        with self.assertRaises(PredictionError):
+            assistant_jobs.submit(lambda: ({}, 200))
+        assistant_jobs.poll('0')
+        identifier = assistant_jobs.submit(lambda: ({'data': 'new'}, 200))
+        for _ in range(100):
+            if assistant_jobs.poll(identifier)[1] != 202:
+                break
+            time.sleep(.01)
+        self.assertNotIn('0', assistant_jobs.JOBS)
+        self.assertTrue(all(str(i) in assistant_jobs.JOBS for i in (1, 2, 3)))
+        self.assertEqual(assistant_jobs.poll(identifier), ({'data': 'new'}, 200))
