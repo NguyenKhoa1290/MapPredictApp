@@ -79,8 +79,12 @@ class AssistantTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200, response.json)
                 self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
 
-    def test_smart_accepts_all_levels_and_status_reports_real_route_capabilities(self):
+    def test_pro_accepts_all_levels_and_status_reports_real_route_capabilities(self):
         from ai_service.services import ai_settings
+        self.app.config['AI_SETTINGS_FILE'] = str(Path(self.folder.name) / 'settings.json')
+        settings = ai_settings.defaults(self.app.config)
+        settings['models']['smart']['model'] = 'gemini-3.1-pro'
+        ai_settings.save(self.app.config, settings)
         with patch.object(ai_settings, 'argon_availability', return_value='ready'):
             modes = {row['id']: row for row in self.client.get('/api/v1/assistant/status').json['data']['modes']}
         self.assertEqual(modes['fast']['efforts'], ['auto', 'low'])
@@ -93,6 +97,18 @@ class AssistantTests(unittest.TestCase):
                                             'web': 'false', 'mode': 'smart', 'effort': effort})
             self.assertEqual(response.status_code, 200, response.json)
             self.assertEqual(model.call_args.args[1]['ASSISTANT_EFFORT'], effort)
+
+    def test_argon_blocks_medium_and_high_before_calling_model(self):
+        modes = {row['id']: row for row in self.client.get('/api/v1/assistant/status').json['data']['modes']}
+        self.assertEqual(modes['smart']['efforts'], ['auto', 'low'])
+        for effort in ('medium', 'high'):
+            RATES.clear()
+            with patch.object(assistant, 'call_model') as model:
+                response = self.client.post('/api/v1/assistant/preview', data={
+                    'scope': 'map', 'message': 'hello', 'mode': 'smart', 'effort': effort})
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.json['error']['code'], 'EFFORT_UNSUPPORTED')
+            model.assert_not_called()
 
     def test_passcode_confirmation_checks_service_hash_without_model_or_files(self):
         from ai_service.services.ai_settings import set_passcode

@@ -190,7 +190,7 @@ export function installAssistant(ctx) {
       const allowed = effortModes.get(get('mode').value) || ['auto', 'low'];
       for (const option of get('effort').options) option.disabled = !allowed.includes(option.value);
       get('effort').value = allowed.includes(preferredEffort) ? preferredEffort : 'auto';
-      get('effort').title = allowed.includes('high') ? 'Mức độ suy nghĩ của model' : 'API Web Nhanh hiện chỉ áp dụng mức Thấp, dùng Thông minh để chọn Trung bình hoặc Cao';
+      get('effort').title = allowed.includes('high') ? 'Mức độ suy nghĩ của model' : 'Model đã chọn hiện chỉ hỗ trợ Mặc định và Thấp';
       renderEffortPicker();
     }
     updateEfforts();

@@ -178,9 +178,8 @@ def save(config, incoming):
 
 
 def supported_efforts(row):
-    # Gemini Web's legacy Flash route reports Low for every supplied level.
-    # Only Argon has been verified with upstream applied_level=1/4/2.
-    return ['auto', 'low'] if row['provider'] == 'gemini' and row['model'] == FLASH else ['auto', 'low', 'medium', 'high']
+    # These routes currently report Low for every supplied level.
+    return ['auto', 'low'] if row['provider'] == 'gemini' and row['model'] in (FLASH, ARGON) else ['auto', 'low', 'medium', 'high']
 
 
 def model_config(config, mode='fast'):

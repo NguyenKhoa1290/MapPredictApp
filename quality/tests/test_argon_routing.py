@@ -370,6 +370,12 @@ class ArgonRoutingTests(unittest.TestCase):
                     with patch('gemini_web2api.server.generate', return_value='fast') as fast, \
                             patch.object(runner, 'generate', side_effect=verified) as smart:
                         handler._handle_chat(json.dumps(body).encode())
+                    if model == 'gemini-4-argon' and effort in ('medium', 'high'):
+                        self.assertEqual(handler.send_json.call_args.args[1], 400)
+                        self.assertEqual(handler.send_json.call_args.args[0]['error']['code'], 'effort_unsupported')
+                        fast.assert_not_called()
+                        smart.assert_not_called()
+                        continue
                     called, untouched = (fast, smart) if model == 'gemini-3.6-flash' else (smart, fast)
                     self.assertEqual(called.call_args.args[1:3], (mode, depth))
                     untouched.assert_not_called()

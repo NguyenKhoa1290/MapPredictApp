@@ -371,7 +371,7 @@ def preview(path, dxf, csv, options, config, resources=None):
     if effort not in ('auto', 'low', 'medium', 'high'):
         raise PredictionError('INVALID_EFFORT', 'Chọn effort mặc định, thấp, trung bình hoặc cao', 400)
     if effort not in config['ASSISTANT_SUPPORTED_EFFORTS']:
-        raise PredictionError('EFFORT_UNSUPPORTED', 'API Web Nhanh hiện chỉ áp dụng mức Thấp, chọn Thông minh để dùng Trung bình hoặc Cao', 400)
+        raise PredictionError('EFFORT_UNSUPPORTED', 'Model đã chọn hiện chỉ hỗ trợ Mặc định và Thấp', 400)
     config['ASSISTANT_EFFORT'] = effort
     from .ai_settings import authorize_pro, require_argon_cookie
     require_argon_cookie(config)

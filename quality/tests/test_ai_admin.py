@@ -14,6 +14,11 @@ from ai_service.services import ai_settings, assistant, knowledge
 
 
 class AiAdminTests(unittest.TestCase):
+    def test_argon_efforts_are_limited_independently_of_fast_or_smart_label(self):
+        for name in (ai_settings.ARGON, ai_settings.FLASH):
+            self.assertEqual(ai_settings.supported_efforts({'provider': 'gemini', 'model': name}), ['auto', 'low'])
+        self.assertIn('high', ai_settings.supported_efforts({'provider': 'gemini', 'model': 'gemini-3.1-pro'}))
+
     def setUp(self):
         FAILURES.clear()
         REVOKED.clear()

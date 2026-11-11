@@ -1058,6 +1058,14 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-11 Giới hạn effort Argon và xác minh 3.1 Pro
+
+- 4 Argon chỉ cho chọn Mặc định và Thấp ở cả chế độ Nhanh và Thông minh, lựa chọn cũ không còn hợp lệ được đưa về Mặc định
+- Backend AI và Gemini adapter chặn Trung bình, Cao của Argon trước khi gọi Google, cập nhật mô tả để không hướng dẫn chọn Thông minh như một cách vượt giới hạn
+- Thử trực tiếp qua API Gemini service trên VPS với 3.1 Pro, cả ba mức trả lời đúng phép tính 3+4
+- Thấp trả applied_level=1 và category=3 sau 15,6 giây, Trung bình trả applied_level=4 sau 13,2 giây, Cao trả applied_level=2 sau 8,2 giây
+- Giữ đủ lựa chọn nỗ lực của 3.1 Pro, các con số thời gian trên là phép thử đơn lẻ, không dùng để kết luận mức Cao nhanh hơn mức Thấp
+
 ## 2026-11-11 Hoàn thiện transport native cho 4 Argon
 
 - Thêm codec Protobuf và WebChannel giới hạn kích thước, không thêm thư viện hay trình duyệt chạy thường trực trên VPS

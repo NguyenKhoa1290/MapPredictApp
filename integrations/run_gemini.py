@@ -90,6 +90,9 @@ class ManagedGeminiHandler(GeminiHandler):
         except ValueError as error:
             self.send_json({'error': {'message': str(error)}}, 400)
             return
+        if model == ARGON and request.get('reasoning_effort') in ('medium', 'high'):
+            self.send_json({'error': {'code': 'effort_unsupported', 'message': '4 Argon hiện chỉ hỗ trợ Mặc định và Thấp'}}, 400)
+            return
         if request.get('stream') or request.get('tools'):
             self.send_json({'error': {'code': 'unsupported_argon_request', 'message': 'Thông minh chỉ nhận chat không streaming'}}, 400)
             return
