@@ -4,6 +4,10 @@
 #   1=FAST, 2=THINKING, 3=PRO, 4=AUTO, 5=FAST_DYNAMIC_THINKING, 6=FLASH_LITE
 
 MODELS = {
+    'gemini-4-carbon': {
+        'mode': None, 'think': 1,
+        'desc': '4 Carbon, requires an exact verified account route and quota',
+    },
     'gemini-3.5-flash-lite': {
         'mode': None, 'think': 1,
         'desc': '3.5 Flash-Lite, requires a verified signed-in account route',

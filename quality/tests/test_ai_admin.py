@@ -150,7 +150,7 @@ class AiAdminTests(unittest.TestCase):
         with patch.object(ai_settings, 'argon_availability') as local_cookie:
             ai_settings.require_argon_cookie(model)
         local_cookie.assert_not_called()
-        for name in ('gemini-3.1-pro', 'gemini-3.8-flash'):
+        for name in ('gemini-3.1-pro', 'gemini-3.8-flash', 'gemini-4-carbon'):
             settings['models']['smart'].update(provider='gemini', model=name)
             self.assertEqual(self.post('settings', settings).status_code, 200)
             loaded = ai_settings.model_config(self.app.config, 'smart')

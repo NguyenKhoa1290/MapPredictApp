@@ -8,7 +8,7 @@ import uuid
 from gemini_web2api.config import CONFIG
 from gemini_web2api.server import GeminiHandler, ThreadedServer
 from gemini_web2api.session_manager import SessionManager
-from gemini_web2api.account_pool import AccountPool, ARGON, FLASH, SIGNED_MODELS
+from gemini_web2api.account_pool import AccountPool, ARGON, FLASH, SIGNED_MODELS, PREMIUM_MODELS
 from gemini_web2api.quota_guard import QuotaRejected
 from gemini_web2api.gemini import generate
 from gemini_web2api.tools import messages_to_prompt
@@ -116,17 +116,17 @@ class ManagedGeminiHandler(GeminiHandler):
                     text = generate(turn_prompt, mode, level, metadata=reasoning)
                 finally:
                     CONFIG.pop('chat_group', None)
-                if reasoning.get('applied_level', None if model != ARGON else level) != level:
+                if reasoning.get('applied_level', None if model not in PREMIUM_MODELS else level) != level:
                     raise QuotaRejected('Gemini chưa xác nhận mức effort đã chọn', status=503, code='effort_not_applied')
                 if CONFIG.get('audit_config_path'):
                     ChatRetention(CONFIG['audit_config_path']).complete(group, mode)
                 return text
             try:
-                ceiling = 300 if model == ARGON else 75
+                ceiling = 300 if model in PREMIUM_MODELS else 75
                 budget = max(1, min(ceiling, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', ceiling))))
             except (ValueError, TypeError):
-                budget = 300 if model == ARGON else 75
-            if model == ARGON:
+                budget = 300 if model in PREMIUM_MODELS else 75
+            if model in PREMIUM_MODELS:
                 # Request-local configuration, never extend other account/model calls.
                 with CONFIG.isolated():
                     CONFIG['request_timeout_sec'] = 300

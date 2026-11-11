@@ -1058,6 +1058,15 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-11 Cập nhật định danh model Google
+
+- Xác minh RPC otAQ7b trên hai tài khoản VPS trả danh mục 3.5 Flash-Lite, 3.8 Flash, 3.1 Pro và 4 Carbon, không còn mục Argon trong danh mục đang nhận
+- Đọc tên phiên bản ở model[2] và model[12], không nhầm mô tả tác vụ ở model[11] với tên model, giữ hỗ trợ schema cũ
+- Thêm gemini-4-carbon thành model độc lập trong admin và adapter, sử dụng hash cùng category được khám phá từ tài khoản, không gán Carbon vào tên Argon
+- Carbon giữ kiểm tra quota trước và sau, passcode, tài khoản độc lập, chờ 300 giây và không hạ model tự động
+- Không sửa lựa chọn model đã lưu của người quản trị
+- Thử thực tế Carbon Low trên VPS có câu trả lời sau 8,36 giây, metadata xác nhận category 8 và effort 1
+
 ## 2026-11-09 Tăng thời gian chờ Argon lên 300 giây
 
 - Adapter giới hạn riêng Argon ở 300 giây, cấu hình socket theo từng yêu cầu để không ảnh hưởng model khác hoặc tài khoản đang chạy song song

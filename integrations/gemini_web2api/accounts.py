@@ -131,10 +131,15 @@ class AccountStore:
                 def value(index):
                     return model[index] if len(model) > index else None
                 category = value(1) or value(10) or ''
-                display = value(11) or value(19) or category
-                identity = (str(category) + ' ' + str(display)).casefold()
+                display = value(12) or value(2) or value(11) or value(19) or category
+                # Google separates the category, version and description fields.
+                # Descriptions such as 'Detailed research' are not model identities.
+                identity = ' '.join(str(value(index) or '') for index in (1, 2, 10, 12)).casefold()
+                if not value(2) and not value(12):
+                    identity += ' ' + str(display).casefold()  # Older catalog schema.
                 name = next((name for pattern, name in (
                     (r'\bargon\b', 'gemini-4-argon'),
+                    (r'\b4\s+carbon\b', 'gemini-4-carbon'),
                     (r'\b3\.5\s+flash[-\s]*lite\b', 'gemini-3.5-flash-lite'),
                     (r'\b3\.1\s+pro\b', 'gemini-3.1-pro'),
                     (r'\b3\.8\s+flash\b(?![-\s]*lite)', 'gemini-3.8-flash'),
@@ -151,11 +156,11 @@ class AccountStore:
                 routes[name] = {'mode': number, 'think': 1, 'desc': str(display)}
         with private_lock(path.with_suffix('.lock')):
             config = json.loads(path.read_text(encoding='utf-8'))
-            config['model_available'] = 'gemini-4-argon' in routes
+            config['model_available'] = any(name in routes for name in ('gemini-4-argon', 'gemini-4-carbon'))
             config['model_checked_at'] = time.time()
             config['extra_models'], config['model_headers'] = routes, headers
             write_json(path, config)
-        return 'gemini-4-argon' in routes
+        return config['model_available']
 
     def scan_one(self, entry, discover=False):
         account_id = entry['id']

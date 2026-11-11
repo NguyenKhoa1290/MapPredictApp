@@ -15,11 +15,11 @@ from shared.tabular import PredictionError
 LOCK = threading.RLock()
 ARGON = 'gemini-4-argon'
 FLASH = 'gemini-3.5-flash-lite'
-GEMINI_MODELS = (FLASH, ARGON, 'gemini-3.1-pro', 'gemini-3.8-flash')
+GEMINI_MODELS = (FLASH, ARGON, 'gemini-4-carbon', 'gemini-3.1-pro', 'gemini-3.8-flash')
 
 
 def is_argon(model):
-    return model.split('@', 1)[0] == ARGON
+    return model.split('@', 1)[0] in (ARGON, 'gemini-4-carbon')
 
 
 def passcode_file(config):

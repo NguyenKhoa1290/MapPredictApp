@@ -16,15 +16,16 @@ it('lets admin independently assign the two internal models', async () => {
   expect(selectors.every(node => !node.disabled)).toBe(true);
   expect(within(selectors[0]).getByRole('option', { name: 'Gemini 3.1 Pro' })).toBeTruthy();
   expect(within(selectors[1]).getByRole('option', { name: 'Gemini 3.8 Flash' })).toBeTruthy();
+  expect(within(selectors[1]).getByRole('option', { name: 'Gemini 4 Carbon' })).toBeTruthy();
   fireEvent.change(selectors[0], { target: { value: 'gemini-4-argon' } });
-  fireEvent.change(selectors[1], { target: { value: 'gemini-3.5-flash-lite' } });
+  fireEvent.change(selectors[1], { target: { value: 'gemini-4-carbon' } });
   fireEvent.submit(screen.getByRole('button', { name: 'Lưu cấu hình' }).closest('form')!);
   await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/v1/ai-admin/settings', expect.objectContaining({
     body: expect.stringContaining('gemini-4-argon')
   })));
   const posted = JSON.parse(fetch.mock.calls.find(call => call[0].endsWith('/settings'))![1].body);
   expect(posted.models.fast.model).toBe('gemini-4-argon');
-  expect(posted.models.smart.model).toBe('gemini-3.5-flash-lite');
+  expect(posted.models.smart.model).toBe('gemini-4-carbon');
 });
 it('shows a useful service error when a proxy returns HTML instead of JSON', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 502, ok: false,

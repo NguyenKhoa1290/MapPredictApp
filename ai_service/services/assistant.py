@@ -242,7 +242,7 @@ def call_model(messages, config, *, response_kind='assistant'):
         if config['ASSISTANT_MODEL'] in ('gemini-3.5-flash-lite', 'gemini-3.1-pro', 'gemini-3.8-flash') and code in ('cookie_required', 'model_unavailable', 'accounts_busy'):
             message = 'Gemini đang xử lý yêu cầu trước, hãy thử lại sau' if code == 'accounts_busy' else f'Chưa có tài khoản đăng nhập dùng được {config["ASSISTANT_MODEL"]}, hãy kiểm tra cookie và danh sách model trong quản trị'
             raise PredictionError(code.upper(), message, 429 if code == 'accounts_busy' else 503) from None
-        if config['ASSISTANT_MODEL'] == 'gemini-4-argon':
+        if config['ASSISTANT_MODEL'] in ('gemini-4-argon', 'gemini-4-carbon'):
             if code == 'cookie_required':
                 from .ai_settings import COOKIE_MESSAGE
                 raise PredictionError('COOKIE_REQUIRED', COOKIE_MESSAGE, 503) from None

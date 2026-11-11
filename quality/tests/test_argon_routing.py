@@ -186,6 +186,28 @@ class ArgonRoutingTests(unittest.TestCase):
         header = json.loads(settings['model_headers']['6']['x-goog-ext-525001261-jspb'])
         self.assertEqual(header[4], 'flash-id')
 
+    def test_current_catalog_version_fields_and_carbon_are_not_argon_aliases(self):
+        models = []
+        for category, display, number, identifier in [('Flash-Lite', '3.5 Flash-Lite', 6, 'lite-current'), ('Flash', '3.8 Flash', 1, 'flash-current'), ('Pro', '3.1 Pro', 3, 'pro-current'), ('Carbon', '4 Carbon', 8, '95a4c0abcba24364')]:
+            row = [None] * 20
+            row[0], row[1], row[2], row[10], row[11], row[12], row[17], row[19] = identifier, category, display, category, 'Most complex work', display, number, 'Most complex work'
+            models.append(row)
+        body = [None] * 25
+        body[15], body[16], body[17] = models, [8], []
+        rpc = json.dumps([['wrb.fr', 'otAQ7b', json.dumps(body)]])
+        with patch('gemini_web2api.accounts.GoogleSession') as session:
+            session.return_value.request_rpc.return_value = rpc
+            self.assertTrue(self.pool.store.discover('a' * 32))
+        settings = json.loads(self.pool.store.path('a' * 32).read_text())
+        self.assertEqual(set(settings['extra_models']), {'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.1-pro', 'gemini-4-carbon'})
+        self.assertNotIn('gemini-4-argon', settings['extra_models'])
+        self.assertEqual(settings['extra_models']['gemini-4-carbon']['desc'], '4 Carbon')
+        self.assertEqual(json.loads(settings['model_headers']['8']['x-goog-ext-525001261-jspb'])[4], '95a4c0abcba24364')
+        from gemini_web2api.config import CONFIG
+        with patch('gemini_web2api.account_pool.QuotaGuard.check', return_value={}):
+            result = self.pool.run(lambda mode, think: str(mode) + ':' + str(bool(CONFIG['cookie_file'])), model='gemini-4-carbon')
+        self.assertEqual(result, '8:True')
+
     def test_new_models_use_exact_discovered_route_and_never_fallback(self):
         from gemini_web2api.quota_guard import QuotaRejected
         from gemini_web2api.config import CONFIG
@@ -305,10 +327,10 @@ class ArgonRoutingTests(unittest.TestCase):
                 patch('gemini_web2api.account_pool.AccountPool'):
             spec.loader.exec_module(runner)
         runner.pool.run_chat.side_effect = lambda callback, model, conversation, **kwargs: callback(
-            {'gemini-4-argon': 71, 'gemini-3.1-pro': 3, 'gemini-3.8-flash': 1}.get(model, 6), 1)
+            {'gemini-4-argon': 71, 'gemini-4-carbon': 8, 'gemini-3.1-pro': 3, 'gemini-3.8-flash': 1}.get(model, 6), 1)
         handler = object.__new__(runner.ManagedGeminiHandler)
         handler.send_json = Mock()
-        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-3.5-flash-lite', 6), ('gemini-3.1-pro', 3), ('gemini-3.8-flash', 1)):
+        for model, mode in (('gemini-3.6-flash', 1), ('gemini-4-argon', 71), ('gemini-4-carbon', 8), ('gemini-3.5-flash-lite', 6), ('gemini-3.1-pro', 3), ('gemini-3.8-flash', 1)):
             for effort, depth in ((None, 1), ('low', 1), ('medium', 4), ('high', 2)):
                 with self.subTest(model=model, effort=effort):
                     handler.send_json.reset_mock()
@@ -316,7 +338,7 @@ class ArgonRoutingTests(unittest.TestCase):
                     if effort is not None:
                         body['reasoning_effort'] = effort
                     def verified(prompt, mode, level, metadata):
-                        if model == 'gemini-4-argon':
+                        if model in ('gemini-4-argon', 'gemini-4-carbon'):
                             from gemini_web2api.config import CONFIG
                             self.assertEqual(CONFIG['request_timeout_sec'], 300)
                         metadata['applied_level'] = level
@@ -328,7 +350,7 @@ class ArgonRoutingTests(unittest.TestCase):
                     self.assertEqual(called.call_args.args[1:3], (mode, depth))
                     untouched.assert_not_called()
                     self.assertEqual(handler.send_json.call_args.args[0]['model'], model)
-                    if model == 'gemini-4-argon':
+                    if model in ('gemini-4-argon', 'gemini-4-carbon'):
                         self.assertEqual(runner.pool.run_chat.call_args.kwargs['timeout'], 300)
                     if model == 'gemini-3.5-flash-lite':
                         self.assertEqual(runner.pool.run_chat.call_args.kwargs['timeout'], 75)

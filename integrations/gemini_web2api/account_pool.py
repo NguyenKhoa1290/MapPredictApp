@@ -14,10 +14,12 @@ from .google_session import write_json, GoogleSession, UsageAuthError, maintenan
 from .quota_guard import QuotaGuard, QuotaRejected
 
 ARGON = 'gemini-4-argon'
+CARBON = 'gemini-4-carbon'
+PREMIUM_MODELS = (ARGON, CARBON)
 FLASH = 'gemini-3.5-flash-lite'
 PRO = 'gemini-3.1-pro'
 FLASH38 = 'gemini-3.8-flash'
-SIGNED_MODELS = (ARGON, FLASH, PRO, FLASH38)
+SIGNED_MODELS = (ARGON, CARBON, FLASH, PRO, FLASH38)
 SESSION_FIELDS = ('cookie_file', 'auth_user', 'xsrf_token', 'gemini_bl', 'model_headers', 'extra_models', 'audit_config_path', 'generation_deadline')
 
 
@@ -77,8 +79,8 @@ class AccountPool:
                         journal = ChatRetention(self.store.path(entry['id']))
                         CONFIG['chat_session'] = journal.prepare(conversation)
                         CONFIG['chat_group'] = conversation
-                        if model == ARGON:
-                            return worker.run(generate, timeout=remaining)
+                        if model in PREMIUM_MODELS:
+                            return worker.run(generate, timeout=remaining, **({'model': model} if model != ARGON else {}))
                         return worker.run_flash(generate, timeout=remaining, model=model)
                 except QuotaRejected as error:
                     last_error = error
@@ -199,7 +201,7 @@ class AccountPool:
             CONFIG['audit_config_path'] = config_path
             yield
 
-    def run(self, generate, timeout=120):
+    def run(self, generate, timeout=120, model=ARGON):
         if not self.lock.acquire(blocking=False):
             raise QuotaRejected('Đang xử lý yêu cầu khác, hãy thử lại', code='accounts_busy')
         try:
@@ -220,7 +222,7 @@ class AccountPool:
                     guard = QuotaGuard(UsageReader(self.root, config_path=path))
                     guard.check()  # Reject absent/invalid quota windows, not just exhausted ones.
                     settings = json.loads(path.read_text(encoding='utf-8'))
-                    route = (settings.get('extra_models') or {}).get(ARGON)
+                    route = (settings.get('extra_models') or {}).get(model)
                     headers = (settings.get('model_headers') or {}).get(str(route.get('mode'))) if route else None
                     if not settings.get('model_available') or not route or not headers or not settings.get('xsrf_token'):
                         raise ValueError('Argon access not verified')
