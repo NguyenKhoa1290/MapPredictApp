@@ -15,7 +15,7 @@ it('lets admin independently assign the two internal models', async () => {
   const selectors = screen.getAllByLabelText('Tên model') as HTMLSelectElement[];
   expect(selectors.every(node => !node.disabled)).toBe(true);
   expect(within(selectors[0]).getByRole('option', { name: 'Gemini 3.1 Pro' })).toBeTruthy();
-  expect(within(selectors[1]).getByRole('option', { name: 'Gemini 3.8 Flash' })).toBeTruthy();
+  expect(within(selectors[1]).queryByRole('option', { name: 'Gemini 3.8 Flash' })).toBeNull();
   expect(within(selectors[1]).getByRole('option', { name: 'Gemini 4 Carbon' })).toBeTruthy();
   fireEvent.change(selectors[0], { target: { value: 'gemini-4-argon' } });
   fireEvent.change(selectors[1], { target: { value: 'gemini-4-carbon' } });
