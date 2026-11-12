@@ -58,6 +58,7 @@ export function installAssistant(ctx) {
       get('model-trigger').focus();
     });
     get('model-label').addEventListener('keydown', event => {
+      if (get('mode').disabled) return;
       if (event.key === 'Tab') { closeModelMenu(); return; }
       if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
@@ -122,10 +123,16 @@ export function installAssistant(ctx) {
       preview = get('preview');
     const historyKey = 'mapPredict.assistant.history.v1';
     const conversationKey = 'mapPredict.assistant.conversation.v1';
+    const revisionKey = 'mapPredict.assistant.modelRevision.v1';
     let conversation = crypto.randomUUID();
+    let activeRevision = '';
+    const modelRevisions = new Map();
+    let startupStatus;
+    let statusAvailable = false;
     try {
       conversation = localStorage.getItem(conversationKey) || conversation;
       localStorage.setItem(conversationKey, conversation);
+      activeRevision = localStorage.getItem(revisionKey) || '';
     } catch {/* Storage can be disabled. */}
     const effortKey = 'mapPredict.assistant.effort.v1';
     try {
@@ -144,6 +151,18 @@ export function installAssistant(ctx) {
       controller = null,
       busy = false;
     let lastContext = null;
+    function rotateConversation() {
+      conversation = crypto.randomUUID();
+      lastContext = null;
+      try { localStorage.setItem(conversationKey, conversation); } catch {/* Optional persistence. */}
+    }
+    function bindModelRevision() {
+      const revision = modelRevisions.get(get('mode').value);
+      if (!revision || revision === activeRevision) return;
+      rotateConversation();
+      activeRevision = revision;
+      try { localStorage.setItem(revisionKey, revision); } catch {/* Optional persistence. */}
+    }
     const contextButton = element('button', '0%', 'assistant-context');
     contextButton.type = 'button';
     contextButton.setAttribute('aria-label', 'Ngữ cảnh 30k, bấm để thu gọn hội thoại');
@@ -172,7 +191,7 @@ export function installAssistant(ctx) {
       const slider = get('effort-slider');
       slider.max = String(Math.max(0, options.length - 1));
       slider.value = String(index);
-      slider.disabled = options.length < 2;
+      slider.disabled = busy || options.length < 2;
       const label = options[index]?.textContent || 'Mặc định';
       slider.setAttribute('aria-valuetext', label);
       get('effort-heading').textContent = label;
@@ -200,6 +219,10 @@ export function installAssistant(ctx) {
       get('passcode-label').hidden = !!verifiedPasscode || !protectedModes.has(get('mode').value) || unavailableModes.has(get('mode').value);
     }
     get('mode').addEventListener('change', () => {
+      if (busy) { get('mode').value = lockedMode; return; }
+      rotateConversation();
+      activeRevision = modelRevisions.get(get('mode').value) || '';
+      try { localStorage.setItem(revisionKey, activeRevision); } catch {/* Optional persistence. */}
       updateEfforts();
       updatePasscode();
       get('passcode').value = '';
@@ -377,7 +400,9 @@ export function installAssistant(ctx) {
       return form;
     }
     async function request(action, form, signal, retry = true) {
-      form.set('conversation', conversation);
+      if (!form.has('conversation')) form.set('conversation', conversation);
+      const revision = modelRevisions.get(form.get('mode'));
+      if (action === 'preview' && revision && !form.has('model_revision')) form.set('model_revision', revision);
       let result = await fetch('/api/v1/assistant/' + action, {
         method: 'POST',
         headers: action === 'preview' ? { Prefer: 'respond-async' } : {},
@@ -475,8 +500,19 @@ export function installAssistant(ctx) {
       }
       for (const button of preview.querySelectorAll('button')) button.disabled = !!window.assistantWorkspace.historyState?.().busy;
     }
+    let lockedMode = null;
+    modelPicker.querySelector('summary').addEventListener('click', event => { if (busy) event.preventDefault(); });
     function setBusy(value) {
+      if (value && !busy) lockedMode = get('mode').value;
       busy = value;
+      if (!value) lockedMode = null;
+      get('mode').disabled = value;
+      get('effort').disabled = value;
+      get('model-trigger').disabled = value;
+      for (const option of modelOptions) option.disabled = value;
+      modelPicker.querySelector('summary').setAttribute('aria-disabled', String(value));
+      if (value) { modelPicker.open = false; closeModelMenu(); }
+      renderEffortPicker();
       get('form').querySelector('[type="submit"]').disabled = value || window.assistantWorkspace.hasDraft();
       get('stop').hidden = !value || !controller;
       panel.setAttribute('aria-busy', String(value));
@@ -548,9 +584,19 @@ export function installAssistant(ctx) {
       const textarea = get('form').querySelector('textarea'),
         question = textarea.value.trim();
       if (!question) return;
+      setBusy(true);
+      try {
+        await startupStatus;
+        if (modelRevisions.size || !statusAvailable) await refreshModelStatus();
+      } catch (error) {
+        notice.textContent = error.message;
+        return;
+      } finally { setBusy(false); }
       const mode = get('mode').value,
         effort = get('effort').value,
-        passcode = verifiedPasscode;
+        passcode = verifiedPasscode,
+        selectedRevision = modelRevisions.get(mode),
+        selectedConversation = conversation;
       const files = snapshot();
       if (files.resources.length > 5) {
         notice.textContent = 'Mỗi lượt sửa tối đa 5 DXF, hãy tắt bớt file trên bản đồ';
@@ -571,7 +617,7 @@ export function installAssistant(ctx) {
       const priorHistory = JSON.stringify(history);
       clearPreview();
       message('user', question);
-      textarea.value = '';
+      if (textarea.value.trim() === question) textarea.value = '';
       controller = new AbortController();
       setBusy(true);
       notice.textContent = 'Đang chuẩn bị dữ liệu để gửi';
@@ -583,6 +629,8 @@ export function installAssistant(ctx) {
         form.append('history', priorHistory);
         form.append('mode', mode);
         form.append('effort', effort);
+        if (selectedRevision) form.set('model_revision', selectedRevision);
+        form.set('conversation', selectedConversation);
         form.append('start', '1');
         form.append('web', 'true');
         form.append('crs', window.assistantWorkspace.crs() || '');
@@ -719,10 +767,20 @@ export function installAssistant(ctx) {
       updateContext();
     });
     restoreDraftReview();
-    fetch('/api/v1/assistant/status').then(response => response.json()).then(payload => {
+    async function refreshModelStatus() {
+      const response = await fetch('/api/v1/assistant/status', { cache: 'no-store' });
+      if (response.ok === false) throw new Error('Chưa lấy được cấu hình model, hãy thử lại');
+      let payload;
+      try { payload = await response.json(); }
+      catch { throw new Error('Chưa lấy được cấu hình model, hãy thử lại'); }
+      if (!payload.data) throw new Error('Chưa lấy được cấu hình model, hãy thử lại');
       if (!payload.data?.enabled) notice.textContent = 'Chatbot chưa được bật trên máy chủ';
       gzipSupported = Array.isArray(payload.data?.features) && payload.data.features.includes('dxf_gzip');
       if (Array.isArray(payload.data?.modes)) {
+        for (const mode of payload.data.modes) {
+          if (typeof mode.model_revision === 'string') modelRevisions.set(mode.id, mode.model_revision);
+        }
+        bindModelRevision();
         effortModes = new Map(payload.data.modes.map(mode => [mode.id, Array.isArray(mode.efforts) ? mode.efforts : mode.id === 'smart' ? ['auto', 'low', 'medium', 'high'] : ['auto', 'low']]));
         updateEfforts();
         protectedModes = new Set(payload.data.modes.filter(mode => mode.requires_passcode).map(mode => mode.id));
@@ -730,7 +788,9 @@ export function installAssistant(ctx) {
         updatePasscode();
         if (unavailableModes.has(get('mode').value)) notice.textContent = unavailableModes.get(get('mode').value);
       }
-    }).catch(() => {
+      statusAvailable = true;
+    }
+    startupStatus = refreshModelStatus().catch(() => {
       notice.textContent = 'Chưa kết nối được máy chủ';
     });
   })();

@@ -1,5 +1,6 @@
 """Persistent AI configuration, private to the authenticated AI service."""
 import copy
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -186,6 +187,12 @@ def supported_efforts(row):
     return ['auto', 'low'] if row['provider'] == 'gemini' and row['model'] in (FLASH, ARGON) else ['auto', 'low', 'medium', 'high']
 
 
+def model_revision(row):
+    # Public opaque route identity, deliberately excludes credentials and labels.
+    route = [row['provider'], row['model'], row.get('url', ''), supported_efforts(row)]
+    return hashlib.sha256(json.dumps(route, separators=(',', ':')).encode()).hexdigest()
+
+
 def model_config(config, mode='fast'):
     if mode not in ('fast', 'smart'):
         raise PredictionError('INVALID_MODEL_MODE', 'Chọn chế độ Nhanh hoặc Thông minh', 400)
@@ -193,6 +200,7 @@ def model_config(config, mode='fast'):
     row = settings['models'][mode]
     result = dict(config)
     result.update(ASSISTANT_MODEL=row['model'], ASSISTANT_PROVIDER=row['provider'],
+                  ASSISTANT_MODEL_REVISION=model_revision(row),
                   ASSISTANT_REQUIRE_PASSCODE=mode == 'smart' or is_argon(row['model']),
                   ASSISTANT_API_KEY=row.get('api_key', ''), ASSISTANT_RETRIEVAL_MODE='keyword',
                   ASSISTANT_EMBEDDING_URL=settings['embedding']['url'],

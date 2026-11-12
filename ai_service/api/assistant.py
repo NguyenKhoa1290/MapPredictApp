@@ -69,13 +69,14 @@ def limits():
 
 @assistant_api.get('/status')
 def status():
-    from ..services.ai_settings import load, is_argon, argon_availability, COOKIE_MESSAGE, supported_efforts
+    from ..services.ai_settings import load, is_argon, argon_availability, COOKIE_MESSAGE, supported_efforts, model_revision
     modes = load(current_app.config)['models']
     needs_local_argon = any(row['provider'] == 'gemini' and is_argon(row['model']) for row in modes.values())
     availability = argon_availability(current_app.config) if current_app.config['ASSISTANT_ENABLED'] and needs_local_argon else 'unknown'
     return jsonify(data={'enabled': current_app.config['ASSISTANT_ENABLED'],
                          'modes': [{'id': key, 'label': modes[key]['label'], 'requires_passcode': key == 'smart' or is_argon(modes[key]['model']),
                                     'efforts': supported_efforts(modes[key]),
+                                    'model_revision': model_revision(modes[key]),
                                     'availability': availability if modes[key]['provider'] == 'gemini' and is_argon(modes[key]['model']) else 'ready',
                                     'message': COOKIE_MESSAGE if availability == 'cookie_required' and modes[key]['provider'] == 'gemini' and is_argon(modes[key]['model']) else ''}
                                    for key in ('fast', 'smart')],

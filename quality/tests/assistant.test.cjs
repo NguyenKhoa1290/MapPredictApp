@@ -554,6 +554,70 @@ test('context button compacts chat without attachments or workspace mutations', 
     } finally { f.close(); }
 });
 
+test('switching models A to B to A rotates sessions and preserves visible history', async () => {
+    const status = { enabled: true, modes: [
+        { id: 'fast', efforts: ['low', 'high'], model_revision: 'route-a' },
+        { id: 'smart', efforts: ['auto', 'low'], model_revision: 'route-b' }
+    ] };
+    const f = fixture(status);
+    try {
+        f.setTableProposal({ token: null, edits: [], scores: [] });
+        await f.submit();
+        f.get('mode').value = 'smart';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        await f.submit();
+        f.get('mode').value = 'fast';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        await f.submit();
+        const forms = f.calls.filter(call => call.url.endsWith('/preview')).map(call => call.options.body);
+        assert.equal(forms.length, 3);
+        assert.equal(new Set(forms.map(form => form.get('conversation'))).size, 3);
+        assert.deepEqual(forms.map(form => form.get('model_revision')), ['route-a', 'route-b', 'route-a']);
+        assert.equal(JSON.parse(forms[2].get('history')).length, 4);
+        assert.equal(f.commits.length, 0);
+    } finally { f.close(); }
+});
+
+test('admin model change refreshes effort and upstream session before sending again', async () => {
+    const status = { enabled: true, modes: [{ id: 'fast', efforts: ['low', 'high'], model_revision: 'route-a' }] };
+    const f = fixture(status);
+    try {
+        f.setTableProposal({ token: null, edits: [], scores: [] });
+        await f.submit();
+        f.get('effort-slider').value = '1';
+        f.get('effort-slider').dispatchEvent(new f.window.Event('input'));
+        status.modes[0] = { id: 'fast', efforts: ['auto', 'low'], model_revision: 'route-new' };
+        await f.submit();
+        const forms = f.calls.filter(call => call.url.endsWith('/preview')).map(call => call.options.body);
+        assert.notEqual(forms[0].get('conversation'), forms[1].get('conversation'));
+        assert.equal(forms[1].get('model_revision'), 'route-new');
+        assert.equal(forms[1].get('effort'), 'auto');
+        assert.equal(JSON.parse(forms[1].get('history')).length, 2);
+    } finally { f.close(); }
+});
+
+test('model and effort stay locked until an in-flight request finishes', async () => {
+    const f = fixture();
+    let finish;
+    try {
+        await tick();
+        const original = f.window.fetch;
+        f.window.fetch = (url, options) => url.endsWith('/preview')
+            ? new Promise(resolve => { finish = () => resolve({ ok: true, json: async () => ({ data: { answer: 'done', token: null, sources: [], edits: [], scores: [], rejected: [] } }) }); })
+            : original(url, options);
+        await f.submit();
+        assert.equal(f.get('mode').disabled, true);
+        assert.equal(f.get('model-trigger').disabled, true);
+        assert.equal(f.get('effort-slider').disabled, true);
+        f.get('mode').value = 'smart';
+        f.get('mode').dispatchEvent(new f.window.Event('change'));
+        assert.equal(f.get('mode').value, 'fast');
+        finish();
+        await tick();
+        assert.equal(f.get('mode').disabled, false);
+    } finally { if (finish) finish(); f.close(); }
+});
+
 test('two-level Pro defaults to Low when Auto is unsupported and can select High', async () => {
     const f = fixture({ enabled: true, modes: [
         { id: 'fast', efforts: ['low', 'high'] },

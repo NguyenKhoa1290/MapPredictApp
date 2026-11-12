@@ -14,6 +14,12 @@ from ai_service.services import ai_settings, assistant, knowledge
 
 
 class AiAdminTests(unittest.TestCase):
+    def test_model_revision_tracks_route_and_capabilities_without_credentials(self):
+        row = {'provider': 'gemini', 'model': 'gemini-3.1-pro', 'url': '', 'api_key': 'private'}
+        revision = ai_settings.model_revision(row)
+        self.assertEqual(len(revision), 64)
+        self.assertEqual(revision, ai_settings.model_revision({**row, 'api_key': 'updated-private', 'label': 'New label'}))
+        self.assertNotEqual(revision, ai_settings.model_revision({**row, 'model': ai_settings.ARGON}))
     def test_retired_flash_is_migrated_and_cannot_be_saved_again(self):
         settings = ai_settings.defaults(self.app.config)
         for mode in ('fast', 'smart'):

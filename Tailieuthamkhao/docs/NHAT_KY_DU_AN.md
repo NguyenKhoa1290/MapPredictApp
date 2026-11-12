@@ -1058,6 +1058,17 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-12 Đổi model giữa hội thoại
+
+- Giữ lịch sử chat hiển thị, CSV, DXF, bản nháp và lịch sử thao tác khi đổi Nhanh hoặc Thông minh, tạo mã hội thoại upstream mới để không trộn CID giữa các model
+- Đổi A sang B rồi quay lại A cũng mở phiên mới và gửi lại lịch sử hiện có trong giới hạn ngữ cảnh của ứng dụng
+- API trạng thái trả model_revision từ provider, model, endpoint và danh sách effort, không đưa API key hoặc passcode vào giá trị này
+- Trình duyệt kiểm tra cấu hình mới trước lượt gửi, đồng bộ effort và phiên khi quản trị thay model mà nhãn Nhanh hoặc Thông minh không đổi
+- Backend giữ cấu hình đã đọc cho từng request, từ chối revision cũ bằng MODEL_CHANGED trước khi gọi LLM, không tự đổi model cho request đã gửi
+- Khóa bộ chọn model và effort trong lúc đang chờ, giữ passcode đã xác thực trong bộ nhớ và vẫn kiểm tra ở service với mỗi request
+- Tách lời gọi bộ lọc RAG khỏi mã hội thoại chính để không dùng câu trả lời JSON của bộ lọc như một lượt trong phiên chat của người dùng
+- Kiểm thử 272 Python, 44 JavaScript và 46 frontend đạt, bao gồm A sang B sang A, đổi cấu hình quản trị, request cũ và giữ lịch sử
+
 ## 2026-11-11 Hai mức cho 3.1 Pro, bỏ 3.8 và sửa trạng thái bận
 
 - Theo lựa chọn mới của người dùng, 3.1 Pro chỉ hiển thị Thấp và Cao, Thấp gửi reasoning_effort=low, Cao gửi medium tới Gemini, không gửi mức high thực tế

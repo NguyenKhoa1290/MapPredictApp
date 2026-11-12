@@ -221,7 +221,7 @@ def call_model(messages, config, *, response_kind='assistant'):
         from .ai_settings import is_argon
         ceiling = 300 if is_argon(config['ASSISTANT_MODEL']) else 120
         headers['X-Map-Predict-Timeout'] = str(max(1, min(ceiling, config.get('ASSISTANT_CALL_TIMEOUT', 150) - 5)))
-        if config.get('ASSISTANT_CONVERSATION'):
+        if config.get('ASSISTANT_CONVERSATION') and response_kind != 'filters':
             headers['X-Map-Predict-Conversation'] = config['ASSISTANT_CONVERSATION']
     try:
         with build_opener(ProxyHandler({})).open(Request(base + '/chat/completions', data=body,
@@ -364,6 +364,9 @@ def preview(path, dxf, csv, options, config, resources=None):
     started = time.monotonic()
     from .ai_settings import model_config, is_argon
     config = model_config(config, options.get('mode', 'fast'))
+    revision = options.get('model_revision')
+    if revision is not None and revision != config.get('ASSISTANT_MODEL_REVISION'):
+        raise PredictionError('MODEL_CHANGED', 'Model đã thay đổi, hãy kiểm tra lựa chọn và gửi lại yêu cầu', 409)
     call_timeout = 320 if is_argon(config['ASSISTANT_MODEL']) else 80
     deadline = time.monotonic() + call_timeout + 10
     config['ASSISTANT_CALL_TIMEOUT'] = call_timeout

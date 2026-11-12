@@ -15,6 +15,16 @@ from ai_service.services import assistant, assistant_sources
 
 
 class AssistantTests(unittest.TestCase):
+    def test_changed_model_revision_is_rejected_before_model_call(self):
+        from ai_service.services.ai_settings import model_config
+        revision = model_config(self.app.config, 'fast')['ASSISTANT_MODEL_REVISION']
+        with patch.object(assistant, 'call_model') as model:
+            response = self.client.post('/api/v1/assistant/preview', data={
+                'scope': 'map', 'message': 'hello', 'mode': 'fast', 'model_revision': revision + 'old'})
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json['error']['code'], 'MODEL_CHANGED')
+        model.assert_not_called()
+
     def test_inspector_api_avoids_dxf_reading_and_rejects_attachments(self):
         data = {'scope': 'map', 'inspector': 'true', 'message': 'Change line width',
                 'layer_context': json.dumps({'id': 'cad-1', 'component': 'net'})}
@@ -188,10 +198,13 @@ class AssistantTests(unittest.TestCase):
         opener = Mock()
         opener.open.return_value = remote
         with patch.object(assistant, 'build_opener', return_value=opener):
-            result = assistant.call_model([], self.app.config, response_kind='filters')
+            config = {**self.app.config, 'ASSISTANT_CONVERSATION': 'main-chat-session'}
+            result = assistant.call_model([], config, response_kind='filters')
+            self.assertIsNone(opener.open.call_args.args[0].get_header('X-map-predict-conversation'))
             self.assertEqual(result, {'so_tieu_chi': 1, 'phan_nhom': 'đồng bằng'})
             with self.assertRaises(PredictionError):
-                assistant.call_model([], self.app.config)
+                assistant.call_model([], config)
+            self.assertEqual(opener.open.call_args.args[0].get_header('X-map-predict-conversation'), 'main-chat-session')
 
     def test_edit_requires_preview_and_apply_only_returns_a_copy(self):
         original = self.dxf
