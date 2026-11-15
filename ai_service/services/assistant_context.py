@@ -14,10 +14,12 @@ def estimate(value):
 
 
 def bound(messages):
+    from .assistant_prompt import RESPONSE_CONTRACT, TURN_REMINDER
+    overhead = estimate(RESPONSE_CONTRACT) + estimate(TURN_REMINDER)
     messages = list(messages)
-    while len(messages) > 2 and sum(estimate(m['content']) for m in messages) > INPUT_LIMIT:
+    while len(messages) > 2 and overhead + sum(estimate(m['content']) for m in messages) > INPUT_LIMIT:
         messages.pop(1)
-    used = sum(estimate(m['content']) for m in messages)
+    used = overhead + sum(estimate(m['content']) for m in messages)
     if used > INPUT_LIMIT:
         raise PredictionError('CONTEXT_TOO_LARGE', 'Ngữ cảnh vượt 30k, hãy chọn một thành phần nhỏ hơn hoặc thu gọn hội thoại', 400)
     return messages, {'used': used, 'limit': LIMIT, 'estimated': True}

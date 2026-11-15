@@ -202,6 +202,9 @@ def rules(document):
 
 
 def call_model(messages, config, *, response_kind='assistant'):
+    if response_kind == 'assistant':
+        from .assistant_prompt import with_response_contract
+        messages = with_response_contract(messages)
     base = config['ASSISTANT_URL'].rstrip('/')
     payload = {'model': config['ASSISTANT_MODEL'], 'messages': messages,
                'temperature': 0.1, 'stream': False}

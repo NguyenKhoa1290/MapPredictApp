@@ -163,6 +163,8 @@ class AssistantTests(unittest.TestCase):
                 with patch.object(assistant, 'build_opener', return_value=opener):
                     assistant.call_model([], {**self.app.config, 'ASSISTANT_MODEL': model, 'ASSISTANT_EFFORT': effort})
                 payload = json.loads(opener.open.call_args.args[0].data)
+                from ai_service.services.assistant_prompt import RESPONSE_CONTRACT
+                self.assertEqual(payload['messages'][0], {'role': 'system', 'content': RESPONSE_CONTRACT})
                 self.assertEqual(opener.open.call_args.kwargs['timeout'], 150)
                 self.assertEqual(opener.open.call_args.args[0].get_header('X-map-predict-timeout'), '145' if model == 'gemini-4-argon' else '120')
                 self.assertEqual(payload['model'], model)
@@ -200,6 +202,7 @@ class AssistantTests(unittest.TestCase):
         with patch.object(assistant, 'build_opener', return_value=opener):
             config = {**self.app.config, 'ASSISTANT_CONVERSATION': 'main-chat-session'}
             result = assistant.call_model([], config, response_kind='filters')
+            self.assertEqual(json.loads(opener.open.call_args.args[0].data)['messages'], [])
             self.assertIsNone(opener.open.call_args.args[0].get_header('X-map-predict-conversation'))
             self.assertEqual(result, {'so_tieu_chi': 1, 'phan_nhom': 'đồng bằng'})
             with self.assertRaises(PredictionError):

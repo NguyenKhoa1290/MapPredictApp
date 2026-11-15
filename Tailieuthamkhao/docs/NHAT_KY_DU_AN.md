@@ -1058,6 +1058,16 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-15 Nhắc lại system prompt và cấu trúc phản hồi mỗi lượt
+
+- Bổ sung assistant_prompt.py chứa quy tắc phản hồi cố định, gửi bằng role system trong mọi lời gọi trả lời của trợ lý
+- Nhắc lại yêu cầu một JSON object có answer dạng chuỗi ở cuối nội dung người dùng của lượt hiện tại, không sửa lịch sử chat gốc
+- Áp dụng cho hội thoại tiếp nối, đổi model, bảng CSV, DXF, bảng thông số layer và thu gọn hội thoại, giữ schema hành động theo phạm vi
+- Không áp dụng schema chat vào lời gọi bộ lọc Qdrant, giữ kiểm tra JSON trước khi dựng bản nháp, không tự áp dụng thay đổi
+- Gemini Web hiện nhận system prompt qua văn bản do adapter dựng, không tuyên bố đây là systemInstruction native của Google, không bảo đảm LLM luôn tuân thủ
+- Giới hạn ngữ cảnh 30k tính cả quy tắc cố định và lời nhắc cuối lượt, vẫn dự phòng khoảng 4k cho phản hồi
+- Kiểm thử prompt trên từng lượt, giữ nguyên lịch sử, trường hợp không có câu hỏi, payload gửi đi và bộ lọc độc lập
+
 ## 2026-11-12 Đổi model giữa hội thoại
 
 - Giữ lịch sử chat hiển thị, CSV, DXF, bản nháp và lịch sử thao tác khi đổi Nhanh hoặc Thông minh, tạo mã hội thoại upstream mới để không trộn CID giữa các model
