@@ -18,33 +18,33 @@
   ],
   "members": [
     {
-      "id": "Nguyễn Thị Quỳnh Anh",
+      "id": "member-1",
       "bio": "",
-      "name": null,
+      "name": "Nguyễn Thị Quỳnh Anh",
       "role": null,
       "contact": null,
       "photo": null
     },
     {
-      "id": "Hà Minh Ngọc",
+      "id": "member-2",
       "bio": "",
-      "name": null,
+      "name": "Hà Minh Ngọc",
       "role": null,
       "contact": null,
       "photo": null
     },
     {
-      "id": "Đào Quang Minh",
+      "id": "member-3",
       "bio": "",
-      "name": null,
+      "name": "Đào Quang Minh",
       "role": null,
       "contact": null,
       "photo": null
     },
     {
-      "id": "Nguyễn Đăng Khoa",
+      "id": "member-4",
       "bio": "",
-      "name": null,
+      "name": "Nguyễn Đăng Khoa",
       "role": null,
       "contact": null,
       "photo": null
