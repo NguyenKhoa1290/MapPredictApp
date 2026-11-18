@@ -65,8 +65,8 @@ class AssistantJobTests(unittest.TestCase):
         self.assertEqual(model.call_count, 1)
         self.assertEqual(self.client.get('/api/v1/assistant/jobs/unknown', headers=self.headers).status_code, 404)
 
-    def test_argon_has_transport_margin_while_other_models_stay_at_80(self):
-        for model, expected in [('gemini-4-argon', 320), ('gemini-4-carbon', 320), ('gemini-3.1-pro', 80)]:
+    def test_pro_and_argon_have_transport_margin_while_lite_stays_at_80(self):
+        for model, expected in [('gemini-4-argon', 320), ('gemini-4-carbon', 320), ('gemini-3.1-pro', 320), ('gemini-3.5-flash-lite', 80)]:
             config = {'ASSISTANT_MODEL': model, 'ASSISTANT_SUPPORTED_EFFORTS': ['auto']}
             with patch('ai_service.services.ai_settings.model_config', return_value=config), \
                     patch('ai_service.services.ai_settings.require_argon_cookie'), \

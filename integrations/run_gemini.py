@@ -8,7 +8,7 @@ import uuid
 from gemini_web2api.config import CONFIG
 from gemini_web2api.server import GeminiHandler, ThreadedServer
 from gemini_web2api.session_manager import SessionManager
-from gemini_web2api.account_pool import AccountPool, ARGON, FLASH, SIGNED_MODELS, PREMIUM_MODELS
+from gemini_web2api.account_pool import AccountPool, ARGON, FLASH, PRO, SIGNED_MODELS, PREMIUM_MODELS
 from gemini_web2api.quota_guard import QuotaRejected
 from gemini_web2api.gemini import generate
 from gemini_web2api.tools import messages_to_prompt
@@ -17,6 +17,7 @@ from gemini_web2api.models import thinking_depth
 from gemini_web2api.session_audit import emit, session_event, error_type
 
 token = Path('/run/secrets/assistant_key').read_text().strip()
+LONG_RUNNING_MODELS = (*PREMIUM_MODELS, PRO)
 CONFIG.update(host='0.0.0.0', port=8081, api_keys=[token], cookie_file=None,
               auth_user=None, xsrf_token=None, log_requests=False,
               retry_attempts=1, request_timeout_sec=80, temporary_chats=False)
@@ -129,11 +130,11 @@ class ManagedGeminiHandler(GeminiHandler):
                     ChatRetention(CONFIG['audit_config_path']).complete(group, mode)
                 return text
             try:
-                ceiling = 300 if model in PREMIUM_MODELS else 75
+                ceiling = 300 if model in LONG_RUNNING_MODELS else 75
                 budget = max(1, min(ceiling, float(getattr(self, 'headers', {}).get('X-Map-Predict-Timeout', ceiling))))
             except (ValueError, TypeError):
-                budget = 300 if model in PREMIUM_MODELS else 75
-            if model in PREMIUM_MODELS:
+                budget = 300 if model in LONG_RUNNING_MODELS else 75
+            if model in LONG_RUNNING_MODELS:
                 # Request-local configuration, never extend other account/model calls.
                 with CONFIG.isolated():
                     CONFIG['request_timeout_sec'] = 300

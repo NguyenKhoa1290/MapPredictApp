@@ -2,6 +2,7 @@
 import json
 import math
 import re
+import time
 
 from shared.tabular import PredictionError
 
@@ -55,6 +56,7 @@ def validate_patch(patch):
 
 
 def preview(options, config):
+    started = time.monotonic()
     from .assistant import call_model
     compact = options.get('compact') == 'true'
     raw = options.get('layer_context', '')
@@ -73,8 +75,16 @@ def preview(options, config):
                  if isinstance(row, dict) and row.get('role') in ('user', 'assistant') and isinstance(row.get('content'), str)]
     messages.append({'role': 'user', 'content': json.dumps(layer, ensure_ascii=False) + '\n' + options['message']})
     messages, usage = bound(messages)
+    diagnostics = config.get('ASSISTANT_DIAGNOSTICS', {})
+    model_started = time.monotonic()
+    diagnostics.update(phase='model', phase_started=model_started, input_chars=sum(len(item['content']) for item in messages))
     result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': config.get('ASSISTANT_CALL_TIMEOUT', 80)})
+    model_ready = time.monotonic()
+    diagnostics.update(model_ms=round((model_ready - model_started) * 1000, 1), phase='validate', phase_started=model_ready)
     patch = validate_patch(result['layer_patch']) if layer and not compact and result.get('layer_patch') else None
     return {'answer': result['answer'][:2000 if compact else 16000], 'sources': [], 'edits': [], 'scores': [],
+            'timings': {'model_ms': round((model_ready - model_started) * 1000, 1),
+                        'total_ms': round((time.monotonic() - started) * 1000, 1),
+                        'input_chars': sum(len(item['content']) for item in messages)},
             'table_edits': [], 'rejected': [], 'token': None, 'layer_patch': patch, 'context': usage,
             'scope': 'Thông số layer đang chọn' if layer else 'Hội thoại', 'compact': compact}

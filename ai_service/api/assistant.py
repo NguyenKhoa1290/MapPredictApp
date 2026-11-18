@@ -31,6 +31,13 @@ def private_response(response):
 
 @assistant_api.errorhandler(PredictionError)
 def failed(error):
+    diagnostics = getattr(g, 'assistant_diagnostics', {})
+    now = time.monotonic()
+    metrics = {key: diagnostics[key] for key in ('model', 'phase', 'input_chars', 'dxf_ms', 'retrieval_ms', 'model_ms') if key in diagnostics}
+    metrics.update(error_code=error.code, request_id=g.request_id,
+                   total_ms=round((now - getattr(g, 'assistant_started', now)) * 1000, 1),
+                   phase_ms=round((now - diagnostics.get('phase_started', now)) * 1000, 1))
+    current_app.logger.info('assistant_request_failed %s', json.dumps(metrics, separators=(',', ':')))
     return jsonify(error={'code': error.code, 'message': str(error)}, request_id=g.request_id,
                    resource_cache=cached_references()), error.status
 
@@ -102,6 +109,8 @@ def uploaded(name, extension, limit):
 
 @assistant_api.post('/<action>')
 def execute(action):
+    g.assistant_started = time.monotonic()
+    g.assistant_diagnostics = {}
     if action not in ('preview', 'apply', 'export', 'authorize'):
         raise PredictionError('UNKNOWN_ACTION', 'Thao tác chưa được hỗ trợ', 404)
     if action == 'preview' and request.headers.get('Prefer') == 'respond-async' and not getattr(g, 'assistant_job', False):
@@ -224,7 +233,8 @@ def execute(action):
                 path.write_bytes(dxf)
             try:
                 if action == 'preview':
-                    result = assistant.preview(path, dxf, csv, options, current_app.config, resources=resources)
+                    config = {**current_app.config, 'ASSISTANT_DIAGNOSTICS': g.assistant_diagnostics}
+                    result = assistant.preview(path, dxf, csv, options, config, resources=resources)
                 else:
                     result = assistant.apply(path, dxf, csv, options.get('token', ''), current_app.config, resources=resources)
             except (ValueError, assistant.ezdxf.DXFError) as error:

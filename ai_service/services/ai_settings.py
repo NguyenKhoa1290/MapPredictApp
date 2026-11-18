@@ -23,6 +23,10 @@ def is_argon(model):
     return model.split('@', 1)[0] in (ARGON, 'gemini-4-carbon')
 
 
+def is_long_running(model):
+    return is_argon(model) or model.split('@', 1)[0] == 'gemini-3.1-pro'
+
+
 def passcode_file(config):
     path = config.get('AI_SETTINGS_FILE')
     return Path(path).with_name('argon-passcode.hash') if path else None

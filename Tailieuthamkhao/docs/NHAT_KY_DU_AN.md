@@ -1058,6 +1058,16 @@ Chờ thiết kế hệ thống mới từ người dùng. Sau khi nhận, đố
 - Lưu và khôi phục cấu hình Thông minh, giữ passcode cho Thông minh và Argon, API ngoài không kiểm tra cookie nội bộ hoặc nhận khóa service nội bộ
 - Bản chống nghẽn 344dd72c đã được CI thông qua và tự triển khai thành công trên VPS
 
+## 2026-11-18 Kiểm tra 504 khi 3.1 Pro nhận nội dung dài
+
+- Người dùng xác nhận 504 ở cả Thấp và Cao khi gửi nội dung dài
+- Kiểm tra VPS thấy AI_EMBEDDING_ENABLED=0, chatbot được model_config cố định truy xuất keyword, không gọi embedding, không có container embedding đang chạy
+- Request thành công có log ghi retrieval_ms=371,8 và model_ms=10486,7, không đủ log lỗi cũ để kết luận mọi 504 cùng một nguyên nhân
+- Phát hiện 3.1 bị giới hạn 75 giây ở adapter và 80 giây ở AI service, tăng riêng Pro lên 300 giây xử lý và 320 giây ở transport, giữ nguyên Flash-Lite
+- Giữ ánh xạ Cao của giao diện Pro thành medium thực tế, không đổi model hoặc fallback sang model khác
+- Thêm log assistant_request_failed có request_id, model, giai đoạn, thời gian và mã lỗi, không ghi nội dung người dùng, cookie hoặc passcode
+- Tách thời gian dựng context khỏi thời gian model và bổ sung timings cho chat bảng thông số layer để đo cả các lượt không gửi DXF
+
 ## 2026-11-15 Nhắc lại system prompt và cấu trúc phản hồi mỗi lượt
 
 - Bổ sung assistant_prompt.py chứa quy tắc phản hồi cố định, gửi bằng role system trong mọi lời gọi trả lời của trợ lý

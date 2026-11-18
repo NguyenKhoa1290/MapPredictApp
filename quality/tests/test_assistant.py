@@ -15,6 +15,23 @@ from ai_service.services import assistant, assistant_sources
 
 
 class AssistantTests(unittest.TestCase):
+    def test_failure_logs_stage_and_duration_without_user_content(self):
+        from shared.tabular import PredictionError
+        def timeout(*args, **kwargs):
+            args[4]['ASSISTANT_DIAGNOSTICS'].update(model='gemini-3.1-pro', phase='model',
+                phase_started=time.monotonic() - .5, input_chars=4000, secret='not-to-log')
+            raise PredictionError('MODEL_TIMEOUT', 'timeout', 504)
+        with patch.object(assistant, 'preview', side_effect=timeout), patch.object(self.app.logger, 'info') as log:
+            response = self.client.post('/api/v1/assistant/preview', data={'scope': 'map', 'message': 'private-user-content'})
+        self.assertEqual(response.status_code, 504)
+        entry = next(call.args[1] for call in log.call_args_list if call.args[0].startswith('assistant_request_failed'))
+        metrics = json.loads(entry)
+        self.assertEqual(metrics['phase'], 'model')
+        self.assertEqual(metrics['error_code'], 'MODEL_TIMEOUT')
+        self.assertGreaterEqual(metrics['phase_ms'], 400)
+        self.assertNotIn('not-to-log', entry)
+        self.assertNotIn('private-user-content', entry)
+
     def test_changed_model_revision_is_rejected_before_model_call(self):
         from ai_service.services.ai_settings import model_config
         revision = model_config(self.app.config, 'fast')['ASSISTANT_MODEL_REVISION']
@@ -174,6 +191,10 @@ class AssistantTests(unittest.TestCase):
                     self.assertEqual(payload['reasoning_effort'], effort)
         with patch.object(assistant, 'build_opener', return_value=opener):
             assistant.call_model([], {**self.app.config, 'ASSISTANT_MODEL': 'gemini-4-argon', 'ASSISTANT_CALL_TIMEOUT': 320})
+        self.assertEqual(opener.open.call_args.args[0].get_header('X-map-predict-timeout'), '300')
+        self.assertEqual(opener.open.call_args.kwargs['timeout'], 320)
+        with patch.object(assistant, 'build_opener', return_value=opener):
+            assistant.call_model([], {**self.app.config, 'ASSISTANT_MODEL': 'gemini-3.1-pro', 'ASSISTANT_CALL_TIMEOUT': 320})
         self.assertEqual(opener.open.call_args.args[0].get_header('X-map-predict-timeout'), '300')
         self.assertEqual(opener.open.call_args.kwargs['timeout'], 320)
 

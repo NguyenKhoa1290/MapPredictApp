@@ -221,8 +221,8 @@ def call_model(messages, config, *, response_kind='assistant'):
             headers['Authorization'] = 'Bearer ' + config['ASSISTANT_API_KEY']
     elif path:
         headers['Authorization'] = 'Bearer ' + Path(path).read_text().strip()
-        from .ai_settings import is_argon
-        ceiling = 300 if is_argon(config['ASSISTANT_MODEL']) else 120
+        from .ai_settings import is_long_running
+        ceiling = 300 if is_long_running(config['ASSISTANT_MODEL']) else 120
         headers['X-Map-Predict-Timeout'] = str(max(1, min(ceiling, config.get('ASSISTANT_CALL_TIMEOUT', 150) - 5)))
         if config.get('ASSISTANT_CONVERSATION') and response_kind != 'filters':
             headers['X-Map-Predict-Conversation'] = config['ASSISTANT_CONVERSATION']
@@ -365,12 +365,14 @@ def new_table(value):
 
 def preview(path, dxf, csv, options, config, resources=None):
     started = time.monotonic()
-    from .ai_settings import model_config, is_argon
+    from .ai_settings import model_config, is_long_running
     config = model_config(config, options.get('mode', 'fast'))
     revision = options.get('model_revision')
     if revision is not None and revision != config.get('ASSISTANT_MODEL_REVISION'):
         raise PredictionError('MODEL_CHANGED', 'Model đã thay đổi, hãy kiểm tra lựa chọn và gửi lại yêu cầu', 409)
-    call_timeout = 320 if is_argon(config['ASSISTANT_MODEL']) else 80
+    call_timeout = 320 if is_long_running(config['ASSISTANT_MODEL']) else 80
+    diagnostics = config.get('ASSISTANT_DIAGNOSTICS', {})
+    diagnostics.update(model=config['ASSISTANT_MODEL'], phase='prepare', phase_started=time.monotonic())
     deadline = time.monotonic() + call_timeout + 10
     config['ASSISTANT_CALL_TIMEOUT'] = call_timeout
     conversation = options.get('conversation', '')
@@ -417,8 +419,10 @@ def preview(path, dxf, csv, options, config, resources=None):
         summary = describe(document, options.get('layer', '')) if document else {'entities': [], 'entity_count': 0}
     message = options['message']
     dxf_ready = time.monotonic()
+    diagnostics.update(dxf_ms=round((dxf_ready - started) * 1000, 1), phase='retrieval', phase_started=dxf_ready)
     knowledge = retrieve(message, config)
     retrieved = time.monotonic()
+    diagnostics.update(retrieval_ms=round((retrieved - dxf_ready) * 1000, 1), phase='context', phase_started=retrieved)
     if knowledge['mode'] == 'local_document':
         rubric = Path(config['ASSISTANT_RUBRIC']).read_text(encoding='utf-8-sig')
         catalog = rules(rubric)
@@ -456,8 +460,11 @@ def preview(path, dxf, csv, options, config, resources=None):
         raise PredictionError('ASSISTANT_TIMEOUT', 'Tra cứu dữ liệu quá thời gian, hãy thử lại', 503)
     from .assistant_context import bound
     messages, context_usage = bound(messages)
+    model_started = time.monotonic()
+    diagnostics.update(phase='model', phase_started=model_started, input_chars=sum(len(item['content']) for item in messages))
     result = call_model(messages, {**config, 'ASSISTANT_CALL_TIMEOUT': min(call_timeout, remaining)})
     model_ready = time.monotonic()
+    diagnostics.update(model_ms=round((model_ready - model_started) * 1000, 1), phase='validate', phase_started=model_ready)
     sources = [verify_source(source) for source in (result.get('sources') or [])[:3]
                if isinstance(source, dict)] if context['web_search'] else []
     actions, scores, rejected, seen = [], [], [], set()
@@ -548,7 +555,8 @@ def preview(path, dxf, csv, options, config, resources=None):
     return {'answer': result['answer'][:16000], 'context': context_usage, 'sources': sources, 'edits': actions, 'scores': scores, 'table_edits': table_edits,
             'timings': {'dxf_ms': round((dxf_ready - started) * 1000, 1),
                         'retrieval_ms': round((retrieved - dxf_ready) * 1000, 1),
-                        'model_ms': round((model_ready - retrieved) * 1000, 1),
+                        'context_ms': round((model_started - retrieved) * 1000, 1),
+                        'model_ms': round((model_ready - model_started) * 1000, 1),
                         'total_ms': round((time.monotonic() - started) * 1000, 1),
                         'summary_cache_hits': summary_hits,
                         'input_chars': sum(len(item['content']) for item in messages)},
