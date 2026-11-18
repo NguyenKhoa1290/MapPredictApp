@@ -69,7 +69,7 @@ describe('React portal shell', () => {
     expect(within(nav).getByRole('link', { name: 'Giới thiệu' }).getAttribute('aria-current')).toBe('page');
     expect(screen.queryByRole('link', { name: 'Quản trị AI' })).toBeNull();
     expect(document.querySelector('a[href*="admin"]')).toBeNull();
-    expect(screen.queryByRole('heading', { name: /Những người/ })).toBeNull();
+    expect(screen.getByRole('heading', { name: /Những người/ })).toBeTruthy();
     expect(fetcher.mock.calls.every(([url]) => String(url).startsWith('/api/v1/'))).toBe(true);
     expect(fetcher.mock.calls).toHaveLength(2);
   });
