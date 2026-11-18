@@ -16,7 +16,7 @@ export function installAssistant(ctx) {
       <section id="assistant-window" class="assistant-window" role="dialog" aria-label="Trợ lý GIS" hidden>
         <header class="assistant-header"><div><strong>Trợ lý GIS</strong><small>DXF và tiêu chí đánh giá</small></div><button type="button" class="assistant-close" aria-label="Thu nhỏ trợ lý">×</button></header>
         <div class="assistant-messages" role="log" aria-live="polite"></div>
-        <details class="assistant-model-picker"><summary><span class="assistant-picker-summary">Nhanh · Mặc định</span><span aria-hidden="true">⌄</span></summary>
+        <details class="assistant-model-picker"><summary><span class="assistant-picker-summary">Nhanh - Mặc định</span></summary>
           <div class="assistant-model-card">
             <strong class="assistant-effort-heading">Mặc định</strong>
             <div class="assistant-model-label"><button type="button" class="assistant-model-trigger" aria-label="Chọn chế độ trả lời" aria-haspopup="listbox" aria-expanded="false" aria-controls="assistant-model-options"><span class="assistant-model-name">Nhanh</span><span aria-hidden="true">⌄</span></button>
