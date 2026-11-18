@@ -19,7 +19,7 @@ export function installAssistant(ctx) {
         <details class="assistant-model-picker"><summary><span class="assistant-picker-summary">Nhanh - Mặc định</span></summary>
           <div class="assistant-model-card">
             <strong class="assistant-effort-heading">Mặc định</strong>
-            <div class="assistant-model-label"><button type="button" class="assistant-model-trigger" aria-label="Chọn chế độ trả lời" aria-haspopup="listbox" aria-expanded="false" aria-controls="assistant-model-options"><span class="assistant-model-name">Nhanh</span><span aria-hidden="true">⌄</span></button>
+            <div class="assistant-model-label"><button type="button" class="assistant-model-trigger" aria-label="Chọn chế độ trả lời" aria-haspopup="listbox" aria-expanded="false" aria-controls="assistant-model-options"><span class="assistant-model-name">Nhanh</span></button>
               <div id="assistant-model-options" class="assistant-model-options" role="listbox" aria-label="Chế độ trả lời" hidden><button type="button" role="option" data-mode="fast" aria-selected="true">Nhanh</button><button type="button" role="option" data-mode="smart" aria-selected="false">Thông minh</button></div>
               <select class="assistant-mode" aria-label="Model" hidden><option value="fast">Nhanh</option><option value="smart">Thông minh</option></select>
             </div>
